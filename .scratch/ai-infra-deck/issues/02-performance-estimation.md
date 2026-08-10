@@ -4,10 +4,10 @@
 
 **Blocked by:** 00 — 视觉与骨架基础设施
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `.scratch/ai-infra-deck/02-performance-estimation/outline.md` 大纲经作者确认，数字可复算、量纲自洽
-- [ ] 显存三项分解覆盖经典LLM + MAGI + LTX-2，各有完整数字例子
-- [ ] roofline 图给出算力/带宽约束的直觉解释
-- [ ] `deck/chapters/01-performance-estimation.html` 与共享主题同构，可独立打开
-- [ ] 已并入 `index.html`，图表数字与大纲一致
+- [x] `.scratch/ai-infra-deck/02-performance-estimation/outline.md` 大纲经作者确认，数字可复算、量纲自洽
+- [x] 显存三项分解覆盖经典LLM + MAGI + LTX-2，各有完整数字例子
+- [x] roofline 图给出算力/带宽约束的直觉解释
+- [x] `deck/chapters/01-performance-estimation.html` 与共享主题同构，可独立打开
+- [x] 已并入 `index.html`，图表数字与大纲一致

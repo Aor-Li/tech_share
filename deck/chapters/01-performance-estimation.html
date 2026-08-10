@@ -1,0 +1,217 @@
+<!doctype html>
+<!--
+  Chapter 01 — ① 性能估计基础章 (memory + roofline intuition).
+  Outline: .scratch/ai-infra-deck/02-performance-estimation/outline.md
+  Ticket:  .scratch/ai-infra-deck/issues/02-performance-estimation.md
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Infra 分享 — 性能估计</title>
+  <link rel="stylesheet" href="../theme.css" />
+</head>
+<body>
+  <div class="deck">
+
+    <!-- Slide 1: three-way memory breakdown framework -->
+    <section class="slide">
+      <p class="slide-kicker">① 性能估计 · 显存去哪了</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">显存三项分解：权重 / 激活 / KV cache</h2>
+      <div class="slide-body" style="max-width: none;">
+        <p>
+          任意时刻的显存占用都可以拆成三项，此消彼长：训练时权重与激活主导，推理解码时权重与 <span class="term">KV cache</span> 主导。
+          下面三页会把同一套公式套在<span class="term">经典 LLM</span>、<span class="term">MAGI</span>、<span class="term">LTX-2</span> 三个真实形状上。
+        </p>
+        <div class="stat-row">
+          <div class="stat-card stat-card--accent">
+            <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">权重 Weights</span>
+            <p style="margin: 0.6rem 0 0; font-size: 0.95rem; color: var(--text-muted);">
+              参数量 × 精度字节数，训练时再加优化器状态/梯度。
+            </p>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">激活 Activations</span>
+            <p style="margin: 0.6rem 0 0; font-size: 0.95rem; color: var(--text-muted);">
+              batch × seq × hidden × layers；是否开重计算差一个数量级（细节留给⑤）。
+            </p>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">KV cache</span>
+            <p style="margin: 0.6rem 0 0; font-size: 0.95rem; color: var(--text-muted);">
+              <span class="term">2 × layers × heads × head_dim × token 数 × batch × bytes</span>（K、V 各一份，故×2）。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 2: classic LLM walkthrough -->
+    <section class="slide">
+      <p class="slide-kicker">① 性能估计 · 经典 LLM</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">走一遍：Llama-2-7B 级配置</h2>
+      <div class="slide-body" style="max-width: none;">
+        <p>
+          <span class="term">hidden=4096, layers=32, heads=32, head_dim=128</span>，参数量 <span class="num">6.7</span>B。
+        </p>
+        <div class="stat-row">
+          <div class="stat-card stat-card--accent">
+            <span class="stat-num"><span class="num">120.6</span> GB</span>
+            <span class="stat-label">训练权重+优化器（bf16权重13.4 + fp32主权重26.8 + 梯度26.8 + Adam动量53.6），单卡放不下——④会用ZeRO/FSDP解决</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num"><span class="num">97</span> → <span class="num">2</span> GB</span>
+            <span class="stat-label">训练激活（batch=1, seq=4096）：不开重计算 97GB，开满重计算 2GB——⑤展开机制</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num"><span class="num">2.0</span> → <span class="num">64</span> GB</span>
+            <span class="stat-label">解码 KV cache：单请求 seq=4096 时 2GB，32 个并发占满上下文时 64GB——服务吞吐的隐形天花板</span>
+          </div>
+        </div>
+        <p style="margin-top: 1.25rem;">
+          三项里权重相对固定，<span class="term">激活</span>和 <span class="term">KV cache</span> 才是随配置暴涨的部分。
+        </p>
+      </div>
+    </section>
+
+    <!-- Slide 3: MAGI walkthrough -->
+    <section class="slide">
+      <p class="slide-kicker">① 性能估计 · MAGI</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">落到 MAGI：更大的 hidden，垒得更快</h2>
+      <div class="slide-body" style="max-width: none;">
+        <p>
+          <span class="term">hidden=5120, layers=40, head_dim=128</span>（heads=40）。参数量按 dense block 估算 <span class="term">12·h²·L</span> ≈ <span class="num">12.6</span>B
+          <span style="color: var(--text-muted); font-size: 0.85rem;">（近似估算，MAGI 未公开精确参数量，仅用于量级对比）</span>。
+        </p>
+        <div class="stat-row">
+          <div class="stat-card stat-card--accent">
+            <span class="stat-num"><span class="num">23.4</span> GB</span>
+            <span class="stat-label">bf16 权重（推理 / SFT-DMD 蒸馏后常见形态）</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num"><span class="num">151.6</span> GB</span>
+            <span class="stat-label">激活（假设单步 4096 个 latent token，batch=1，不开重计算）——同公式，hidden 和 layers 都更大，涨得比经典 LLM 更快</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num"><span class="num">3.125</span> GB</span>
+            <span class="stat-label">流式生成 KV（frame-reservoir + eviction，见 SNL 机制）：缓存只保留 reservoir 深度内的窗口，<b style="color: var(--text);">大小不随生成总长度增长</b></span>
+          </div>
+        </div>
+        <p style="margin-top: 1.25rem;">
+          换成视频 DiT 形状，公式不变，但每一项的账单都变了——尤其是 KV 从"随 seq 线性增长"变成"恒定窗口"。
+        </p>
+      </div>
+    </section>
+
+    <!-- Slide 4: LTX-2 sink + sliding window -->
+    <section class="slide">
+      <p class="slide-kicker">① 性能估计 · LTX-2</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">落到 LTX-2：sink + 滑窗，显存有硬上限</h2>
+      <div class="slide-body" style="max-width: none;">
+        <p style="font-size: 0.9rem; color: var(--text-muted);">
+          LTX-2 仅 <span class="term">layers=48</span> 是公开规格；本页 <span class="term">hidden=4096</span> 为示例参数（非产品真实值），只用于展示 sink+滑窗 KV 策略的形状。
+        </p>
+        <svg class="chart" viewBox="0 0 1200 220" width="100%" height="220" role="img"
+             aria-label="LTX-2 KV 缓存时间轴：前 2 个 chunk 为常驻 sink，中间 7 个已丢弃，最近 6 个滑动窗口内保留，末尾为下一步生成位置">
+          <text class="chart-caption" x="66" y="30" text-anchor="middle">sink（常驻）</text>
+          <text class="chart-caption" x="390" y="30" text-anchor="middle">已丢弃</text>
+          <text class="chart-caption" x="822" y="30" text-anchor="middle">滑动窗口（随时间平移）</text>
+
+          <!-- sink chunks: 0,1 -->
+          <rect x="30" y="60" width="60" height="50" rx="6" fill="var(--accent)" opacity="0.85" />
+          <rect x="102" y="60" width="60" height="50" rx="6" fill="var(--accent)" opacity="0.85" />
+
+          <!-- evicted chunks: 2..8 -->
+          <rect x="174" y="60" width="60" height="50" rx="6" fill="none" stroke="var(--border)" stroke-dasharray="4 3" opacity="0.5" />
+          <rect x="246" y="60" width="60" height="50" rx="6" fill="none" stroke="var(--border)" stroke-dasharray="4 3" opacity="0.5" />
+          <rect x="318" y="60" width="60" height="50" rx="6" fill="none" stroke="var(--border)" stroke-dasharray="4 3" opacity="0.5" />
+          <rect x="390" y="60" width="60" height="50" rx="6" fill="none" stroke="var(--border)" stroke-dasharray="4 3" opacity="0.5" />
+          <rect x="462" y="60" width="60" height="50" rx="6" fill="none" stroke="var(--border)" stroke-dasharray="4 3" opacity="0.5" />
+          <rect x="534" y="60" width="60" height="50" rx="6" fill="none" stroke="var(--border)" stroke-dasharray="4 3" opacity="0.5" />
+          <rect x="606" y="60" width="60" height="50" rx="6" fill="none" stroke="var(--border)" stroke-dasharray="4 3" opacity="0.5" />
+
+          <!-- window chunks: 9..14 (6 chunks, max_chunks=6) -->
+          <rect x="678" y="60" width="60" height="50" rx="6" fill="var(--accent-2)" opacity="0.85" />
+          <rect x="750" y="60" width="60" height="50" rx="6" fill="var(--accent-2)" opacity="0.85" />
+          <rect x="822" y="60" width="60" height="50" rx="6" fill="var(--accent-2)" opacity="0.85" />
+          <rect x="894" y="60" width="60" height="50" rx="6" fill="var(--accent-2)" opacity="0.85" />
+          <rect x="966" y="60" width="60" height="50" rx="6" fill="var(--accent-2)" opacity="0.85" />
+          <rect x="1038" y="60" width="60" height="50" rx="6" fill="var(--accent-2)" opacity="0.85" />
+
+          <!-- next chunk to generate -->
+          <rect x="1110" y="60" width="60" height="50" rx="6" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="3 3" />
+          <text class="chart-label" x="1140" y="90" text-anchor="middle" dy="0.35em">?</text>
+
+          <text class="chart-label" x="600" y="150" text-anchor="middle">生成方向 →</text>
+          <text class="chart-caption" x="600" y="180" text-anchor="middle">
+            总缓存 token 数恒为 (sink 2 + window 6) × 1024 = 8192，与已生成帧数无关
+          </text>
+        </svg>
+        <div class="stat-row" style="margin-top: 1rem;">
+          <div class="stat-card stat-card--accent">
+            <span class="stat-num"><span class="num">6.0</span> GB</span>
+            <span class="stat-label">2×48×32×128×8192×2 bytes——硬上限，生成再长的视频也不会突破</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label" style="color: var(--text); font-weight: 700;">文本交叉注意力 K/V</span>
+            <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+              依赖当前噪声级 sigma，<b style="color: var(--text);">不缓存</b>、每步重算——用算力换掉了存储，呼应下一页的 roofline。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 5: roofline -->
+    <section class="slide">
+      <p class="slide-kicker">① 性能估计 · Roofline</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">Roofline 直觉：省显存还是省带宽</h2>
+      <div class="slide-body" style="max-width: none;">
+        <p>
+          实际吞吐 = <span class="term">min(峰值算力, 带宽 × 算术强度)</span>；算术强度 <span class="term">AI = FLOPs / 搬运字节数</span>，
+          AI 越低越"带宽受限"，越高越"算力受限"。
+        </p>
+        <svg class="chart" viewBox="0 0 1000 380" width="100%" height="320" role="img"
+             aria-label="Roofline 图：算术强度为横轴、吞吐为纵轴，屋顶折线在脊点前是带宽受限斜线，脊点后是算力受限水平线；decode 点落在斜线段，GEMM 点落在水平段">
+          <line class="chart-grid" x1="80" y1="340" x2="920" y2="340" />
+          <line class="chart-grid" x1="80" y1="340" x2="80" y2="40" />
+
+          <!-- roofline: bandwidth-bound slope then compute-bound plateau -->
+          <path class="chart-line" d="M80,340 L400,80 L920,80" />
+
+          <!-- ridge point -->
+          <circle cx="400" cy="80" r="5" fill="var(--text)" />
+          <text class="chart-label" x="400" y="60" text-anchor="middle">脊点 AI≈153（A100: 312TFLOPs / 2039GB/s）</text>
+
+          <!-- decode point: low AI, bandwidth-bound -->
+          <circle cx="150" cy="283" r="7" fill="var(--accent)" />
+          <text class="chart-label-strong" x="150" y="308" text-anchor="middle">decode</text>
+          <text class="chart-caption" x="150" y="326" text-anchor="middle">AI 低 → 带宽受限（读整份 KV cache，见①②页 2GB/64GB）</text>
+
+          <!-- GEMM point: high AI, compute-bound -->
+          <circle cx="750" cy="80" r="7" fill="var(--accent-2)" />
+          <text class="chart-label-strong" x="750" y="60" text-anchor="middle">GEMM</text>
+          <text class="chart-caption" x="750" y="105" text-anchor="middle">AI 高 → 算力受限（训练/prefill 大矩阵乘）</text>
+
+          <text class="chart-label" x="500" y="368" text-anchor="middle">算术强度 AI（FLOPs/byte，log）→</text>
+          <text class="chart-label" x="40" y="190" text-anchor="middle" transform="rotate(-90 40 190)">吞吐 →</text>
+        </svg>
+        <p>
+          显存三项分解告诉你"占多少"，roofline 告诉你"快不快"——两者合起来是①的完整答案，
+          ② <span class="term">通讯</span>的代价模型会在此基础上继续展开。
+        </p>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="page-indicator" id="page-indicator"></div>
+  <div class="deck-nav-hint">← → 翻页</div>
+
+  <script src="../nav.js"></script>
+</body>
+</html>
