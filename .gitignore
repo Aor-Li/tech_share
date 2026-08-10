@@ -1,0 +1,13 @@
+# .scratch/ 有意纳入版本控制以支持远程开发（见 docs/adr/0004）。
+# 此处只忽略机器产物；人可读的过程档案（spec/大纲/tickets）随仓库同步。
+
+# OS / editor
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node
+node_modules/
