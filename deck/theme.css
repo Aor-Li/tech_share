@@ -64,6 +64,16 @@ html, body {
 
 body {
   overflow: hidden;
+  /* Faint infra-grid + vignette: gives every slide depth without
+     competing with content. Kept as a fixed layer so it never
+     scrolls or resizes with slide content. */
+  background-image:
+    radial-gradient(ellipse 70% 55% at 50% -10%, rgba(203, 166, 247, 0.10), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 110%, rgba(148, 226, 213, 0.07), transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+  background-position: 0 0, 0 0, -1px -1px, -1px -1px;
 }
 
 /* ---- Deck / slide shell ---- */
@@ -87,6 +97,14 @@ body {
   display: flex;
 }
 
+.slide-eyebrow-rule {
+  width: 2.5rem;
+  height: 3px;
+  border-radius: 2px;
+  margin: 0 0 1rem;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
 .slide-kicker {
   font-family: var(--font-mono);
   font-size: 0.9rem;
@@ -97,11 +115,16 @@ body {
 }
 
 .slide-title {
-  font-size: 2.4rem;
-  font-weight: 700;
+  font-size: clamp(2.2rem, 1.4rem + 2.4vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
   color: var(--text);
   margin: 0 0 1.5rem;
-  line-height: 1.25;
+  line-height: 1.15;
+}
+
+.slide-title--hero {
+  font-size: clamp(2.6rem, 1.6rem + 3vw, 4.2rem);
 }
 
 .slide-title .term {
@@ -132,6 +155,83 @@ body {
   font-weight: 600;
 }
 
+/* ---- Panels & stat cards (bordered surface, used for callouts/legends) ---- */
+
+.panel {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+}
+
+.stat-row {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.stat-card {
+  flex: 1;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+}
+
+.stat-card--accent {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.stat-num {
+  display: block;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 2.1rem;
+  color: var(--accent-2);
+  line-height: 1;
+}
+
+.stat-card--accent .stat-num {
+  color: var(--accent);
+}
+
+.stat-label {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.stat-bar {
+  margin-top: 1rem;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+  background: var(--surface);
+}
+
+.stat-bar-seg {
+  height: 100%;
+}
+
+.stat-bar-seg--accent { background: var(--accent); }
+.stat-bar-seg--accent-2 { background: var(--accent-2); }
+.stat-bar-seg--rest { background: var(--surface2, var(--ctp-surface2)); }
+
+/* Term legend chips */
+.term-pill {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  margin: 0 0.4rem 0.4rem 0;
+}
+
 /* ---- Charts (SVG, linear style, single accent color) ---- */
 
 .chart {
@@ -158,8 +258,67 @@ body {
 
 .chart-label {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   fill: var(--text-muted);
+}
+
+.chart-label-strong {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 700;
+  fill: var(--text);
+}
+
+.chart-index {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  fill: var(--accent-2);
+}
+
+.chart-caption {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  fill: var(--text-muted);
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pano-path {
+    animation: draw-in 1.1s ease forwards;
+  }
+
+  .pano-node {
+    opacity: 0;
+    animation: fade-up 0.5s ease forwards;
+  }
+
+  .pano-node:nth-of-type(1) { animation-delay: 0.05s; }
+  .pano-node:nth-of-type(2) { animation-delay: 0.16s; }
+  .pano-node:nth-of-type(3) { animation-delay: 0.27s; }
+  .pano-node:nth-of-type(4) { animation-delay: 0.38s; }
+  .pano-node:nth-of-type(5) { animation-delay: 0.49s; }
+  .pano-node:nth-of-type(6) { animation-delay: 0.60s; }
+  .pano-node:nth-of-type(7) { animation-delay: 0.71s; }
+
+  .pano-current-glow {
+    animation: pulse-glow 2.6s ease-in-out infinite;
+  }
+}
+
+@keyframes draw-in {
+  from { stroke-dashoffset: 1600; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.75; }
 }
 
 /* ---- Navigation chrome (shared by index.html and standalone chapters) ---- */

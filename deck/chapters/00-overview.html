@@ -14,104 +14,142 @@
   <div class="deck">
     <section class="slide">
       <p class="slide-kicker">开场 · Panorama</p>
-      <h2 class="slide-title">全景地图</h2>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title slide-title--hero">全景地图</h2>
       <div class="slide-body">
-        <svg class="chart" viewBox="0 0 1200 260" width="100%" height="260" role="img"
-             aria-label="全景地图：开场、性能估计、通讯原语、序列并行、并行范式、显存优化、真实部署 七节点流程图">
+        <svg class="chart" viewBox="0 0 1200 300" width="100%" height="300" role="img"
+             aria-label="全景地图：开场、性能估计、通讯原语、序列并行、并行范式、显存优化、真实部署 七节点流程图，节点沿一条渐升的天际线排列">
           <defs>
-            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
               <path d="M0,0 L10,5 L0,10 z" fill="var(--accent-2)" />
             </marker>
+            <linearGradient id="pano-gradient" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="var(--accent)" />
+              <stop offset="100%" stop-color="var(--accent-2)" />
+            </linearGradient>
+            <filter id="node-glow" x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur stdDeviation="7" />
+            </filter>
           </defs>
 
-          <line class="chart-grid" x1="60" y1="60" x2="1140" y2="60" />
-
-          <!-- connecting arrows (dependency chain) -->
-          <line class="chart-line accent-2" marker-end="url(#arrow)" x1="82" y1="60" x2="218" y2="60" />
-          <line class="chart-line accent-2" marker-end="url(#arrow)" x1="262" y1="60" x2="398" y2="60" />
-          <line class="chart-line accent-2" marker-end="url(#arrow)" x1="442" y1="60" x2="578" y2="60" />
-          <line class="chart-line accent-2" marker-end="url(#arrow)" x1="622" y1="60" x2="758" y2="60" />
-          <line class="chart-line accent-2" marker-end="url(#arrow)" x1="802" y1="60" x2="938" y2="60" />
-          <line class="chart-line accent-2" marker-end="url(#arrow)" x1="982" y1="60" x2="1118" y2="60" />
+          <!-- signature: a rising skyline path connects all seven stops -->
+          <path class="pano-path"
+                d="M70,170 C159,170 159,132 248,132 C337,132 337,152 426,152 C515,152 515,96 604,96 C693,96 693,124 782,124 C871,124 871,78 960,78 C1049,78 1049,54 1138,54"
+                fill="none" stroke="url(#pano-gradient)" stroke-width="2.5" stroke-linecap="round"
+                stroke-dasharray="1600" stroke-dashoffset="0" marker-end="url(#arrow)" />
 
           <!-- node 0: current page -->
-          <circle cx="60" cy="60" r="22" fill="var(--accent)" stroke="var(--accent)" stroke-width="2" />
-          <text class="chart-label" x="60" y="110" text-anchor="middle" font-weight="700" fill="var(--text)">全景地图</text>
-          <text class="chart-label" x="60" y="128" text-anchor="middle">你在这里</text>
+          <g class="pano-node">
+            <circle class="pano-current-glow" cx="70" cy="170" r="30" fill="var(--accent)" filter="url(#node-glow)" />
+            <circle cx="70" cy="170" r="21" fill="var(--accent)" stroke="var(--accent)" stroke-width="2" />
+            <text class="chart-label-strong" x="70" y="216" text-anchor="middle">全景地图</text>
+            <text class="chart-label" x="70" y="234" text-anchor="middle">你在这里</text>
+          </g>
 
           <!-- node 1 -->
-          <circle cx="240" cy="60" r="18" fill="none" stroke="var(--accent-2)" stroke-width="2" />
-          <text class="chart-label" x="240" y="60" dy="0.35em" text-anchor="middle" fill="var(--text)">①</text>
-          <text class="chart-label" x="240" y="110" text-anchor="middle">性能估计</text>
-          <text class="chart-label" x="240" y="128" text-anchor="middle">显存 / 算力</text>
+          <g class="pano-node">
+            <circle cx="248" cy="132" r="18" fill="var(--bg)" stroke="var(--accent-2)" stroke-width="2" />
+            <text class="chart-index" x="248" y="132" dy="0.35em" text-anchor="middle">①</text>
+            <text class="chart-label-strong" x="248" y="178" text-anchor="middle">性能估计</text>
+            <text class="chart-label" x="248" y="196" text-anchor="middle">显存 / 算力</text>
+          </g>
 
           <!-- node 2 -->
-          <circle cx="420" cy="60" r="18" fill="none" stroke="var(--accent-2)" stroke-width="2" />
-          <text class="chart-label" x="420" y="60" dy="0.35em" text-anchor="middle" fill="var(--text)">②</text>
-          <text class="chart-label" x="420" y="110" text-anchor="middle">通讯原语</text>
-          <text class="chart-label" x="420" y="128" text-anchor="middle">all-reduce 等</text>
+          <g class="pano-node">
+            <circle cx="426" cy="152" r="18" fill="var(--bg)" stroke="var(--accent-2)" stroke-width="2" />
+            <text class="chart-index" x="426" y="152" dy="0.35em" text-anchor="middle">②</text>
+            <text class="chart-label-strong" x="426" y="198" text-anchor="middle">通讯原语</text>
+            <text class="chart-label" x="426" y="216" text-anchor="middle">all-reduce 等</text>
+          </g>
 
-          <!-- node 3 -->
-          <circle cx="600" cy="60" r="18" fill="none" stroke="var(--accent-2)" stroke-width="2" />
-          <text class="chart-label" x="600" y="60" dy="0.35em" text-anchor="middle" fill="var(--text)">③</text>
-          <text class="chart-label" x="600" y="110" text-anchor="middle">序列维并行</text>
-          <text class="chart-label" x="600" y="128" text-anchor="middle">Ulysses / Ring</text>
+          <!-- node 3: sequence parallelism, the bridge — visual peak of this segment -->
+          <g class="pano-node">
+            <circle cx="604" cy="96" r="18" fill="var(--bg)" stroke="var(--accent-2)" stroke-width="2" />
+            <text class="chart-index" x="604" y="96" dy="0.35em" text-anchor="middle">③</text>
+            <text class="chart-label-strong" x="604" y="142" text-anchor="middle">序列维并行</text>
+            <text class="chart-label" x="604" y="160" text-anchor="middle">Ulysses / Ring</text>
+          </g>
 
           <!-- node 4 -->
-          <circle cx="780" cy="60" r="18" fill="none" stroke="var(--accent-2)" stroke-width="2" />
-          <text class="chart-label" x="780" y="60" dy="0.35em" text-anchor="middle" fill="var(--text)">④</text>
-          <text class="chart-label" x="780" y="110" text-anchor="middle">训练并行范式</text>
-          <text class="chart-label" x="780" y="128" text-anchor="middle">DP/TP/PP/EP</text>
+          <g class="pano-node">
+            <circle cx="782" cy="124" r="18" fill="var(--bg)" stroke="var(--accent-2)" stroke-width="2" />
+            <text class="chart-index" x="782" y="124" dy="0.35em" text-anchor="middle">④</text>
+            <text class="chart-label-strong" x="782" y="170" text-anchor="middle">训练并行范式</text>
+            <text class="chart-label" x="782" y="188" text-anchor="middle">DP/TP/PP/EP</text>
+          </g>
 
           <!-- node 5 -->
-          <circle cx="960" cy="60" r="18" fill="none" stroke="var(--accent-2)" stroke-width="2" />
-          <text class="chart-label" x="960" y="60" dy="0.35em" text-anchor="middle" fill="var(--text)">⑤</text>
-          <text class="chart-label" x="960" y="110" text-anchor="middle">显存与计算优化</text>
-          <text class="chart-label" x="960" y="128" text-anchor="middle">checkpoint / offload</text>
+          <g class="pano-node">
+            <circle cx="960" cy="78" r="18" fill="var(--bg)" stroke="var(--accent-2)" stroke-width="2" />
+            <text class="chart-index" x="960" y="78" dy="0.35em" text-anchor="middle">⑤</text>
+            <text class="chart-label-strong" x="960" y="124" text-anchor="middle">显存与计算优化</text>
+            <text class="chart-label" x="960" y="142" text-anchor="middle">checkpoint / offload</text>
+          </g>
 
-          <!-- node 6: closing -->
-          <circle cx="1140" cy="60" r="18" fill="none" stroke="var(--accent-2)" stroke-width="2" />
-          <text class="chart-label" x="1140" y="110" text-anchor="middle">真实部署</text>
-          <text class="chart-label" x="1140" y="128" text-anchor="middle">Philoflow / minimax</text>
+          <!-- node 6: closing — highest point of the skyline -->
+          <g class="pano-node">
+            <circle cx="1138" cy="54" r="18" fill="var(--bg)" stroke="var(--accent-2)" stroke-width="2" />
+            <text class="chart-label-strong" x="1138" y="100" text-anchor="middle">真实部署</text>
+            <text class="chart-label" x="1138" y="118" text-anchor="middle">Philoflow / minimax</text>
+          </g>
 
-          <!-- dependency captions under the arrows -->
-          <text class="chart-label" x="150" y="180" text-anchor="middle">先算清代价</text>
-          <text class="chart-label" x="330" y="180" text-anchor="middle">通讯的特化应用</text>
-          <text class="chart-label" x="510" y="180" text-anchor="middle">通讯 → 并行范式的桥</text>
-          <text class="chart-label" x="690" y="180" text-anchor="middle">范式选定后</text>
-          <text class="chart-label" x="870" y="180" text-anchor="middle">再省显存/算力</text>
-          <text class="chart-label" x="1050" y="180" text-anchor="middle">组合成真实系统</text>
+          <!-- dependency captions under the segments -->
+          <text class="chart-caption" x="159" y="280" text-anchor="middle">先算清代价</text>
+          <text class="chart-caption" x="337" y="280" text-anchor="middle">通讯的特化应用</text>
+          <text class="chart-caption" x="515" y="280" text-anchor="middle">通讯 → 并行范式的桥</text>
+          <text class="chart-caption" x="693" y="280" text-anchor="middle">范式选定后</text>
+          <text class="chart-caption" x="871" y="280" text-anchor="middle">再省显存/算力</text>
+          <text class="chart-caption" x="1049" y="280" text-anchor="middle">组合成真实系统</text>
         </svg>
         <p>
-          六个节点首尾相连：从「① 性能估计」到「⑤ 显存与计算优化」，每一段都建立在前一段的结论之上——
-          <span class="term">③ 序列维并行</span>本质是<span class="term">② 通讯</span>的特化应用，是通讯层通往并行范式的桥。
+          七个节点沿一条渐升的天际线首尾相连：从「① 性能估计」到「⑤ 显存与计算优化」，每一段都建立在前一段的结论之上——
+          <span class="term">③ 序列维并行</span>本质是<span class="term">② 通讯</span>的特化应用，是通讯层通往并行范式的桥，因此画在爬升的转折点上。
         </p>
       </div>
     </section>
 
     <section class="slide">
       <p class="slide-kicker">开场 · 怎么读这张图</p>
+      <div class="slide-eyebrow-rule"></div>
       <h2 class="slide-title">主线、落点与时间预算</h2>
-      <div class="slide-body">
-        <p>
-          全程以经典 LLM（<span class="term">classic LLM</span>，Llama 类 dense decoder-only）打底讲通用范式；
-          视频模型（MAGI、LTX-2、minimax h3）在各章作为"这个概念在真实系统里长什么样"的落点，不是平行的另一条主线。
-        </p>
-        <p>
-          多数技术合理映射到 <span class="term">Philoflow</span>（如 FSDP=ZeRO-3、KV cache 流式生成）；
-          少数不采用的地方（TP/PP）会在④如实说明原因，不强行套用。
-        </p>
-        <p>
-          正文约 <span class="num">50</span> 分钟：④ 训练并行范式最重（约 <span class="num">12</span> 分钟），
-          ① 性能估计次之（约 <span class="num">9</span> 分钟），一小时档期内留 Q&amp;A。
-        </p>
-        <p>
-          <span class="term">经典 LLM</span> ·
-          <span class="term">MAGI</span> ·
-          <span class="term">LTX-2</span> ·
-          <span class="term">minimax h3</span> ·
-          <span class="term">Philoflow</span>
-        </p>
+      <div class="slide-body" style="max-width: none; display: flex; gap: 3rem; align-items: flex-start;">
+        <div style="flex: 1.4; min-width: 0;">
+          <p>
+            全程以经典 LLM（<span class="term">classic LLM</span>，Llama 类 dense decoder-only）打底讲通用范式；
+            视频模型（MAGI、LTX-2、minimax h3）在各章作为"这个概念在真实系统里长什么样"的落点，不是平行的另一条主线。
+          </p>
+          <p>
+            多数技术合理映射到 <span class="term">Philoflow</span>（如 FSDP=ZeRO-3、KV cache 流式生成）；
+            少数不采用的地方（TP/PP）会在④如实说明原因，不强行套用。
+          </p>
+          <div>
+            <span class="term-pill">经典 LLM</span><span class="term-pill">MAGI</span><span class="term-pill">LTX-2</span><span class="term-pill">minimax h3</span><span class="term-pill">Philoflow</span>
+          </div>
+        </div>
+        <div class="panel" style="flex: 1; min-width: 0;">
+          <div class="stat-row">
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num"><span class="num">50</span>′</span>
+              <span class="stat-label">正文总时长，一小时档期内留 Q&amp;A</span>
+            </div>
+          </div>
+          <div class="stat-row" style="margin-top: 1rem;">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">12</span>′</span>
+              <span class="stat-label">④ 训练并行范式，全场最重</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">9</span>′</span>
+              <span class="stat-label">① 性能估计，次之</span>
+            </div>
+          </div>
+          <div class="stat-bar" role="img" aria-label="时间预算占比：④训练并行范式12分钟，①性能估计9分钟，其余章节共29分钟">
+            <div class="stat-bar-seg stat-bar-seg--accent" style="width: 24%;"></div>
+            <div class="stat-bar-seg stat-bar-seg--accent-2" style="width: 18%;"></div>
+            <div class="stat-bar-seg stat-bar-seg--rest" style="width: 58%;"></div>
+          </div>
+          <span class="stat-label" style="margin-top: 0.6rem;">④ 最重 · ① 次之 · 其余各章共分剩余时长</span>
+        </div>
       </div>
     </section>
   </div>
