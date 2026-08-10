@@ -1,0 +1,41 @@
+<!doctype html>
+<!--
+  Chapter fragment template.
+
+  Copy this file to `NN-<slug>.html` (e.g. `01-panorama-opening.html`) to start
+  a new chapter. Keep the structure below intact so the chapter:
+    - renders correctly when opened standalone in a browser (this file), and
+    - merges into the root `index.html` by copying only the <section class="slide">
+      elements below (no CSS/JS changes needed — the merged deck shares the
+      exact same theme.css + nav.js, inlined once at the top of index.html).
+
+  Do not add per-chapter CSS overrides. All styling must come from
+  deck/theme.css so the merged deck has zero style divergence between
+  chapters. If a new component class is genuinely needed, add it to
+  theme.css, not here.
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Infra 分享 — 章节草稿</title>
+  <link rel="stylesheet" href="../theme.css" />
+</head>
+<body>
+  <div class="deck">
+    <section class="slide">
+      <p class="slide-kicker">章节标签 Chapter Label</p>
+      <h2 class="slide-title">标题（首现英文术语 <span class="term">term</span>）</h2>
+      <div class="slide-body">
+        <p>直觉说明，先给图/例子再收口到公式。量级数字用 <span class="num">1.23</span> 这样的样式突出。</p>
+      </div>
+    </section>
+
+    <!-- Add more <section class="slide"> blocks for this chapter here. -->
+  </div>
+
+  <div class="page-indicator" id="page-indicator"></div>
+  <div class="deck-nav-hint">← → 翻页</div>
+
+  <script src="../nav.js"></script>
+</body>
+</html>

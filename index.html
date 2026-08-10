@@ -1,0 +1,306 @@
+<!doctype html>
+<!--
+  AI Infra 技术分享报告 — 单文件幻灯 (root deliverable).
+
+  Self-contained: no build step, no network dependency. The <style> and
+  <script> blocks below are verbatim copies of deck/theme.css and
+  deck/nav.js — kept in sync manually since chapter fragments under
+  deck/chapters/ link to those files directly for standalone preview.
+
+  To merge a finished chapter: copy its <section class="slide"> blocks
+  from deck/chapters/NN-<slug>.html into the CHAPTERS block below, in
+  chapter order. No CSS/JS changes needed — every fragment shares this
+  same theme, so merging is copy-paste only.
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Infra 技术分享</title>
+<style>
+:root {
+  /* Catppuccin Mocha palette */
+  --ctp-rosewater: #f5e0dc;
+  --ctp-flamingo: #f2cdcd;
+  --ctp-pink: #f5c2e7;
+  --ctp-mauve: #cba6f7;
+  --ctp-red: #f38ba8;
+  --ctp-maroon: #eba0ac;
+  --ctp-peach: #fab387;
+  --ctp-yellow: #f9e2af;
+  --ctp-green: #a6e3a1;
+  --ctp-teal: #94e2d5;
+  --ctp-sky: #89dceb;
+  --ctp-sapphire: #74c7ec;
+  --ctp-blue: #89b4fa;
+  --ctp-lavender: #b4befe;
+  --ctp-text: #cdd6f4;
+  --ctp-subtext1: #bac2de;
+  --ctp-subtext0: #a6adc8;
+  --ctp-overlay2: #9399b2;
+  --ctp-overlay1: #7f849c;
+  --ctp-overlay0: #6c7086;
+  --ctp-surface2: #585b70;
+  --ctp-surface1: #45475a;
+  --ctp-surface0: #313244;
+  --ctp-base: #1e1e2e;
+  --ctp-mantle: #181825;
+  --ctp-crust: #11111b;
+
+  /* Semantic tokens used by slide markup */
+  --bg: var(--ctp-base);
+  --bg-raised: var(--ctp-mantle);
+  --surface: var(--ctp-surface0);
+  --border: var(--ctp-surface1);
+  --text: var(--ctp-text);
+  --text-muted: var(--ctp-subtext0);
+  --accent: var(--ctp-mauve);
+  --accent-2: var(--ctp-teal);
+
+  --font-sans: -apple-system, "Inter", "PingFang SC", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SFMono-Regular", "JetBrains Mono", "Menlo", "Consolas", monospace;
+
+  --slide-pad-x: 6vw;
+  --slide-pad-y: 6vh;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  height: 100%;
+}
+
+body {
+  overflow: hidden;
+}
+
+/* ---- Deck / slide shell ---- */
+
+.deck {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+.slide {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  padding: var(--slide-pad-y) var(--slide-pad-x);
+}
+
+.slide.is-active {
+  display: flex;
+}
+
+.slide-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  margin: 0 0 0.75rem;
+}
+
+.slide-title {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 1.5rem;
+  line-height: 1.25;
+}
+
+.slide-title .term {
+  color: var(--accent);
+}
+
+.slide-body {
+  font-size: 1.15rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  max-width: 60vw;
+}
+
+.slide-body p {
+  margin: 0 0 1rem;
+}
+
+/* English technical term inline */
+.term {
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+
+/* Emphasised order-of-magnitude figures */
+.num {
+  font-family: var(--font-mono);
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+/* ---- Charts (SVG, linear style, single accent color) ---- */
+
+.chart {
+  display: block;
+  max-width: 100%;
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-line.accent-2 {
+  stroke: var(--accent-2);
+}
+
+.chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  fill: var(--text-muted);
+}
+
+/* ---- Navigation chrome (shared by index.html and standalone chapters) ---- */
+
+.page-indicator {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  z-index: 10;
+}
+
+.deck-nav-hint {
+  position: fixed;
+  left: 1.5rem;
+  bottom: 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ctp-overlay0);
+  z-index: 10;
+}
+</style>
+</head>
+<body>
+  <div class="deck" id="deck">
+    <!-- CHAPTERS START — copy fragment <section class="slide"> blocks below, in order -->
+
+    <!-- 00 — scaffold placeholder (deck/chapters/00-placeholder.html), remove once chapter 01 lands -->
+    <section class="slide">
+      <p class="slide-kicker">Scaffold — 占位页 1 / 2</p>
+      <h2 class="slide-title">共享主题 <span class="term">theme.css</span> 正常渲染</h2>
+      <div class="slide-body">
+        <p>
+          这一页验证 Catppuccin Mocha 深色主题、字体与排版变量在独立打开本片段时也能正确套用——
+          背景 <span class="num">#1e1e2e</span>，主强调 Mauve，次强调 <span class="term">Teal</span>。
+        </p>
+        <svg class="chart" viewBox="0 0 320 120" width="320" height="120" role="img" aria-label="占位折线图">
+          <line class="chart-grid" x1="0" y1="100" x2="320" y2="100" />
+          <polyline class="chart-line" points="0,90 60,60 140,70 220,20 320,40" />
+          <polyline class="chart-line accent-2" points="0,100 80,95 160,85 240,88 320,70" />
+          <text class="chart-label" x="0" y="115">占位图表 · SVG 线性风格</text>
+        </svg>
+      </div>
+    </section>
+
+    <section class="slide">
+      <p class="slide-kicker">Scaffold — 占位页 2 / 2</p>
+      <h2 class="slide-title">键盘翻页与页码</h2>
+      <div class="slide-body">
+        <p>
+          按 <span class="term">→</span> / <span class="term">Space</span> 前进，
+          <span class="term">←</span> 后退。右下角页码由 <span class="term">deck/nav.js</span> 统一驱动，
+          合并进母文件后无需修改。
+        </p>
+      </div>
+    </section>
+
+    <!-- CHAPTERS END -->
+  </div>
+
+  <div class="page-indicator" id="page-indicator"></div>
+  <div class="deck-nav-hint">← → 翻页</div>
+
+<script>
+(function () {
+  function init() {
+    var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+    if (slides.length === 0) return;
+
+    var indicator = document.getElementById("page-indicator");
+    var current = 0;
+
+    function render() {
+      slides.forEach(function (slide, i) {
+        slide.classList.toggle("is-active", i === current);
+      });
+      if (indicator) {
+        indicator.textContent = (current + 1) + " / " + slides.length;
+      }
+    }
+
+    function go(delta) {
+      var next = current + delta;
+      if (next < 0 || next >= slides.length) return;
+      current = next;
+      render();
+    }
+
+    window.addEventListener("keydown", function (e) {
+      switch (e.key) {
+        case "ArrowRight":
+        case "ArrowDown":
+        case "PageDown":
+        case " ":
+          go(1);
+          e.preventDefault();
+          break;
+        case "ArrowLeft":
+        case "ArrowUp":
+        case "PageUp":
+          go(-1);
+          e.preventDefault();
+          break;
+        case "Home":
+          current = 0;
+          render();
+          e.preventDefault();
+          break;
+        case "End":
+          current = slides.length - 1;
+          render();
+          e.preventDefault();
+          break;
+      }
+    });
+
+    render();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
