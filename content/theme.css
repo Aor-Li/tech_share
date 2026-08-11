@@ -1,8 +1,9 @@
 /*
   Shared theme for the AI Infra deck (Catppuccin Mocha).
   Single source of truth for CSS variables + component classes.
-  Chapter fragments link to this file directly; index.html inlines
-  its contents verbatim so the merged deck stays self-contained.
+  Each section's content/NN-<slug>/slide.html links to this file via
+  ../theme.css; index.html inlines its contents verbatim so the merged
+  deck stays self-contained.
 */
 
 :root {
@@ -325,6 +326,37 @@ body {
   font-size: 0.72rem;
   fill: var(--text-muted);
   opacity: 0.85;
+}
+
+/* Clickable panorama nodes — jump to the matching chapter */
+.pano-node--link {
+  cursor: pointer;
+}
+
+.pano-node--link .pano-ring {
+  transition: stroke 0.18s ease, stroke-width 0.18s ease;
+}
+
+.pano-node--link:hover .pano-ring,
+.pano-node--link:focus-visible .pano-ring {
+  stroke: var(--accent);
+  stroke-width: 3.5;
+}
+
+.pano-node--link:hover .chart-label-strong,
+.pano-node--link:focus-visible .chart-label-strong {
+  fill: var(--accent);
+}
+
+.pano-node--link:focus {
+  outline: none;
+}
+
+.pano-hint {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: 0.4rem;
 }
 
 @media (prefers-reduced-motion: no-preference) {

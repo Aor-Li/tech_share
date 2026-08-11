@@ -1,6 +1,6 @@
 # 04 — ③ 序列维并行章：内容大纲
 
-对应 ticket [04-sequence-parallelism](../issues/04-sequence-parallelism.md)。术语依据根 `CONTEXT.md`；结构顺序依据 `docs/adr/0001`。
+对应 ticket [04-sequence-parallelism](../../.scratch/ai-infra-deck/issues/04-sequence-parallelism.md)。术语依据根 `CONTEXT.md`；结构顺序依据 `docs/adr/0001`。
 
 ## 目标
 
@@ -75,5 +75,5 @@
 
 ## 交付形态
 
-- 大纲确认后 → `deck/chapters/03-sequence-parallelism.html`，与共享主题同构、可独立打开。
+- 大纲确认后 → `slide.html`，与共享主题同构、可独立打开。
 - 并入 `index.html`（追加在②通讯原语章之后），图表数字与本大纲一致。

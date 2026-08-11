@@ -1,25 +1,29 @@
 <!doctype html>
 <!--
-  Chapter fragment template.
+  Section slide template.
 
-  Copy this file to `NN-<slug>.html` (e.g. `01-panorama-opening.html`) to start
-  a new chapter. Keep the structure below intact so the chapter:
+  To start a new section, create `content/NN-<slug>/` and copy this file to
+  `content/NN-<slug>/slide.html`, alongside a `content.md` holding the same
+  section's Markdown outline. The `../theme.css` / `../nav.js` links below
+  assume the file sits one level deep (content/NN-<slug>/), so they resolve
+  to content/theme.css + content/nav.js. Keep the structure intact so the
+  section:
     - renders correctly when opened standalone in a browser (this file), and
     - merges into the root `index.html` by copying only the single
       <section class="slide"> element below (no CSS/JS changes needed — the
       merged deck shares the exact same theme.css + nav.js, inlined once at
       the top of index.html).
 
-  Layout convention: one chapter = one scrollable page = one <section
-  class="slide">. Each sub-topic within the chapter becomes a
+  Layout convention: one section = one scrollable page = one <section
+  class="slide">. Each sub-topic within the section becomes a
   <div class="chapter-section"> stacked inside the slide body (divided by a
   rule, headed by .chapter-section-title), not a separate <section class="slide">.
-  Keyboard ←/→ moves between chapters; mouse wheel/trackpad scrolls within
-  the current chapter's page.
+  Keyboard ←/→ moves between sections; mouse wheel/trackpad scrolls within
+  the current section's page.
 
-  Do not add per-chapter CSS overrides. All styling must come from
-  deck/theme.css so the merged deck has zero style divergence between
-  chapters. If a new component class is genuinely needed, add it to
+  Do not add per-section CSS overrides. All styling must come from
+  content/theme.css so the merged deck has zero style divergence between
+  sections. If a new component class is genuinely needed, add it to
   theme.css, not here.
 -->
 <html lang="zh-CN">

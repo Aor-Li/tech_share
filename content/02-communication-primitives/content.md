@@ -1,6 +1,6 @@
 # 03 — ② 通讯原语与代价模型章：内容大纲
 
-对应 ticket [03-communication-primitives](../issues/03-communication-primitives.md)。术语依据根 `CONTEXT.md`；结构顺序依据 `docs/adr/0001-report-structure-and-ordering.md`。
+对应 ticket [03-communication-primitives](../../.scratch/ai-infra-deck/issues/03-communication-primitives.md)。术语依据根 `CONTEXT.md`；结构顺序依据 `docs/adr/0001-report-structure-and-ordering.md`。
 
 ## 目标
 
@@ -78,5 +78,5 @@
 
 ## 交付形态
 
-- 大纲确认后 → `deck/chapters/02-communication-primitives.html`，与共享主题同构、可独立打开。
+- 大纲确认后 → `slide.html`，与共享主题同构、可独立打开。
 - 并入 `index.html`（追加在①性能估计章之后），图表数字与本大纲一致，不在合并时二次修改数字。

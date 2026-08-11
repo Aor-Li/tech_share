@@ -1,6 +1,6 @@
 # 05 — ④ 训练并行范式章：内容大纲
 
-对应 ticket [05-parallelism-paradigms](../issues/05-parallelism-paradigms.md)。全场最重的一章（~12 分钟）。术语依据根 `CONTEXT.md`。
+对应 ticket [05-parallelism-paradigms](../../.scratch/ai-infra-deck/issues/05-parallelism-paradigms.md)。全场最重的一章（~12 分钟）。术语依据根 `CONTEXT.md`。
 
 ## 目标
 
@@ -87,5 +87,5 @@
 
 ## 交付形态
 
-- 大纲确认后 → `deck/chapters/04-parallelism-paradigms.html`，与共享主题同构、可独立打开。
+- 大纲确认后 → `slide.html`，与共享主题同构、可独立打开。
 - 并入 `index.html`（追加在③序列并行章之后），图表数字与本大纲一致。

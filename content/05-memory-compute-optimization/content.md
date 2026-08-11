@@ -1,6 +1,6 @@
 # 06 — ⑤ 显存与计算优化章：内容大纲
 
-对应 ticket [06-memory-compute-optimization](../issues/06-memory-compute-optimization.md)。术语依据根 `CONTEXT.md`。
+对应 ticket [06-memory-compute-optimization](../../.scratch/ai-infra-deck/issues/06-memory-compute-optimization.md)。术语依据根 `CONTEXT.md`。
 
 ## 目标
 
@@ -75,5 +75,5 @@
 
 ## 交付形态
 
-- 大纲确认后 → `deck/chapters/05-memory-compute-optimization.html`，与共享主题同构、可独立打开。
+- 大纲确认后 → `slide.html`，与共享主题同构、可独立打开。
 - 并入 `index.html`（追加在④训练并行范式章之后），图表数字与本大纲一致。

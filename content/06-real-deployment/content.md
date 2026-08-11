@@ -1,6 +1,6 @@
 # 07 — 结尾：组合成真实部署页：内容大纲
 
-对应 ticket [07-real-deployment-closing](../issues/07-real-deployment-closing.md)。收尾页，不产生新数字，全部复用①-⑤已建立的数字。
+对应 ticket [07-real-deployment-closing](../../.scratch/ai-infra-deck/issues/07-real-deployment-closing.md)。收尾页，不产生新数字，全部复用①-⑤已建立的数字。
 
 ## 目标
 
@@ -46,5 +46,5 @@
 
 ## 交付形态
 
-- 大纲确认后 → `deck/chapters/06-real-deployment.html`，与共享主题同构、可独立打开。
+- 大纲确认后 → `slide.html`，与共享主题同构、可独立打开。
 - 并入 `index.html`，作为全场最后一页。

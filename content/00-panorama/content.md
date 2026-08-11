@@ -1,6 +1,6 @@
 # 01 — 全景地图开场页：内容大纲
 
-对应 ticket [01-panorama-opening](../issues/01-panorama-opening.md)。结构顺序依据 `docs/adr/0001-report-structure-and-ordering.md`；术语依据根 `CONTEXT.md`。
+对应 ticket [01-panorama-opening](../../.scratch/ai-infra-deck/issues/01-panorama-opening.md)。结构顺序依据 `docs/adr/0001-report-structure-and-ordering.md`；术语依据根 `CONTEXT.md`。
 
 ## 目标
 
@@ -51,5 +51,5 @@
 
 ## 交付形态
 
-- 大纲确认后 → `deck/chapters/00-overview.html`（与 `01-panorama-opening.md` ticket 要求的文件名一致），同构、可独立打开。
+- 大纲确认后 → `slide.html`（与 `01-panorama-opening.md` ticket 要求的文件名一致），同构、可独立打开。
 - 并入 `index.html`，替换掉当前的 `00-placeholder.html` 占位内容（scaffold 任务已完成使命）。

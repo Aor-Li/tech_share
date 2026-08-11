@@ -27,6 +27,31 @@
       render();
     }
 
+    function goTo(index) {
+      if (index < 0 || index >= slides.length) return;
+      current = index;
+      render();
+    }
+    window.deckGoTo = goTo;
+
+    // Wire any element carrying data-goto to jump to that slide index.
+    Array.prototype.forEach.call(
+      document.querySelectorAll("[data-goto]"),
+      function (el) {
+        function jump() {
+          goTo(parseInt(el.getAttribute("data-goto"), 10));
+        }
+        el.addEventListener("click", jump);
+        el.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") {
+            jump();
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        });
+      }
+    );
+
     window.addEventListener("keydown", function (e) {
       switch (e.key) {
         case "ArrowRight":

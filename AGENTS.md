@@ -1,5 +1,11 @@
 # tech_share
 
+## Deck content
+
+每节的内容与展示同址存放于 `content/NN-<slug>/`（`content.md` + `slide.html`），
+共享 `content/theme.css` + `content/nav.js`。交付物是根自包含 `index.html`。见
+`content/README.md`。
+
 ## Agent skills
 
 ### Issue tracker

@@ -41,7 +41,7 @@ Feature slug: ai-infra-deck
 24. As a 分享者, I want KV cache 章对比 LTX-2（文本交叉注意力 K/V 依赖 sigma 故不缓存、时序 K/V 缓存）与 minimax h3, so that 听众看到 KV cache 大小/策略如何随架构剧烈变化。
 25. As a 分享者, I want 每个"能立刻改变部署决策"的量（显存/算力/通讯代价/KV cache）都给完整数字例子, so that 结论可落地。
 26. As a 远程/AFK 开发者, I want spec 与设计决策（CONTEXT.md、ADR、chapter 大纲）都在 git 里, so that 我能在远程环境凭仓库自足地继续开发。
-27. As a 维护者, I want 每章大纲与 ticket 以约定路径存放于 `.scratch/ai-infra-deck/`, so that 工作项可被 wayfinder / to-tickets 等技能接管。
+27. As a 维护者, I want 每节内容（`content.md` + `slide.html`）同址存放于 `content/NN-<slug>/`，ticket 仍在 `.scratch/ai-infra-deck/issues/`, so that 内容与展示可同处迭代，工作项仍可被 wayfinder / to-tickets 等技能接管。
 28. As a 分享者, I want 母文件由各章 HTML 片段通过共享 CSS 变量零成本合并, so that 改主题只需改一处、合并无冲突。
 
 ## Implementation Decisions
@@ -51,8 +51,8 @@ Feature slug: ai-infra-deck
 - **交付形态（ADR 0003）**：自包含单文件本地 `index.html`（HTML/CSS/JS，键盘翻页），关键机制用 SVG + CSS 关键帧分步动画。**不以 Artifact 为最终物**（仅开发期预览）。
 - **中间产物入库（ADR 0004）**：`.scratch/` 取消忽略、随仓库进 git，支持远程开发。
 - **视觉 token**：Catppuccin Mocha 深色（base `#1e1e2e`），主强调 Mauve `#cba6f7`、次强调 Teal `#94e2d5`；正文无衬线，术语/数字/代码等宽。全部图表 SVG 线性风格 + 单一强调色。主题以 CSS 变量集中定义。
-- **文件布局**：最终母文件 `index.html`（根，自包含）；各章片段 `deck/chapters/NN-<slug>.html`（同构、可独立打开、并入母文件）；各章 Markdown 大纲 `.scratch/ai-infra-deck/<章>/`（进 git）。
-- **开发流程（逐章）**：`.scratch` 出 Markdown 大纲 → 作者确认 → 生成 `deck/chapters/NN.html` → 作者审 → 并入 `index.html`。
+- **文件布局**：最终母文件 `index.html`（根，自包含）；各节内容同址存放于 `content/NN-<slug>/`，每节含 `content.md`（Markdown 大纲）+ `slide.html`（同构、可独立打开、并入母文件）；共享 `content/theme.css` + `content/nav.js`；spec/issues 仍在 `.scratch/ai-infra-deck/`（进 git）。
+- **开发流程（逐节）**：`content/NN-<slug>/content.md` 出 Markdown 大纲 → 作者确认 → 同址 `slide.html` → 作者审 → 并入 `index.html`。
 - **时间预算**：正文 ~50′，④并行范式 12′ 最重，①性能估计 9′ 次之；总控 1 小时内留 Q&A。
 - **数学深度**：折中——显存/算力/通讯/KV cache 给完整数字例子，其余给公式 + 一句量级直觉。
 - **合并机制**：各章片段共享同一套 CSS 变量与组件类名，母文件仅做拼接 + 统一导航/页码，无逐章样式分叉。
@@ -63,7 +63,7 @@ Feature slug: ai-infra-deck
 好的"测试"只验证外部可观察行为，不绑定实现细节。本项目为演示文档，验证以**可打开、可放映、内容正确、风格一致**为准：
 
 - **首选单一 seam：合并后的 `index.html` 在浏览器打开**——验证全场可放映：页序正确、键盘翻页可用、每章关键图表与数字都在、无横向溢出、深浅（若做兜底）主题正常。这是最高层 seam，尽量只在此验证。
-- **次级 seam：单章 `deck/chapters/NN.html` 独立打开**——验证片段自足渲染且套用共享主题（作者逐章审阅时用）。
+- **次级 seam：单节 `content/NN-<slug>/slide.html` 独立打开**——验证片段自足渲染且套用共享主题（作者逐章审阅时用）。
 - **内容正确性检查**：每章大纲里"走一遍"的数字（如 Llama-70B KV cache、MAGI/LTX-2 显存分解、通讯代价）需可复算、量纲自洽；数字以大纲为准入库，图表不得与大纲数字冲突。
 - **风格一致性检查**：所有颜色/字体走 CSS 变量，不出现硬编码偏离 Mocha 调色板的值；图表统一 SVG 线性风。
 - **时间预算检查**：各章幻灯数 × 预估讲述时长 ≤ 该章分钟预算，全场 ≤ ~50′ 正文。
