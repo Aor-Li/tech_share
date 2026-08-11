@@ -1,6 +1,6 @@
 # 01 — 全景地图开场页：内容大纲
 
-对应 ticket [01-panorama-opening](../../.scratch/ai-infra-deck/issues/01-panorama-opening.md)。结构顺序依据 `docs/adr/0001-report-structure-and-ordering.md`；术语依据根 `CONTEXT.md`。
+结构顺序依据 `docs/adr/0001-report-structure-and-ordering.md`；术语依据根 `CONTEXT.md`。
 
 ## 目标
 

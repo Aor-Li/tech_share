@@ -1,6 +1,6 @@
 # 07 — 结尾：组合成真实部署页：内容大纲
 
-对应 ticket [07-real-deployment-closing](../../.scratch/ai-infra-deck/issues/07-real-deployment-closing.md)。收尾页，不产生新数字，全部复用①-⑤已建立的数字。
+收尾页，不产生新数字，全部复用①-⑤已建立的数字。
 
 ## 目标
 

@@ -1,6 +1,6 @@
 # 06 — ⑤ 显存与计算优化章：内容大纲
 
-对应 ticket [06-memory-compute-optimization](../../.scratch/ai-infra-deck/issues/06-memory-compute-optimization.md)。术语依据根 `CONTEXT.md`。
+术语依据根 `CONTEXT.md`。
 
 ## 目标
 

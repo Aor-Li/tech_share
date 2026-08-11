@@ -1,6 +1,6 @@
 # 02 — ① 性能估计基础章：内容大纲
 
-对应 ticket [02-performance-estimation](../../.scratch/ai-infra-deck/issues/02-performance-estimation.md)。术语依据根 `CONTEXT.md`；结构顺序依据 `docs/adr/0001-report-structure-and-ordering.md`。
+术语依据根 `CONTEXT.md`；结构顺序依据 `docs/adr/0001-report-structure-and-ordering.md`。
 
 ## 目标
 

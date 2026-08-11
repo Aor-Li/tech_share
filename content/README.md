@@ -40,5 +40,5 @@ content/
 - **交付物** 仍是根 `index.html`（自包含单文件，ADR 0003），它把 `theme.css` +
   `nav.js` 内联、把各节 `<section class="slide">` 拼接进来。
 - **样式** 只改 `content/theme.css`，不在单节里加 per-section 覆盖，保证合并后零分叉。
-- **工作项**（spec / issues）仍在 `.scratch/ai-infra-deck/`，由 issue-tracker /
-  wayfinder 技能接管；各节 `content.md` 顶部回链到对应 ticket。
+- **工作项**（spec / issues）在开发完成后已移除；其历史保留在 git 中。若开启新一轮开发，
+  按 `docs/agents/issue-tracker.md` 约定在 `.scratch/<slug>/` 下重建即可。

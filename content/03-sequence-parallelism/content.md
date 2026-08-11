@@ -1,6 +1,6 @@
 # 04 — ③ 序列维并行章：内容大纲
 
-对应 ticket [04-sequence-parallelism](../../.scratch/ai-infra-deck/issues/04-sequence-parallelism.md)。术语依据根 `CONTEXT.md`；结构顺序依据 `docs/adr/0001`。
+术语依据根 `CONTEXT.md`；结构顺序依据 `docs/adr/0001`。
 
 ## 目标
 

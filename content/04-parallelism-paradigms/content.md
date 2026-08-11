@@ -1,6 +1,6 @@
 # 05 — ④ 训练并行范式章：内容大纲
 
-对应 ticket [05-parallelism-paradigms](../../.scratch/ai-infra-deck/issues/05-parallelism-paradigms.md)。全场最重的一章（~12 分钟）。术语依据根 `CONTEXT.md`。
+全场最重的一章（~12 分钟）。术语依据根 `CONTEXT.md`。
 
 ## 目标
 
