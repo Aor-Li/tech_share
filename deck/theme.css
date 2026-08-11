@@ -87,14 +87,31 @@ body {
 .slide {
   display: none;
   flex-direction: column;
-  justify-content: center;
   width: 100vw;
   height: 100vh;
   padding: var(--slide-pad-y) var(--slide-pad-x);
+  overflow-y: auto;
 }
 
 .slide.is-active {
   display: flex;
+}
+
+.slide::-webkit-scrollbar {
+  width: 10px;
+}
+
+.slide::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.slide::-webkit-scrollbar-thumb {
+  background: var(--surface);
+  border-radius: 999px;
+}
+
+.slide::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
 }
 
 .slide-eyebrow-rule {
@@ -140,6 +157,33 @@ body {
 
 .slide-body p {
   margin: 0 0 1rem;
+}
+
+/* ---- Chapter sections (one page per chapter; each former sub-topic
+   becomes a section stacked inside that page, divided by a rule) ---- */
+
+.chapter-section {
+  padding-top: 2rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.chapter-section:first-child {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+
+.chapter-section-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 1rem;
+  letter-spacing: -0.005em;
+}
+
+.chapter-section-title .term {
+  color: var(--accent);
 }
 
 /* English technical term inline */
@@ -319,6 +363,109 @@ body {
 @keyframes pulse-glow {
   0%, 100% { opacity: 0.35; }
   50% { opacity: 0.75; }
+}
+
+/* ---- Data tables (comparison rows, e.g. communication primitive costs) ---- */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table th {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-2);
+}
+
+.data-table td {
+  color: var(--text-muted);
+}
+
+.data-table td:first-child,
+.data-table th:first-child {
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ---- Ring topology diagram (ring all-reduce step animation) ---- */
+
+.ring-arc {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 3;
+}
+
+.ring-arc-flow {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 34 300;
+  animation: ring-flow 6.4s linear infinite;
+}
+
+.ring-node {
+  fill: var(--bg-raised);
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.ring-node-pulse {
+  animation: ring-node-pulse 6.4s ease-in-out infinite;
+}
+
+.phase-label-a {
+  animation: phase-a 6.4s steps(1) infinite;
+}
+
+.phase-label-b {
+  animation: phase-b 6.4s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-arc-flow,
+  .ring-node-pulse,
+  .phase-label-a,
+  .phase-label-b {
+    animation: none;
+  }
+}
+
+@keyframes ring-flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -334; }
+}
+
+@keyframes ring-node-pulse {
+  0%, 45% { fill: var(--accent); }
+  50%, 95% { fill: var(--accent-2); }
+  100% { fill: var(--accent); }
+}
+
+@keyframes phase-a {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes phase-b {
+  0%, 49% { opacity: 0; }
+  50%, 100% { opacity: 1; }
 }
 
 /* ---- Navigation chrome (shared by index.html and standalone chapters) ---- */

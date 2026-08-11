@@ -100,14 +100,31 @@ body {
 .slide {
   display: none;
   flex-direction: column;
-  justify-content: center;
   width: 100vw;
   height: 100vh;
   padding: var(--slide-pad-y) var(--slide-pad-x);
+  overflow-y: auto;
 }
 
 .slide.is-active {
   display: flex;
+}
+
+.slide::-webkit-scrollbar {
+  width: 10px;
+}
+
+.slide::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.slide::-webkit-scrollbar-thumb {
+  background: var(--surface);
+  border-radius: 999px;
+}
+
+.slide::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
 }
 
 .slide-eyebrow-rule {
@@ -153,6 +170,33 @@ body {
 
 .slide-body p {
   margin: 0 0 1rem;
+}
+
+/* ---- Chapter sections (one page per chapter; each former sub-topic
+   becomes a section stacked inside that page, divided by a rule) ---- */
+
+.chapter-section {
+  padding-top: 2rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.chapter-section:first-child {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+
+.chapter-section-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 1rem;
+  letter-spacing: -0.005em;
+}
+
+.chapter-section-title .term {
+  color: var(--accent);
 }
 
 /* English technical term inline */
@@ -334,6 +378,109 @@ body {
   50% { opacity: 0.75; }
 }
 
+/* ---- Data tables (comparison rows, e.g. communication primitive costs) ---- */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table th {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-2);
+}
+
+.data-table td {
+  color: var(--text-muted);
+}
+
+.data-table td:first-child,
+.data-table th:first-child {
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ---- Ring topology diagram (ring all-reduce step animation) ---- */
+
+.ring-arc {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 3;
+}
+
+.ring-arc-flow {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 34 300;
+  animation: ring-flow 6.4s linear infinite;
+}
+
+.ring-node {
+  fill: var(--bg-raised);
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.ring-node-pulse {
+  animation: ring-node-pulse 6.4s ease-in-out infinite;
+}
+
+.phase-label-a {
+  animation: phase-a 6.4s steps(1) infinite;
+}
+
+.phase-label-b {
+  animation: phase-b 6.4s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-arc-flow,
+  .ring-node-pulse,
+  .phase-label-a,
+  .phase-label-b {
+    animation: none;
+  }
+}
+
+@keyframes ring-flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -334; }
+}
+
+@keyframes ring-node-pulse {
+  0%, 45% { fill: var(--accent); }
+  50%, 95% { fill: var(--accent-2); }
+  100% { fill: var(--accent); }
+}
+
+@keyframes phase-a {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes phase-b {
+  0%, 49% { opacity: 0; }
+  50%, 100% { opacity: 1; }
+}
+
 /* ---- Navigation chrome (shared by index.html and standalone chapters) ---- */
 
 .page-indicator {
@@ -367,7 +514,9 @@ body {
       <p class="slide-kicker">开场 · Panorama</p>
       <div class="slide-eyebrow-rule"></div>
       <h2 class="slide-title slide-title--hero">全景地图</h2>
-      <div class="slide-body">
+
+      <div class="slide-body" style="max-width: none;">
+        <div class="chapter-section">
         <svg class="chart" viewBox="0 0 1200 300" width="100%" height="300" role="img"
              aria-label="全景地图：开场、性能估计、通讯原语、序列并行、并行范式、显存优化、真实部署 七节点流程图，节点沿一条渐升的天际线排列">
           <defs>
@@ -456,157 +605,148 @@ body {
           七个节点沿一条渐升的天际线首尾相连：从「① 性能估计」到「⑤ 显存与计算优化」，每一段都建立在前一段的结论之上——
           <span class="term">③ 序列维并行</span>本质是<span class="term">② 通讯</span>的特化应用，是通讯层通往并行范式的桥，因此画在爬升的转折点上。
         </p>
-      </div>
-    </section>
-
-    <section class="slide">
-      <p class="slide-kicker">开场 · 怎么读这张图</p>
-      <div class="slide-eyebrow-rule"></div>
-      <h2 class="slide-title">主线、落点与时间预算</h2>
-      <div class="slide-body" style="max-width: none; display: flex; gap: 3rem; align-items: flex-start;">
-        <div style="flex: 1.4; min-width: 0;">
-          <p>
-            全程以经典 LLM（<span class="term">classic LLM</span>，Llama 类 dense decoder-only）打底讲通用范式；
-            视频模型（MAGI、LTX-2、minimax h3）在各章作为"这个概念在真实系统里长什么样"的落点，不是平行的另一条主线。
-          </p>
-          <p>
-            多数技术合理映射到 <span class="term">Philoflow</span>（如 FSDP=ZeRO-3、KV cache 流式生成）；
-            少数不采用的地方（TP/PP）会在④如实说明原因，不强行套用。
-          </p>
-          <div>
-            <span class="term-pill">经典 LLM</span><span class="term-pill">MAGI</span><span class="term-pill">LTX-2</span><span class="term-pill">minimax h3</span><span class="term-pill">Philoflow</span>
-          </div>
         </div>
-        <div class="panel" style="flex: 1; min-width: 0;">
-          <div class="stat-row">
-            <div class="stat-card stat-card--accent">
-              <span class="stat-num"><span class="num">50</span>′</span>
-              <span class="stat-label">正文总时长，一小时档期内留 Q&amp;A</span>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">怎么读这张图：主线、落点与时间预算</h3>
+          <div style="display: flex; gap: 3rem; align-items: flex-start;">
+            <div style="flex: 1.4; min-width: 0;">
+              <p>
+                全程以经典 LLM（<span class="term">classic LLM</span>，Llama 类 dense decoder-only）打底讲通用范式；
+                视频模型（MAGI、LTX-2、minimax h3）在各章作为"这个概念在真实系统里长什么样"的落点，不是平行的另一条主线。
+              </p>
+              <p>
+                多数技术合理映射到 <span class="term">Philoflow</span>（如 FSDP=ZeRO-3、KV cache 流式生成）；
+                少数不采用的地方（TP/PP）会在④如实说明原因，不强行套用。
+              </p>
+              <div>
+                <span class="term-pill">经典 LLM</span><span class="term-pill">MAGI</span><span class="term-pill">LTX-2</span><span class="term-pill">minimax h3</span><span class="term-pill">Philoflow</span>
+              </div>
+            </div>
+            <div class="panel" style="flex: 1; min-width: 0;">
+              <div class="stat-row">
+                <div class="stat-card stat-card--accent">
+                  <span class="stat-num"><span class="num">50</span>′</span>
+                  <span class="stat-label">正文总时长，一小时档期内留 Q&amp;A</span>
+                </div>
+              </div>
+              <div class="stat-row" style="margin-top: 1rem;">
+                <div class="stat-card">
+                  <span class="stat-num"><span class="num">12</span>′</span>
+                  <span class="stat-label">④ 训练并行范式，全场最重</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-num"><span class="num">9</span>′</span>
+                  <span class="stat-label">① 性能估计，次之</span>
+                </div>
+              </div>
+              <div class="stat-bar" role="img" aria-label="时间预算占比：④训练并行范式12分钟，①性能估计9分钟，其余章节共29分钟">
+                <div class="stat-bar-seg stat-bar-seg--accent" style="width: 24%;"></div>
+                <div class="stat-bar-seg stat-bar-seg--accent-2" style="width: 18%;"></div>
+                <div class="stat-bar-seg stat-bar-seg--rest" style="width: 58%;"></div>
+              </div>
+              <span class="stat-label" style="margin-top: 0.6rem;">④ 最重 · ① 次之 · 其余各章共分剩余时长</span>
             </div>
           </div>
-          <div class="stat-row" style="margin-top: 1rem;">
-            <div class="stat-card">
-              <span class="stat-num"><span class="num">12</span>′</span>
-              <span class="stat-label">④ 训练并行范式，全场最重</span>
-            </div>
-            <div class="stat-card">
-              <span class="stat-num"><span class="num">9</span>′</span>
-              <span class="stat-label">① 性能估计，次之</span>
-            </div>
-          </div>
-          <div class="stat-bar" role="img" aria-label="时间预算占比：④训练并行范式12分钟，①性能估计9分钟，其余章节共29分钟">
-            <div class="stat-bar-seg stat-bar-seg--accent" style="width: 24%;"></div>
-            <div class="stat-bar-seg stat-bar-seg--accent-2" style="width: 18%;"></div>
-            <div class="stat-bar-seg stat-bar-seg--rest" style="width: 58%;"></div>
-          </div>
-          <span class="stat-label" style="margin-top: 0.6rem;">④ 最重 · ① 次之 · 其余各章共分剩余时长</span>
         </div>
       </div>
     </section>
 
     <!-- 01 — 性能估计基础章 (deck/chapters/01-performance-estimation.html) -->
-    <!-- Slide 1: three-way memory breakdown framework -->
     <section class="slide">
-      <p class="slide-kicker">① 性能估计 · 显存去哪了</p>
+      <p class="slide-kicker">① 性能估计</p>
       <div class="slide-eyebrow-rule"></div>
-      <h2 class="slide-title">显存三项分解：权重 / 激活 / KV cache</h2>
+      <h2 class="slide-title">显存去哪了，快不快：三项分解 + Roofline</h2>
+
       <div class="slide-body" style="max-width: none;">
-        <p>
-          任意时刻的显存占用都可以拆成三项，此消彼长：训练时权重与激活主导，推理解码时权重与 <span class="term">KV cache</span> 主导。
-          下面三页会把同一套公式套在<span class="term">经典 LLM</span>、<span class="term">MAGI</span>、<span class="term">LTX-2</span> 三个真实形状上。
-        </p>
-        <div class="stat-row">
-          <div class="stat-card stat-card--accent">
-            <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">权重 Weights</span>
-            <p style="margin: 0.6rem 0 0; font-size: 0.95rem; color: var(--text-muted);">
-              参数量 × 精度字节数，训练时再加优化器状态/梯度。
-            </p>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">激活 Activations</span>
-            <p style="margin: 0.6rem 0 0; font-size: 0.95rem; color: var(--text-muted);">
-              batch × seq × hidden × layers；是否开重计算差一个数量级（细节留给⑤）。
-            </p>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">KV cache</span>
-            <p style="margin: 0.6rem 0 0; font-size: 0.95rem; color: var(--text-muted);">
-              <span class="term">2 × layers × heads × head_dim × token 数 × batch × bytes</span>（K、V 各一份，故×2）。
-            </p>
+
+        <!-- Section 1: three-way memory breakdown framework -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">显存三项分解：权重 / 激活 / KV cache</h3>
+          <p>
+            任意时刻的显存占用都可以拆成三项，此消彼长：训练时权重与激活主导，推理解码时权重与 <span class="term">KV cache</span> 主导。
+            下面三节会把同一套公式套在<span class="term">经典 LLM</span>、<span class="term">MAGI</span>、<span class="term">LTX-2</span> 三个真实形状上。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card stat-card--accent">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">权重 Weights</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.95rem; color: var(--text-muted);">
+                参数量 × 精度字节数，训练时再加优化器状态/梯度。
+              </p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">激活 Activations</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.95rem; color: var(--text-muted);">
+                batch × seq × hidden × layers；是否开重计算差一个数量级（细节留给⑤）。
+              </p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">KV cache</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.95rem; color: var(--text-muted);">
+                <span class="term">2 × layers × heads × head_dim × token 数 × batch × bytes</span>（K、V 各一份，故×2）。
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
 
-    <!-- Slide 2: classic LLM walkthrough -->
-    <section class="slide">
-      <p class="slide-kicker">① 性能估计 · 经典 LLM</p>
-      <div class="slide-eyebrow-rule"></div>
-      <h2 class="slide-title">走一遍：Llama-2-7B 级配置</h2>
-      <div class="slide-body" style="max-width: none;">
-        <p>
-          <span class="term">hidden=4096, layers=32, heads=32, head_dim=128</span>，参数量 <span class="num">6.7</span>B。
-        </p>
-        <div class="stat-row">
-          <div class="stat-card stat-card--accent">
-            <span class="stat-num"><span class="num">120.6</span> GB</span>
-            <span class="stat-label">训练权重+优化器（bf16权重13.4 + fp32主权重26.8 + 梯度26.8 + Adam动量53.6），单卡放不下——④会用ZeRO/FSDP解决</span>
+        <!-- Section 2: classic LLM walkthrough -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">走一遍：Llama-2-7B 级配置</h3>
+          <p>
+            <span class="term">hidden=4096, layers=32, heads=32, head_dim=128</span>，参数量 <span class="num">6.7</span>B。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num"><span class="num">120.6</span> GB</span>
+              <span class="stat-label">训练权重+优化器（bf16权重13.4 + fp32主权重26.8 + 梯度26.8 + Adam动量53.6），单卡放不下——④会用ZeRO/FSDP解决</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">97</span> → <span class="num">2</span> GB</span>
+              <span class="stat-label">训练激活（batch=1, seq=4096）：不开重计算 97GB，开满重计算 2GB——⑤展开机制</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">2.0</span> → <span class="num">64</span> GB</span>
+              <span class="stat-label">解码 KV cache：单请求 seq=4096 时 2GB，32 个并发占满上下文时 64GB——服务吞吐的隐形天花板</span>
+            </div>
           </div>
-          <div class="stat-card">
-            <span class="stat-num"><span class="num">97</span> → <span class="num">2</span> GB</span>
-            <span class="stat-label">训练激活（batch=1, seq=4096）：不开重计算 97GB，开满重计算 2GB——⑤展开机制</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-num"><span class="num">2.0</span> → <span class="num">64</span> GB</span>
-            <span class="stat-label">解码 KV cache：单请求 seq=4096 时 2GB，32 个并发占满上下文时 64GB——服务吞吐的隐形天花板</span>
-          </div>
+          <p style="margin-top: 1.25rem;">
+            三项里权重相对固定，<span class="term">激活</span>和 <span class="term">KV cache</span> 才是随配置暴涨的部分。
+          </p>
         </div>
-        <p style="margin-top: 1.25rem;">
-          三项里权重相对固定，<span class="term">激活</span>和 <span class="term">KV cache</span> 才是随配置暴涨的部分。
-        </p>
-      </div>
-    </section>
 
-    <!-- Slide 3: MAGI walkthrough -->
-    <section class="slide">
-      <p class="slide-kicker">① 性能估计 · MAGI</p>
-      <div class="slide-eyebrow-rule"></div>
-      <h2 class="slide-title">落到 MAGI：更大的 hidden，垒得更快</h2>
-      <div class="slide-body" style="max-width: none;">
-        <p>
-          <span class="term">hidden=5120, layers=40, head_dim=128</span>（heads=40）。参数量按 dense block 估算 <span class="term">12·h²·L</span> ≈ <span class="num">12.6</span>B
-          <span style="color: var(--text-muted); font-size: 0.85rem;">（近似估算，MAGI 未公开精确参数量，仅用于量级对比）</span>。
-        </p>
-        <div class="stat-row">
-          <div class="stat-card stat-card--accent">
-            <span class="stat-num"><span class="num">23.4</span> GB</span>
-            <span class="stat-label">bf16 权重（推理 / SFT-DMD 蒸馏后常见形态）</span>
+        <!-- Section 3: MAGI walkthrough -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">落到 MAGI：更大的 hidden，垒得更快</h3>
+          <p>
+            <span class="term">hidden=5120, layers=40, head_dim=128</span>（heads=40）。参数量按 dense block 估算 <span class="term">12·h²·L</span> ≈ <span class="num">12.6</span>B
+            <span style="color: var(--text-muted); font-size: 0.85rem;">（近似估算，MAGI 未公开精确参数量，仅用于量级对比）</span>。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num"><span class="num">23.4</span> GB</span>
+              <span class="stat-label">bf16 权重（推理 / SFT-DMD 蒸馏后常见形态）</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">151.6</span> GB</span>
+              <span class="stat-label">激活（假设单步 4096 个 latent token，batch=1，不开重计算）——同公式，hidden 和 layers 都更大，涨得比经典 LLM 更快</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">3.125</span> GB</span>
+              <span class="stat-label">流式生成 KV（frame-reservoir + eviction，见 SNL 机制）：缓存只保留 reservoir 深度内的窗口，<b style="color: var(--text);">大小不随生成总长度增长</b></span>
+            </div>
           </div>
-          <div class="stat-card">
-            <span class="stat-num"><span class="num">151.6</span> GB</span>
-            <span class="stat-label">激活（假设单步 4096 个 latent token，batch=1，不开重计算）——同公式，hidden 和 layers 都更大，涨得比经典 LLM 更快</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-num"><span class="num">3.125</span> GB</span>
-            <span class="stat-label">流式生成 KV（frame-reservoir + eviction，见 SNL 机制）：缓存只保留 reservoir 深度内的窗口，<b style="color: var(--text);">大小不随生成总长度增长</b></span>
-          </div>
+          <p style="margin-top: 1.25rem;">
+            换成视频 DiT 形状，公式不变，但每一项的账单都变了——尤其是 KV 从"随 seq 线性增长"变成"恒定窗口"。
+          </p>
         </div>
-        <p style="margin-top: 1.25rem;">
-          换成视频 DiT 形状，公式不变，但每一项的账单都变了——尤其是 KV 从"随 seq 线性增长"变成"恒定窗口"。
-        </p>
-      </div>
-    </section>
 
-    <!-- Slide 4: LTX-2 sink + sliding window -->
-    <section class="slide">
-      <p class="slide-kicker">① 性能估计 · LTX-2</p>
-      <div class="slide-eyebrow-rule"></div>
-      <h2 class="slide-title">落到 LTX-2：sink + 滑窗，显存有硬上限</h2>
-      <div class="slide-body" style="max-width: none;">
-        <p style="font-size: 0.9rem; color: var(--text-muted);">
-          LTX-2 仅 <span class="term">layers=48</span> 是公开规格；本页 <span class="term">hidden=4096</span> 为示例参数（非产品真实值），只用于展示 sink+滑窗 KV 策略的形状。
-        </p>
-        <svg class="chart" viewBox="0 0 1200 220" width="100%" height="220" role="img"
+        <!-- Section 4: LTX-2 sink + sliding window -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">落到 LTX-2：sink + 滑窗，显存有硬上限</h3>
+          <p style="font-size: 0.9rem; color: var(--text-muted);">
+            LTX-2 仅 <span class="term">layers=48</span> 是公开规格；本节 <span class="term">hidden=4096</span> 为示例参数（非产品真实值），只用于展示 sink+滑窗 KV 策略的形状。
+          </p>
+          <svg class="chart" viewBox="0 0 1200 220" width="100%" height="220" role="img"
              aria-label="LTX-2 KV 缓存时间轴：前 2 个 chunk 为常驻 sink，中间 7 个已丢弃，最近 6 个滑动窗口内保留，末尾为下一步生成位置">
           <text class="chart-caption" x="66" y="30" text-anchor="middle">sink（常驻）</text>
           <text class="chart-caption" x="390" y="30" text-anchor="middle">已丢弃</text>
@@ -650,24 +790,20 @@ body {
           <div class="stat-card">
             <span class="stat-label" style="color: var(--text); font-weight: 700;">文本交叉注意力 K/V</span>
             <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
-              依赖当前噪声级 sigma，<b style="color: var(--text);">不缓存</b>、每步重算——用算力换掉了存储，呼应下一页的 roofline。
+              依赖当前噪声级 sigma，<b style="color: var(--text);">不缓存</b>、每步重算——用算力换掉了存储，呼应下一节的 roofline。
             </p>
           </div>
         </div>
-      </div>
-    </section>
+        </div>
 
-    <!-- Slide 5: roofline -->
-    <section class="slide">
-      <p class="slide-kicker">① 性能估计 · Roofline</p>
-      <div class="slide-eyebrow-rule"></div>
-      <h2 class="slide-title">Roofline 直觉：省显存还是省带宽</h2>
-      <div class="slide-body" style="max-width: none;">
-        <p>
-          实际吞吐 = <span class="term">min(峰值算力, 带宽 × 算术强度)</span>；算术强度 <span class="term">AI = FLOPs / 搬运字节数</span>，
-          AI 越低越"带宽受限"，越高越"算力受限"。
-        </p>
-        <svg class="chart" viewBox="0 0 1000 380" width="100%" height="320" role="img"
+        <!-- Section 5: roofline -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">Roofline 直觉：省显存还是省带宽</h3>
+          <p>
+            实际吞吐 = <span class="term">min(峰值算力, 带宽 × 算术强度)</span>；算术强度 <span class="term">AI = FLOPs / 搬运字节数</span>，
+            AI 越低越"带宽受限"，越高越"算力受限"。
+          </p>
+          <svg class="chart" viewBox="0 0 1000 380" width="100%" height="320" role="img"
              aria-label="Roofline 图：算术强度为横轴、吞吐为纵轴，屋顶折线在脊点前是带宽受限斜线，脊点后是算力受限水平线；decode 点落在斜线段，GEMM 点落在水平段">
           <line class="chart-grid" x1="80" y1="340" x2="920" y2="340" />
           <line class="chart-grid" x1="80" y1="340" x2="80" y2="40" />
@@ -682,7 +818,7 @@ body {
           <!-- decode point: low AI, bandwidth-bound -->
           <circle cx="150" cy="283" r="7" fill="var(--accent)" />
           <text class="chart-label-strong" x="150" y="308" text-anchor="middle">decode</text>
-          <text class="chart-caption" x="150" y="326" text-anchor="middle">AI 低 → 带宽受限（读整份 KV cache，见①②页 2GB/64GB）</text>
+          <text class="chart-caption" x="150" y="326" text-anchor="middle">AI 低 → 带宽受限（读整份 KV cache，见前两节 2GB/64GB）</text>
 
           <!-- GEMM point: high AI, compute-bound -->
           <circle cx="750" cy="80" r="7" fill="var(--accent-2)" />
@@ -692,10 +828,899 @@ body {
           <text class="chart-label" x="500" y="368" text-anchor="middle">算术强度 AI（FLOPs/byte，log）→</text>
           <text class="chart-label" x="40" y="190" text-anchor="middle" transform="rotate(-90 40 190)">吞吐 →</text>
         </svg>
-        <p>
-          显存三项分解告诉你"占多少"，roofline 告诉你"快不快"——两者合起来是①的完整答案，
-          ② <span class="term">通讯</span>的代价模型会在此基础上继续展开。
-        </p>
+          <p>
+            显存三项分解告诉你"占多少"，roofline 告诉你"快不快"——两者合起来是①的完整答案，
+            ② <span class="term">通讯</span>的代价模型会在此基础上继续展开。
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 02 — 通讯原语与代价模型章 (deck/chapters/02-communication-primitives.html) -->
+    <section class="slide">
+      <p class="slide-kicker">② 通讯原语</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">五种通讯原语 + <span class="term">α-β</span> 代价模型</h2>
+
+      <div class="slide-body" style="max-width: none;">
+
+        <!-- Section 1: five primitives overview -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">五原语：谁在搬什么</h3>
+          <p>
+            后面③④两章的并行方案，本质上都是"用哪种原语搬多少数据"。先建立统一直觉，再挂公式。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card stat-card--accent">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">all-reduce</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">每卡一份数据，规约后<b style="color: var(--text);">每卡都拿到相同的完整结果</b>。</p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">all-gather</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">每卡一片数据，<b style="color: var(--text);">不规约</b>，每卡拿到所有分片拼起来的集合。</p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">reduce-scatter</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">每卡完整数据，规约后<b style="color: var(--text);">每卡只留自己那一片</b>，结果分散不重复。</p>
+            </div>
+          </div>
+          <div class="stat-row" style="margin-top: 1.25rem;">
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">all-to-all</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">每卡给<b style="color: var(--text);">每张卡</b>发不同的一小片（转置式交换），常见于路由类操作。</p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">p2p (point-to-point)</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">只在<b style="color: var(--text);">两张卡之间</b>单向/双向传一份数据，无广播无规约。</p>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            all-reduce/all-gather/reduce-scatter 常成对出现在参数/梯度分片场景，all-to-all 用于路由，p2p 用于流水线相邻阶段——④会逐一对号入座。
+          </p>
+        </div>
+
+        <!-- Section 2: alpha-beta cost model + ring vs naive -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title"><span class="term">α-β</span> 代价模型：朴素做法 vs Ring</h3>
+          <p>
+            单次点对点传输 <span class="term">T = α + β·M</span>：α 是每条消息的固定延迟（消息越小越吃亏），
+            β=1/带宽 是搬运成本（消息越大越吃这个）。硬件量级：节点内 <span class="term">NVLink</span> <span class="num">300</span> GB/s（α≈<span class="num">5</span>μs），
+            跨节点 200Gbps <span class="term">InfiniBand</span> 仅 <span class="num">25</span> GB/s——约为 NVLink 的 <span class="num">1/12</span>，④讲多机训练时拓扑感知的伏笔。
+          </p>
+          <p>
+            以①的经典 LLM 梯度（bf16 <span class="num">13.4</span> GB）在 <span class="term">P=8</span> 卡 NVLink 环上做 all-reduce 为例：
+          </p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">625</span> ms</span>
+              <span class="stat-label">朴素做法（单卡收集再广播）：瓶颈卡收 7 份、发 7 份 = 2×7×13.4GB / 300GB/s，且随 P 线性变差</span>
+            </div>
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num"><span class="num">78</span> ms</span>
+              <span class="stat-label">Ring all-reduce：每卡只搬 2×(8-1)/8×13.4GB ≈ 23.45GB，耗时 23.45GB / 300GB/s——快 <span class="num">8</span>×</span>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            ring 算法把"单点瓶颈"摊成"环上均摊"：每卡数据量随 P 增大趋于常数 <span class="term">2M</span>，代价从 <span class="term">O(P)</span> 降到 <span class="term">O(1)</span>（单卡视角）。
+          </p>
+        </div>
+
+        <!-- Section 3: ring all-reduce step animation -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">Ring All-Reduce 分步动画：reduce-scatter 半环 + all-gather 半环</h3>
+          <p>
+            8 卡排成环。阶段一 <span class="term">reduce-scatter</span>（7 步）：每步把一个分片发给右邻居并累加，7 步后每卡恰好持有一个"完全规约好"的分片。
+            阶段二 <span class="term">all-gather</span>（7 步）：把已规约的分片继续沿环转发（不再累加），7 步后每卡集齐全部分片。共 <span class="term">2(P-1)=14</span> 步，
+            每步每卡收发一个大小 <span class="term">M/P</span> 的分片——正是上一节 78ms 数字背后的真实数据流。
+          </p>
+          <svg class="chart" viewBox="0 0 600 300" width="100%" height="300" role="img"
+               aria-label="8 张卡排成环形拓扑，动画沿环流动的高亮弧线代表数据分片传递；节点颜色交替代表 reduce-scatter 与 all-gather 两个阶段">
+            <text class="chart-label-strong phase-label-a" x="300" y="24" text-anchor="middle">阶段一 · Reduce-Scatter（7 步，累加分片）</text>
+            <text class="chart-label-strong phase-label-b" x="300" y="24" text-anchor="middle">阶段二 · All-Gather（7 步，转发分片）</text>
+
+            <!-- ring edges: 8 nodes octagon, center (300,150) r=105 -->
+            <line class="ring-arc" x1="300" y1="45" x2="377" y2="97" />
+            <line class="ring-arc" x1="377" y1="97" x2="405" y2="150" />
+            <line class="ring-arc" x1="405" y1="150" x2="377" y2="203" />
+            <line class="ring-arc" x1="377" y1="203" x2="300" y2="255" />
+            <line class="ring-arc" x1="300" y1="255" x2="223" y2="203" />
+            <line class="ring-arc" x1="223" y1="203" x2="195" y2="150" />
+            <line class="ring-arc" x1="195" y1="150" x2="223" y2="97" />
+            <line class="ring-arc" x1="223" y1="97" x2="300" y2="45" />
+
+            <line class="ring-arc-flow" style="animation-delay:0.0s" x1="300" y1="45" x2="377" y2="97" />
+            <line class="ring-arc-flow" style="animation-delay:0.8s" x1="377" y1="97" x2="405" y2="150" />
+            <line class="ring-arc-flow" style="animation-delay:1.6s" x1="405" y1="150" x2="377" y2="203" />
+            <line class="ring-arc-flow" style="animation-delay:2.4s" x1="377" y1="203" x2="300" y2="255" />
+            <line class="ring-arc-flow" style="animation-delay:3.2s" x1="300" y1="255" x2="223" y2="203" />
+            <line class="ring-arc-flow" style="animation-delay:4.0s" x1="223" y1="203" x2="195" y2="150" />
+            <line class="ring-arc-flow" style="animation-delay:4.8s" x1="195" y1="150" x2="223" y2="97" />
+            <line class="ring-arc-flow" style="animation-delay:5.6s" x1="223" y1="97" x2="300" y2="45" />
+
+            <!-- 8 GPU nodes -->
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.0s" cx="300" cy="45" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.1s" cx="377" cy="97" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.2s" cx="405" cy="150" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.3s" cx="377" cy="203" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.4s" cx="300" cy="255" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.5s" cx="223" cy="203" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.6s" cx="195" cy="150" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.7s" cx="223" cy="97" r="16" />
+
+            <text class="chart-label" x="300" y="49" text-anchor="middle" fill="var(--bg)">0</text>
+            <text class="chart-label" x="377" y="101" text-anchor="middle" fill="var(--bg)">1</text>
+            <text class="chart-label" x="405" y="154" text-anchor="middle" fill="var(--bg)">2</text>
+            <text class="chart-label" x="377" y="207" text-anchor="middle" fill="var(--bg)">3</text>
+            <text class="chart-label" x="300" y="259" text-anchor="middle" fill="var(--bg)">4</text>
+            <text class="chart-label" x="223" y="207" text-anchor="middle" fill="var(--bg)">5</text>
+            <text class="chart-label" x="195" y="154" text-anchor="middle" fill="var(--bg)">6</text>
+            <text class="chart-label" x="223" y="101" text-anchor="middle" fill="var(--bg)">7</text>
+
+            <text class="chart-caption" x="300" y="290" text-anchor="middle">
+              每步每卡收发一个大小 M/P 的分片，方向沿环单向传递（0→1→2→…→7→0）
+            </text>
+          </svg>
+        </div>
+
+        <!-- Section 4: cost comparison table -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">五原语代价对比：谁在④出场</h3>
+          <div class="panel">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>原语</th>
+                  <th>每卡数据量（最优实现）</th>
+                  <th>延迟敏感度</th>
+                  <th>④出场</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>all-reduce</td>
+                  <td><span class="term">2(P-1)/P·M</span></td>
+                  <td>中（消息大时 β 主导）</td>
+                  <td>TP 每层前向/反向同步激活</td>
+                </tr>
+                <tr>
+                  <td>all-gather</td>
+                  <td><span class="term">(P-1)/P·M</span></td>
+                  <td>中</td>
+                  <td>DP/ZeRO 收集分片参数</td>
+                </tr>
+                <tr>
+                  <td>reduce-scatter</td>
+                  <td><span class="term">(P-1)/P·M</span></td>
+                  <td>中</td>
+                  <td>DP/ZeRO 规约并分片梯度</td>
+                </tr>
+                <tr>
+                  <td>all-to-all</td>
+                  <td><span class="term">(P-1)/P·M</span>，常配小消息</td>
+                  <td><b style="color: var(--text);">高</b>（α 常主导）</td>
+                  <td>EP 路由 token 到专家卡</td>
+                </tr>
+                <tr>
+                  <td>p2p</td>
+                  <td><span class="term">M</span>（单次）</td>
+                  <td>低（大消息时）</td>
+                  <td>PP 相邻 stage 传激活</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="stat-row" style="margin-top: 1.25rem;">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">35</span> μs</span>
+              <span class="stat-label">all-to-all 例（MoE 路由，每卡给其余 7 卡各发 2MB）：7×5μs(α项) + (7/8×16MB)/300GB/s(β项≈0.05μs)——消息越碎，α 越主导，是 EP 章要优化的根源</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">0.34</span> ms</span>
+              <span class="stat-label">p2p 例（PP 传 100MB 激活）：5μs + 100MB/300GB/s——远小于 all-reduce，因为只发一份不做规约/收集</span>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            五种原语的代价差异，本质是"消息大小 vs 消息数量"在 α/β 两项之间的取舍——这套语言会在③④两章反复复用。
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 03 — 序列维并行章 (deck/chapters/03-sequence-parallelism.html) -->
+    <section class="slide">
+      <p class="slide-kicker">③ 序列并行</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">长视频 token 序列怎么切：<span class="term">Context Parallelism</span></h2>
+
+      <div class="slide-body" style="max-width: none;">
+
+        <!-- Section 1: why CP, and how it differs from TP -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">为什么要切序列：CP 切的维度和 TP 不一样</h3>
+          <p>
+            ①已展示 seq=4096 时单层激活就有 <span class="num">3</span> GB 量级；离线/非流式长视频序列可达
+            <span class="num">131072</span>（128K）token（区别于①③MAGI streaming 用的 4096-token 单 chunk），激活线性暴涨，单卡装不下同一批次的完整序列。
+          </p>
+          <svg class="chart" viewBox="0 0 900 200" width="100%" height="200" role="img"
+               aria-label="两个矩形分别示意 CP 沿序列维竖切、TP 沿隐藏维横切，两者切分方向正交">
+            <text class="chart-label-strong" x="220" y="24" text-anchor="middle">CP（本章）：沿序列维切</text>
+            <rect x="80" y="40" width="60" height="110" fill="var(--accent)" opacity="0.85" />
+            <rect x="140" y="40" width="60" height="110" fill="var(--accent)" opacity="0.6" />
+            <rect x="200" y="40" width="60" height="110" fill="var(--accent)" opacity="0.4" />
+            <rect x="260" y="40" width="60" height="110" fill="var(--accent)" opacity="0.25" />
+            <text class="chart-caption" x="220" y="170" text-anchor="middle">每卡拿一段 token（全部 hidden）</text>
+
+            <text class="chart-label-strong" x="680" y="24" text-anchor="middle">TP（④）：沿隐藏/头维切</text>
+            <rect x="560" y="40" width="240" height="27.5" fill="var(--accent-2)" opacity="0.85" />
+            <rect x="560" y="67.5" width="240" height="27.5" fill="var(--accent-2)" opacity="0.6" />
+            <rect x="560" y="95" width="240" height="27.5" fill="var(--accent-2)" opacity="0.4" />
+            <rect x="560" y="122.5" width="240" height="27.5" fill="var(--accent-2)" opacity="0.25" />
+            <text class="chart-caption" x="680" y="170" text-anchor="middle">每卡拿全部 token 的一部分 hidden/头</text>
+          </svg>
+          <p>
+            三种 CP 方案的共同问题：Q 在本地就能算，但 attention 需要<b style="color: var(--text);">全部</b> K/V 才能算对——如何跨卡拿到全部 K/V，是分歧点。
+          </p>
+        </div>
+
+        <!-- Section 2: Ulysses -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">Ulysses：all-to-all 换轴</h3>
+          <p>
+            平时按"序列切分、头全量"存 Q/K/V；attention 计算前做一次 <span class="term">all-to-all</span>，换成"序列全量、头切分"（每卡拿到全部 token 但只算一部分 head），算完再换回去。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num"><span class="num">0.93</span> ms/层</span>
+              <span class="stat-label">P=8，每卡 QKV 张量 16384×5120×2bytes≈160MB，all-to-all 移动 (P-1)/P×160MB=140MB，耗时 140MB/300GB/s≈0.47ms；前后各一次（QKV 换轴+输出 O 换回）</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">硬约束</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">并行度 P 不能超过头数（MAGI heads=<span class="num">40</span>），是它相对 Ring 的限制。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Ring-Attention -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">Ring-Attention：KV 沿环流转</h3>
+          <p>
+            每卡固定持有一段 Q，K/V 分片像②的 ring all-reduce 一样沿环逐步传递（<span class="term">p2p</span>，P-1 步），每收到一个新分片就和本地 Q 做局部 attention 并累加 online softmax 统计量，不需要等全部 K/V 到齐。
+          </p>
+          <svg class="chart" viewBox="0 0 600 260" width="100%" height="240" role="img"
+               aria-label="8 张卡排成环形拓扑，K/V 分片沿环单向传递">
+            <line class="ring-arc" x1="300" y1="35" x2="367" y2="80" />
+            <line class="ring-arc" x1="367" y1="80" x2="390" y2="130" />
+            <line class="ring-arc" x1="390" y1="130" x2="367" y2="180" />
+            <line class="ring-arc" x1="367" y1="180" x2="300" y2="225" />
+            <line class="ring-arc" x1="300" y1="225" x2="233" y2="180" />
+            <line class="ring-arc" x1="233" y1="180" x2="210" y2="130" />
+            <line class="ring-arc" x1="210" y1="130" x2="233" y2="80" />
+            <line class="ring-arc" x1="233" y1="80" x2="300" y2="35" />
+            <circle class="ring-node" cx="300" cy="35" r="15" />
+            <circle class="ring-node" cx="367" cy="80" r="15" />
+            <circle class="ring-node" cx="390" cy="130" r="15" />
+            <circle class="ring-node" cx="367" cy="180" r="15" />
+            <circle class="ring-node" cx="300" cy="225" r="15" />
+            <circle class="ring-node" cx="233" cy="180" r="15" />
+            <circle class="ring-node" cx="210" cy="130" r="15" />
+            <circle class="ring-node" cx="233" cy="80" r="15" />
+            <text class="chart-caption" x="300" y="255" text-anchor="middle">每步传一个 K/V 分片，边收边算（online softmax），可与本地 attention 计算重叠</text>
+          </svg>
+          <div class="stat-row" style="margin-top: 0.5rem;">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">7.47</span> ms/层</span>
+              <span class="stat-label">P=8，每步 K+V 分片 2×16384×40×128×2bytes≈320MB，耗时≈1.07ms；P-1=7 步——原始通讯量，实际可与计算重叠，暴露墙钟时间通常远小于此</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">优势</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">不受头数限制，纯按 token 数切，P 可以很大——对超长序列更常见。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: MagiAttention / flex-flash-attn -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title"><span class="term">MagiAttention / flex-flash-attn</span>：给 Ring 加灵活掩码与负载均衡</h3>
+          <p>
+            建立在 FlashAttention-3 kernel 之上（tiling/IO-aware，⑤展开细节），核心新增两点：
+            <span class="term">AttnSlice</span> 广义掩码——能表达 MAGI 的 block-causal + 多模态掩码等异构 mask，并让不规则掩码仍可按 chunk 分布式切分；
+            <b style="color: var(--text);">chunk 级负载均衡 + 零冗余通讯重叠</b>——像 Ring-Attention 一样沿环传 KV，但对被掩码整块跳过的区域<b style="color: var(--text);">不计算也不搬运</b>。
+          </p>
+          <svg class="chart" viewBox="0 0 500 260" width="100%" height="220" role="img"
+               aria-label="8x8 网格示意注意力掩码，灰色虚线格子代表被掩码跳过的分片，不参与计算与通讯；彩色格子代表实际计算的分片">
+            <rect x="130" y="15" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="160" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="190" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="220" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="250" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="280" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="310" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="340" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="45" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="160" y="45" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="190" y="45" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="220" y="45" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="250" y="45" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="280" y="45" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="310" y="45" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="340" y="45" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="75" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.76" />
+            <rect x="160" y="75" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="190" y="75" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="220" y="75" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="250" y="75" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="280" y="75" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="310" y="75" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="340" y="75" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="105" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.69" />
+            <rect x="160" y="105" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.76" />
+            <rect x="190" y="105" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="220" y="105" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="250" y="105" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="280" y="105" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="310" y="105" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="340" y="105" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="135" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.62" />
+            <rect x="160" y="135" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.69" />
+            <rect x="190" y="135" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.76" />
+            <rect x="220" y="135" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="250" y="135" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="280" y="135" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="310" y="135" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="340" y="135" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="165" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.56" />
+            <rect x="160" y="165" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.62" />
+            <rect x="190" y="165" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.69" />
+            <rect x="220" y="165" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.76" />
+            <rect x="250" y="165" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="280" y="165" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="310" y="165" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="340" y="165" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.49" />
+            <rect x="160" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.56" />
+            <rect x="190" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.62" />
+            <rect x="220" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.69" />
+            <rect x="250" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.76" />
+            <rect x="280" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="310" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="340" y="195" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.42" />
+            <rect x="160" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.49" />
+            <rect x="190" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.56" />
+            <rect x="220" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.62" />
+            <rect x="250" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.69" />
+            <rect x="280" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.76" />
+            <rect x="310" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="340" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <text class="chart-caption" x="250" y="248" text-anchor="middle">block-causal 掩码：下三角+对角块计算并传输，上三角块（灰色）直接跳过</text>
+          </svg>
+          <p style="font-size: 0.9rem; color: var(--text-muted);">
+            定性结论（不给虚构精确基准数字）：对 MAGI 这种带 block-causal 结构化稀疏掩码的场景，FFA 的有效通讯量<b style="color: var(--text);">低于</b>上一节朴素 Ring 的 7.47ms/层估算，因为掩码外的分片直接跳过；具体加速比取决于掩码稀疏度，未公开可复算的基准数字，仅作定性说明。这是 MAGI 真实使用的方案。
+          </p>
+        </div>
+
+        <!-- Section 5: comparison summary -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">三方案对比小结</h3>
+          <div class="panel">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>方案</th>
+                  <th>切分依据</th>
+                  <th>通讯原语</th>
+                  <th>并行度上限</th>
+                  <th>本章数字</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Ulysses</td>
+                  <td>序列↔头 反复换轴</td>
+                  <td>all-to-all ×2/层</td>
+                  <td>受限于头数（≤40）</td>
+                  <td>0.93 ms/层</td>
+                </tr>
+                <tr>
+                  <td>Ring-Attention</td>
+                  <td>固定按序列切，KV 环传</td>
+                  <td>p2p ×(P-1)/层</td>
+                  <td>不受头数限制</td>
+                  <td>7.47 ms/层（原始，可重叠）</td>
+                </tr>
+                <tr>
+                  <td>MagiAttention/FFA</td>
+                  <td>同 Ring + 灵活掩码</td>
+                  <td>p2p（跳过掩码块）</td>
+                  <td>不受头数限制</td>
+                  <td>低于 Ring（定性，视掩码稀疏度）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            三者都在回答"Q 在本地，K/V 怎么凑齐"，差异在换轴代价 vs 环传代价 vs 能否利用掩码稀疏性省掉无效传输——
+            ④<span class="term">训练并行范式</span>会在此基础上叠加 DP/TP/PP/EP。
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 04 — 训练并行范式章 (deck/chapters/04-parallelism-paradigms.html) -->
+    <section class="slide">
+      <p class="slide-kicker">④ 训练并行范式</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">DP/ZeRO · TP · PP · EP：切什么，花多少</h2>
+
+      <div class="slide-body" style="max-width: none;">
+
+        <!-- Section 1: DP problem + ZeRO stages -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">DP 的问题：单卡装不下 + ZeRO/FSDP 怎么解决</h3>
+          <p>
+            朴素<span class="term">数据并行 (DP)</span>：每卡存<b style="color: var(--text);">完整</b>模型+优化器状态，仅切分 batch；
+            ①已算出 7B 训练权重+优化器 = <span class="num">120.6</span> GB，单张 80GB 卡放不下——DP 单独用不了。
+          </p>
+          <svg class="chart" viewBox="0 0 900 190" width="100%" height="190" role="img"
+               aria-label="四行条形图，从上到下分别是 DP、ZeRO-1、ZeRO-2、ZeRO-3，条形宽度代表单卡显存占用，逐级变窄">
+            <text class="chart-label" x="20" y="24" text-anchor="start">DP（每卡全量）</text>
+            <rect x="220" y="10" width="640" height="24" rx="4" fill="var(--accent)" opacity="0.85" />
+
+            <text class="chart-label" x="20" y="64" text-anchor="start">ZeRO-1（分片优化器状态）</text>
+            <rect x="220" y="50" width="460" height="24" rx="4" fill="var(--accent)" opacity="0.75" />
+
+            <text class="chart-label" x="20" y="104" text-anchor="start">ZeRO-2（+分片梯度）</text>
+            <rect x="220" y="90" width="330" height="24" rx="4" fill="var(--accent)" opacity="0.65" />
+
+            <text class="chart-label" x="20" y="144" text-anchor="start">ZeRO-3 / FSDP（+分片参数）</text>
+            <rect x="220" y="130" width="180" height="24" rx="4" fill="var(--accent-2)" opacity="0.9" />
+
+            <text class="chart-caption" x="220" y="175" text-anchor="start">
+              每卡只常驻 1/P 的权重/梯度/优化器状态；用前 all-gather 参数，用后 reduce-scatter 梯度（②原语）
+            </text>
+          </svg>
+        </div>
+
+        <!-- Section 2: Philoflow FSDP 16-GPU + why no TP/PP -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">落到 Philoflow：16-GPU FSDP 训练 MAGI 级模型</h3>
+          <p>
+            <span class="term">Philoflow</span> 用 <span class="term">accelerate</span> + <span class="term">FSDP(=ZeRO-3)</span>，<span class="term">P=16</span> 卡训练 MAGI 级（<span class="num">12.6</span>B）模型。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">210.6</span> GB</span>
+              <span class="stat-label">训练总显存占用（AdamW混合精度，按①7B同比例 120.6/13.4≈9× 估算）：bf16权重23.4GB × 9</span>
+            </div>
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num"><span class="num">13.2</span> GB/卡</span>
+              <span class="stat-label">FSDP-3 分到 16 卡后：210.6GB / 16——单卡轻松放下，且留有余量给激活</span>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            <b style="color: var(--text);">为什么不用 TP/PP</b>：MAGI 级模型（12.6B）远小于需要 TP/PP 的百亿级+ LLM，FSDP 分片已把单卡显存压到 &lt;20GB；
+            引入 TP 要承受每层同步 all-reduce 的延迟（下节），引入 PP 要承受流水线气泡（下下节）——在当前模型规模和 16 卡单集群规模下，两者的复杂度收益比不划算，Philoflow 选择只用 FSDP 扩展。
+          </p>
+        </div>
+
+        <!-- Section 3: TP -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">TP（张量并行）：切开单层权重矩阵</h3>
+          <p>
+            Megatron 式 TP：把单层权重矩阵（QKV、MLP）按列/行切到多卡，每卡算一部分，层末用 <span class="term">all-reduce</span> 合并结果——用②的 all-reduce 公式，但发生在<b style="color: var(--text);">每一层</b>内部。
+          </p>
+          <svg class="chart" viewBox="0 0 700 150" width="100%" height="150" role="img"
+               aria-label="一个权重矩阵被竖切成 4 份分给 4 张卡，计算后箭头汇聚做 all-reduce">
+            <rect x="30" y="20" width="60" height="90" fill="var(--accent)" opacity="0.9" />
+            <rect x="100" y="20" width="60" height="90" fill="var(--accent)" opacity="0.7" />
+            <rect x="170" y="20" width="60" height="90" fill="var(--accent)" opacity="0.5" />
+            <rect x="240" y="20" width="60" height="90" fill="var(--accent)" opacity="0.35" />
+            <text class="chart-caption" x="150" y="130" text-anchor="middle">权重矩阵按列切给 4 张卡</text>
+
+            <path class="chart-line accent-2" d="M60,110 L400,75" />
+            <path class="chart-line accent-2" d="M130,110 L400,75" />
+            <path class="chart-line accent-2" d="M200,110 L400,75" />
+            <path class="chart-line accent-2" d="M270,110 L400,75" />
+            <circle cx="400" cy="75" r="8" fill="var(--accent-2)" />
+            <text class="chart-label-strong" x="450" y="60" text-anchor="start">all-reduce</text>
+            <text class="chart-caption" x="450" y="80" text-anchor="start">合并各卡部分结果，同步阻塞</text>
+          </svg>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">0.39</span> ms/层</span>
+              <span class="stat-label">经典LLM，TP=8：单层消息 4096×4096×2bytes≈33.6MB，all-reduce 2×(8-1)/8×33.6MB/300GB/s≈0.196ms，attn+MLP各一次</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">12.6</span> ms/step</span>
+              <span class="stat-label">32 层累加；all-reduce 同步阻塞、延迟极敏感，几乎只用节点内 NVLink——Slide2 中 Philoflow 放弃 TP 的另一理由</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: PP -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">PP（流水线并行）：切开层，代价是气泡而非带宽</h3>
+          <p>
+            把模型按层切成多个 stage，跨卡分布；stage 间只需 <span class="term">p2p</span> 传激活/梯度（②公式，代价很低）。核心代价不是通讯量，而是<b style="color: var(--text);">流水线气泡 (bubble)</b>：
+            P 个 stage、M 个 micro-batch 时，气泡占比 ≈ <span class="term">(P-1)/(P-1+M)</span>。
+          </p>
+          <svg class="chart" viewBox="0 0 720 180" width="100%" height="180" role="img"
+               aria-label="4 行代表 4 个流水线 stage 的时间轴甘特图，色块为前向/反向计算，灰色虚线块为等待气泡，stage 越靠后启动越晚">
+            <!-- stage 0..3, each row offset to show bubble -->
+            <g>
+              <rect x="20" y="10" width="60" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <rect x="80" y="10" width="440" height="24" fill="var(--accent)" opacity="0.85" />
+              <rect x="520" y="10" width="60" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <text class="chart-label" x="590" y="27" text-anchor="start">stage 0</text>
+            </g>
+            <g>
+              <rect x="20" y="48" width="120" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <rect x="140" y="48" width="380" height="24" fill="var(--accent)" opacity="0.75" />
+              <rect x="520" y="48" width="60" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <text class="chart-label" x="590" y="65" text-anchor="start">stage 1</text>
+            </g>
+            <g>
+              <rect x="20" y="86" width="180" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <rect x="200" y="86" width="320" height="24" fill="var(--accent)" opacity="0.65" />
+              <rect x="520" y="86" width="60" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <text class="chart-label" x="590" y="103" text-anchor="start">stage 2</text>
+            </g>
+            <g>
+              <rect x="20" y="124" width="240" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <rect x="260" y="124" width="260" height="24" fill="var(--accent)" opacity="0.55" />
+              <text class="chart-label" x="530" y="141" text-anchor="start">stage 3</text>
+            </g>
+            <text class="chart-caption" x="20" y="165" text-anchor="start">
+              灰色虚线块 = 等待气泡；色块 = 前向/反向计算（p2p 传递激活，代价很低）
+            </text>
+          </svg>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">27.3</span> %</span>
+              <span class="stat-label">P=4 stage，M=8 micro-batch：气泡 = (4-1)/(4-1+8) = 3/11</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">15.8</span> %</span>
+              <span class="stat-label">M 增到 16：气泡降到 3/19——micro-batch 越多气泡越薄，但需缓存更多 in-flight 激活</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 5: EP -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">EP（专家并行）：token-routed 才能 EP，modality-experts 不行</h3>
+          <p>
+            MoE 层每卡常驻若干专家的全部权重，<span class="term">router</span> 给每个 token 动态选 top-k 专家，token 需经 <span class="term">all-to-all</span>（②公式）跨卡送到专家所在卡，算完再送回——这是 <b style="color: var(--text);">token-routed experts</b>。
+          </p>
+          <svg class="chart" viewBox="0 0 900 190" width="100%" height="190" role="img"
+               aria-label="左侧 token-routed：路由器把 token 用交叉箭头分发到不同专家卡；右侧 modality-experts：不同模态的 token 各自直线走向固定专家，没有交叉">
+            <text class="chart-label-strong" x="220" y="24" text-anchor="middle">token-routed（minimax h3 / 经典 MoE LLM）</text>
+            <circle cx="220" cy="60" r="14" fill="var(--accent)" />
+            <text class="chart-label" x="220" y="65" text-anchor="middle" fill="var(--bg)">R</text>
+            <circle cx="100" cy="140" r="16" fill="none" stroke="var(--border)" />
+            <circle cx="180" cy="140" r="16" fill="none" stroke="var(--border)" />
+            <circle cx="260" cy="140" r="16" fill="none" stroke="var(--border)" />
+            <circle cx="340" cy="140" r="16" fill="none" stroke="var(--border)" />
+            <path class="chart-line accent-2" d="M220,74 L100,126" />
+            <path class="chart-line accent-2" d="M220,74 L260,126" />
+            <path class="chart-line" d="M220,74 L180,126" />
+            <path class="chart-line" d="M220,74 L340,126" />
+            <text class="chart-caption" x="220" y="175" text-anchor="middle">router 动态选专家 → all-to-all 跨卡交叉发送</text>
+
+            <text class="chart-label-strong" x="680" y="24" text-anchor="middle">modality-experts（MAGI NativeMoELinear）</text>
+            <circle cx="580" cy="140" r="16" fill="var(--accent-2)" opacity="0.85" />
+            <text class="chart-caption" x="580" y="170" text-anchor="middle">video</text>
+            <circle cx="680" cy="140" r="16" fill="var(--accent-2)" opacity="0.85" />
+            <text class="chart-caption" x="680" y="170" text-anchor="middle">text</text>
+            <circle cx="780" cy="140" r="16" fill="var(--accent-2)" opacity="0.85" />
+            <text class="chart-caption" x="780" y="170" text-anchor="middle">audio-like</text>
+            <path class="chart-line" d="M580,60 L580,124" />
+            <path class="chart-line" d="M680,60 L680,124" />
+            <path class="chart-line" d="M780,60 L780,124" />
+            <text class="chart-caption" x="680" y="55" text-anchor="middle">按模态静态分派，无交叉、无 all-to-all</text>
+          </svg>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">35</span> μs</span>
+              <span class="stat-label">直接复用②Slide4 的路由数字：8 卡、每卡给其余 7 卡各发 2MB 分片，α 项主导——EP 的通讯瓶颈本质就是②讲过的"消息碎、α 项吃紧"</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">MAGI modality-experts 为何不需要 EP</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                <span class="term">num_modality=3</span>：不是 router 学出来的动态选择，而是按模态（video/text/…）静态决定用哪套投影，同一模态的 token 永远走同一分支——不需要跨卡动态路由，也就不需要 all-to-all。
+              </p>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            一句话区分：EP 解决"动态路由到哪张卡"的通讯问题，只对 token-routed experts 有意义；MAGI 的 modality-experts 是静态分派，压根不产生 EP 要解决的那种通讯模式。
+          </p>
+        </div>
+
+        <!-- Section 6: summary table -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">四种范式对比小结</h3>
+          <div class="panel">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>范式</th>
+                  <th>切什么</th>
+                  <th>用②哪种原语</th>
+                  <th>代价来源</th>
+                  <th>本章落点</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>DP/ZeRO(FSDP)</td>
+                  <td>参数/梯度/优化器状态</td>
+                  <td>all-gather + reduce-scatter</td>
+                  <td>通讯量随分片数增加</td>
+                  <td>Philoflow 16-GPU，13.2GB/卡</td>
+                </tr>
+                <tr>
+                  <td>TP</td>
+                  <td>单层权重矩阵</td>
+                  <td>all-reduce（层内，同步阻塞）</td>
+                  <td>延迟敏感，需高速互联</td>
+                  <td>经典 LLM，0.39ms/层</td>
+                </tr>
+                <tr>
+                  <td>PP</td>
+                  <td>层（stage）</td>
+                  <td>p2p（stage 间）</td>
+                  <td>流水线气泡，非带宽</td>
+                  <td>4 stage/8 microbatch，27.3%气泡</td>
+                </tr>
+                <tr>
+                  <td>EP</td>
+                  <td>token-routed 专家</td>
+                  <td>all-to-all</td>
+                  <td>消息碎、α 主导</td>
+                  <td>minimax h3 / 经典 MoE LLM，35μs</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            四种范式切的维度互不相同（参数 vs 层内权重 vs 层 vs 专家），可以叠加组合（如 TP+PP+DP 的 3D 并行），但都建立在②的同一套原语与代价语言之上——
+            ⑤<span class="term">显存与计算优化</span>会在此基础上讲如何进一步压缩每一项代价。
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 05 — 显存与计算优化章 (deck/chapters/05-memory-compute-optimization.html) -->
+    <section class="slide">
+      <p class="slide-kicker">⑤ 显存与计算优化</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">兑现前面的钩子：重计算 · 混合精度 · Offload · FlashAttention · KV Cache</h2>
+
+      <div class="slide-body" style="max-width: none;">
+
+        <!-- Section 1: activation checkpointing -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">激活重计算 (activation checkpointing)：97GB → 2GB 怎么来的</h3>
+          <p>
+            反向传播需要前向的中间激活；不重计算时全部保留 = O(层数)×每层激活。重计算只保留层边界的少量张量，反向时<b style="color: var(--text);">重新跑一遍前向</b>补出被丢弃的中间激活，用算力换显存。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">97</span> → <span class="num">2</span> GB</span>
+              <span class="stat-label">兑现①的钩子：经典 LLM 7B，seq=4096，不开重计算单层3.03GB×32层≈97GB；开满重计算单层0.06GB×32≈2GB——只保留层边界输入</span>
+            </div>
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num">+<span class="num">33</span> %</span>
+              <span class="stat-label">额外计算量：1次前向+1次反向(≈2倍前向算力)=3份，加一次重算前向=4份，4/3-1≈33%</span>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">这是"存 vs 算"权衡的第一个具体例子，呼应①的 roofline 收口。</p>
+        </div>
+
+        <!-- Section 2: mixed precision -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">混合精度：120.6GB 分解里每一项在干嘛</h3>
+          <svg class="chart" viewBox="0 0 900 130" width="100%" height="130" role="img"
+               aria-label="堆叠条形图，从左到右四段分别是 bf16 权重 13.4GB、fp32 主权重 26.8GB、fp32 梯度 26.8GB、Adam 一阶二阶矩 53.6GB，宽度按比例">
+            <rect x="20" y="30" width="90" height="40" fill="var(--accent)" opacity="0.9" />
+            <rect x="110" y="30" width="180" height="40" fill="var(--accent)" opacity="0.7" />
+            <rect x="290" y="30" width="180" height="40" fill="var(--accent-2)" opacity="0.7" />
+            <rect x="470" y="30" width="360" height="40" fill="var(--accent-2)" opacity="0.9" />
+            <text class="chart-caption" x="65" y="88" text-anchor="middle">bf16权重 13.4GB</text>
+            <text class="chart-caption" x="200" y="88" text-anchor="middle">fp32主权重 26.8GB</text>
+            <text class="chart-caption" x="380" y="88" text-anchor="middle">fp32梯度 26.8GB</text>
+            <text class="chart-caption" x="650" y="88" text-anchor="middle">Adam一二阶矩 53.6GB</text>
+            <text class="chart-label" x="450" y="115" text-anchor="middle">计算用低精度（左）、状态累积用高精度（右）——合计 120.6GB</text>
+          </svg>
+          <p>
+            为什么用 <span class="term">bf16</span> 而不是 fp16：bf16 指数位与 fp32 相同（8 位），动态范围一致，<b style="color: var(--text);">不需要 loss scaling</b>；
+            fp16 指数位只有 5 位，训练大模型容易下溢，需要额外的 loss-scaling 机制。
+          </p>
+        </div>
+
+        <!-- Section 3: offload -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">Offload：显存换 PCIe 带宽</h3>
+          <p>
+            把不在计算关键路径上的状态（典型是优化器状态）挪到 CPU 内存，用时再搬回 GPU——①roofline "存 vs 算"权衡的另一种形式："存 vs 搬运带宽"。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">25</span> GB/s</span>
+              <span class="stat-label">PCIe4 x16 带宽，远低于②NVLink 300GB/s（约 1/12）</span>
+            </div>
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num"><span class="num">2.14</span> s</span>
+              <span class="stat-label">7B模型Adam优化器状态53.6GB整体搬到CPU：53.6GB/25GB/s——比②③④任何一次通讯都慢一个数量级</span>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            因此 offload 只对"能和计算重叠、非关键路径"的状态划算（如优化器 step 与下一步前向重叠），不能天真地每步同步搬运。
+          </p>
+        </div>
+
+        <!-- Section 4: FlashAttention basics -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">FlashAttention 基础：tiling + IO-aware，不物化 N×N</h3>
+          <svg class="chart" viewBox="0 0 900 200" width="100%" height="200" role="img"
+               aria-label="左侧朴素attention整块物化N×N矩阵写回HBM；右侧FlashAttention把矩阵切成小块，在SRAM内完成归约，只写回最终结果">
+            <text class="chart-label-strong" x="220" y="24" text-anchor="middle">朴素 Attention：物化整个 N×N</text>
+            <rect x="120" y="40" width="200" height="120" fill="var(--accent)" opacity="0.55" />
+            <text class="chart-caption" x="220" y="180" text-anchor="middle">1.07 GB 写回/读回 HBM（seq=4096, 32 heads）</text>
+
+            <text class="chart-label-strong" x="680" y="24" text-anchor="middle">FlashAttention：Tiling + SRAM 内归约</text>
+            <rect x="580" y="40" width="55" height="55" fill="var(--accent-2)" opacity="0.85" />
+            <rect x="645" y="40" width="55" height="55" fill="var(--accent-2)" opacity="0.65" />
+            <rect x="580" y="105" width="55" height="55" fill="var(--accent-2)" opacity="0.65" />
+            <rect x="645" y="105" width="55" height="55" fill="var(--accent-2)" opacity="0.45" />
+            <text class="chart-caption" x="680" y="180" text-anchor="middle">分块在 SRAM（≈19TB/s）算 softmax，只把结果写回 HBM</text>
+          </svg>
+          <p>
+            FlashAttention 省的不是 FLOPs（数学上等价），是 <b style="color: var(--text);">HBM 读写次数</b>——又一次"用什么带宽做什么事"的 roofline 式思考。
+          </p>
+        </div>
+
+        <!-- Section 5: MagiAttention / FFA -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title"><span class="term">MagiAttention / flex-flash-attn</span>：FA 的分布式 + 灵活掩码扩展</h3>
+          <p>
+            建立在上一节 FA-3 kernel 之上，③已讲过它在<b style="color: var(--text);">通讯</b>维度的表现（chunk 级负载均衡+零冗余重叠，跳过掩码外分片）；
+            本节收口它在 <b style="color: var(--text);">kernel/掩码</b> 维度的贡献：<span class="term">AttnSlice</span> 广义掩码让 block-causal、多模态等异构掩码也能享受 tiling/IO-aware 的好处，而不必退化成朴素稠密 attention。
+          </p>
+          <p>
+            一句话：③讲的是"分布式怎么切"，本节讲的是"单卡 kernel 怎么快"，两者叠加才是 MAGI 实际训练/推理用的完整方案。
+          </p>
+        </div>
+
+        <!-- Section 6: KV cache summary -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">KV Cache 收口：Philoflow SNL 流式 + LTX-2 vs minimax h3</h3>
+          <p>
+            <span class="term">SNL (Same-Noise-Level)</span>：MAGI self-forcing DMD 自回归生成的 KV-cache 噪声机制——上下文与当前去噪 chunk 处于同一噪声级，用 block-causal 掩码，每个噪声级一份 KV-cache；
+            <span class="term">streaming</span> 模式逐 chunk 生成、配 first-block/first-latent <b style="color: var(--text);">sink</b>，实现无限长生成。兑现①的 <span class="num">3.125</span>GB reservoir 数字：这就是 SNL 机制下的窗口大小。
+          </p>
+          <div class="panel">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>模型</th>
+                  <th>KV 策略</th>
+                  <th>KV 大小</th>
+                  <th>随生成长度</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>经典 LLM</td>
+                  <td>逐 token 全量缓存</td>
+                  <td>①：2GB（单请求）</td>
+                  <td>线性无界增长</td>
+                </tr>
+                <tr>
+                  <td>MAGI</td>
+                  <td>SNL 同噪声级 + reservoir</td>
+                  <td>①：3.125 GB</td>
+                  <td>恒定窗口</td>
+                </tr>
+                <tr>
+                  <td>LTX-2</td>
+                  <td>sink + 滑动窗口，文本交叉注意力K/V不缓存(依赖sigma)</td>
+                  <td>①：6.0 GB</td>
+                  <td>恒定，硬上限</td>
+                </tr>
+                <tr>
+                  <td>minimax h3</td>
+                  <td colspan="3">公开信息未描述明确的 AR 式 KV-cache 流式机制——<b style="color: var(--text);">推断边界</b>：若推理管线含类似缓存/流式扩展，会面临同样的"缓存窗口 vs 生成长度"权衡，但具体数字未公开、无法复算，本行仅作定性类比</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            四者是同一问题在不同架构假设下的不同取舍：经典 LLM 线性无界增长 → MAGI SNL 窗口恒定 → LTX-2 sink+滑窗恒定且部分K/V不存 → minimax h3 策略未公开。
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 06 — 结尾：组合成真实部署页 (deck/chapters/06-real-deployment.html) -->
+    <section class="slide">
+      <p class="slide-kicker">结尾 · Real Deployment</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title slide-title--hero">组合成真实部署</h2>
+
+      <div class="slide-body" style="max-width: none;">
+
+        <!-- Section 1: Philoflow 16-GPU stack -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">Philoflow 16-GPU 训练部署：技术如何叠加</h3>
+          <svg class="chart" viewBox="0 0 900 220" width="100%" height="220" role="img"
+               aria-label="三层技术栈示意图，自下而上：硬件层16张GPU+NVLink，并行层FSDP与可选CP，优化层激活重计算与混合精度">
+            <rect x="40" y="150" width="820" height="50" rx="8" fill="var(--surface)" stroke="var(--border)" />
+            <text class="chart-label-strong" x="450" y="180" text-anchor="middle">硬件层：16× GPU，节点内 NVLink 300GB/s（②）</text>
+
+            <rect x="40" y="90" width="820" height="50" rx="8" fill="var(--accent)" opacity="0.3" stroke="var(--border)" />
+            <text class="chart-label-strong" x="450" y="120" text-anchor="middle">并行层：FSDP=ZeRO-3（④，13.2GB/卡）+ 长序列时可叠加 CP（③，Ring/MagiAttention）</text>
+
+            <rect x="40" y="30" width="820" height="50" rx="8" fill="var(--accent-2)" opacity="0.3" stroke="var(--border)" />
+            <text class="chart-label-strong" x="450" y="60" text-anchor="middle">优化层：激活重计算（⑤，97→2GB）+ 混合精度（⑤，bf16计算/fp32状态）</text>
+          </svg>
+          <p>
+            ④已交代：Philoflow 不用 TP/PP，靠 FSDP 扩展——本页不重复推导，只复述结论。
+            13.2GB/卡的数字背后，是④的分片策略 + ⑤的显存优化共同作用的结果，而不是单一技术的功劳。
+          </p>
+        </div>
+
+        <!-- Section 2: minimax h3 inference -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">minimax h3 推理部署：EP + KV Cache（推断边界）</h3>
+          <p>
+            <span class="term">minimax h3</span>（Hailuo 3.0）是本场 <b style="color: var(--text);">EP 的落点</b>（④，token-routed MoE，35μs 路由通讯）+
+            <b style="color: var(--text);">KV cache 推断边界讨论</b>（⑤，未公开明确 AR 式缓存机制的定性类比）。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">35</span> μs</span>
+              <span class="stat-label">EP 路由通讯（复用④数字）：token 经 all-to-all 送到专家所在卡</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">流式生成的理论叠加</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                若做长视频流式生成，理论上要在 EP 路由通讯之上叠加类似 SNL/sink+滑窗（⑤）的缓存策略控制显存——具体实现未公开，仅重申这是同一套语言能覆盖的问题，不新增数字。
+              </p>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            对比 Philoflow：minimax h3 用 <span class="term">EP</span>（专家维度并行），Philoflow 用 <span class="term">FSDP</span>（参数维度并行）——
+            两个真实系统选择了不同的并行维度，因为瓶颈不同：h3 的瓶颈在专家计算的稀疏调度，Philoflow 的瓶颈在稠密参数量。
+          </p>
+        </div>
+
+        <!-- Section 3: closing recap -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">收束：回到全景地图</h3>
+          <p>
+            ①估了显存/算力 → ②给了通讯代价的语言 → ③④用这套语言解释了序列/训练并行怎么切 → ⑤把每一项代价都想办法压低 → 本页把它们在两个真实系统里重新组装。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card"><span class="stat-label" style="color: var(--text); font-weight: 700;">① 性能估计</span><p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">显存三项分解 + roofline</p></div>
+            <div class="stat-card"><span class="stat-label" style="color: var(--text); font-weight: 700;">② 通讯原语</span><p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">α-β 代价模型</p></div>
+            <div class="stat-card"><span class="stat-label" style="color: var(--text); font-weight: 700;">③ 序列并行</span><p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">Ulysses/Ring/MagiAttn</p></div>
+          </div>
+          <div class="stat-row" style="margin-top: 1.25rem;">
+            <div class="stat-card"><span class="stat-label" style="color: var(--text); font-weight: 700;">④ 并行范式</span><p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">DP/ZeRO/TP/PP/EP</p></div>
+            <div class="stat-card"><span class="stat-label" style="color: var(--text); font-weight: 700;">⑤ 显存计算优化</span><p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">重计算/精度/offload/FA/KV</p></div>
+            <div class="stat-card stat-card--accent"><span class="stat-label" style="color: var(--text); font-weight: 700;">本页：真实部署</span><p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">Philoflow 16-GPU + minimax h3</p></div>
+          </div>
+          <p style="margin-top: 1.5rem; font-size: 1.05rem;">
+            谢谢，欢迎 <span class="term">Q&amp;A</span>。
+          </p>
+        </div>
+
       </div>
     </section>
 
@@ -703,7 +1728,7 @@ body {
   </div>
 
   <div class="page-indicator" id="page-indicator"></div>
-  <div class="deck-nav-hint">← → 翻页</div>
+  <div class="deck-nav-hint">← → 翻页 · 滚动查看本页全部内容</div>
 
 <script>
 (function () {

@@ -4,10 +4,10 @@
 
 **Blocked by:** 04 — 序列维并行章
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `.scratch/ai-infra-deck/05-parallelism-paradigms/outline.md` 大纲经作者确认，数字可复算
-- [ ] DP/ZeRO 用 Philoflow FSDP 16-GPU 配置举例；明确说明未采用 TP/PP 的原因
-- [ ] EP 用 minimax h3 + 经典 MoE LLM 讲，并与 MAGI modality-experts 做对比，区分 routed vs modality experts
-- [ ] `deck/chapters/04-parallelism-paradigms.html` 与共享主题同构，可独立打开
-- [ ] 已并入 `index.html`，图表数字与大纲一致
+- [x] `.scratch/ai-infra-deck/05-parallelism-paradigms/outline.md` 大纲经作者确认，数字可复算
+- [x] DP/ZeRO 用 Philoflow FSDP 16-GPU 配置举例；明确说明未采用 TP/PP 的原因
+- [x] EP 用 minimax h3 + 经典 MoE LLM 讲，并与 MAGI modality-experts 做对比，区分 routed vs modality experts
+- [x] `deck/chapters/04-parallelism-paradigms.html` 与共享主题同构，可独立打开
+- [x] 已并入 `index.html`，图表数字与大纲一致

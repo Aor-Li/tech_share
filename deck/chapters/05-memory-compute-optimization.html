@@ -1,0 +1,174 @@
+<!doctype html>
+<!--
+  Chapter 05 — ⑤ 显存与计算优化章 (checkpointing, mixed precision, offload, FlashAttention, KV cache).
+  Outline: .scratch/ai-infra-deck/06-memory-compute-optimization/outline.md
+  Ticket:  .scratch/ai-infra-deck/issues/06-memory-compute-optimization.md
+  Layout:  one scrollable page per chapter — see deck/chapters/_template.html.
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Infra 分享 — 显存与计算优化</title>
+  <link rel="stylesheet" href="../theme.css" />
+</head>
+<body>
+  <div class="deck">
+    <section class="slide">
+      <p class="slide-kicker">⑤ 显存与计算优化</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">兑现前面的钩子：重计算 · 混合精度 · Offload · FlashAttention · KV Cache</h2>
+
+      <div class="slide-body" style="max-width: none;">
+
+        <!-- Section 1: activation checkpointing -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">激活重计算 (activation checkpointing)：97GB → 2GB 怎么来的</h3>
+          <p>
+            反向传播需要前向的中间激活；不重计算时全部保留 = O(层数)×每层激活。重计算只保留层边界的少量张量，反向时<b style="color: var(--text);">重新跑一遍前向</b>补出被丢弃的中间激活，用算力换显存。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">97</span> → <span class="num">2</span> GB</span>
+              <span class="stat-label">兑现①的钩子：经典 LLM 7B，seq=4096，不开重计算单层3.03GB×32层≈97GB；开满重计算单层0.06GB×32≈2GB——只保留层边界输入</span>
+            </div>
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num">+<span class="num">33</span> %</span>
+              <span class="stat-label">额外计算量：1次前向+1次反向(≈2倍前向算力)=3份，加一次重算前向=4份，4/3-1≈33%</span>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">这是"存 vs 算"权衡的第一个具体例子，呼应①的 roofline 收口。</p>
+        </div>
+
+        <!-- Section 2: mixed precision -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">混合精度：120.6GB 分解里每一项在干嘛</h3>
+          <svg class="chart" viewBox="0 0 900 130" width="100%" height="130" role="img"
+               aria-label="堆叠条形图，从左到右四段分别是 bf16 权重 13.4GB、fp32 主权重 26.8GB、fp32 梯度 26.8GB、Adam 一阶二阶矩 53.6GB，宽度按比例">
+            <rect x="20" y="30" width="90" height="40" fill="var(--accent)" opacity="0.9" />
+            <rect x="110" y="30" width="180" height="40" fill="var(--accent)" opacity="0.7" />
+            <rect x="290" y="30" width="180" height="40" fill="var(--accent-2)" opacity="0.7" />
+            <rect x="470" y="30" width="360" height="40" fill="var(--accent-2)" opacity="0.9" />
+            <text class="chart-caption" x="65" y="88" text-anchor="middle">bf16权重 13.4GB</text>
+            <text class="chart-caption" x="200" y="88" text-anchor="middle">fp32主权重 26.8GB</text>
+            <text class="chart-caption" x="380" y="88" text-anchor="middle">fp32梯度 26.8GB</text>
+            <text class="chart-caption" x="650" y="88" text-anchor="middle">Adam一二阶矩 53.6GB</text>
+            <text class="chart-label" x="450" y="115" text-anchor="middle">计算用低精度（左）、状态累积用高精度（右）——合计 120.6GB</text>
+          </svg>
+          <p>
+            为什么用 <span class="term">bf16</span> 而不是 fp16：bf16 指数位与 fp32 相同（8 位），动态范围一致，<b style="color: var(--text);">不需要 loss scaling</b>；
+            fp16 指数位只有 5 位，训练大模型容易下溢，需要额外的 loss-scaling 机制。
+          </p>
+        </div>
+
+        <!-- Section 3: offload -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">Offload：显存换 PCIe 带宽</h3>
+          <p>
+            把不在计算关键路径上的状态（典型是优化器状态）挪到 CPU 内存，用时再搬回 GPU——①roofline "存 vs 算"权衡的另一种形式："存 vs 搬运带宽"。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">25</span> GB/s</span>
+              <span class="stat-label">PCIe4 x16 带宽，远低于②NVLink 300GB/s（约 1/12）</span>
+            </div>
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num"><span class="num">2.14</span> s</span>
+              <span class="stat-label">7B模型Adam优化器状态53.6GB整体搬到CPU：53.6GB/25GB/s——比②③④任何一次通讯都慢一个数量级</span>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            因此 offload 只对"能和计算重叠、非关键路径"的状态划算（如优化器 step 与下一步前向重叠），不能天真地每步同步搬运。
+          </p>
+        </div>
+
+        <!-- Section 4: FlashAttention basics -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">FlashAttention 基础：tiling + IO-aware，不物化 N×N</h3>
+          <svg class="chart" viewBox="0 0 900 200" width="100%" height="200" role="img"
+               aria-label="左侧朴素attention整块物化N×N矩阵写回HBM；右侧FlashAttention把矩阵切成小块，在SRAM内完成归约，只写回最终结果">
+            <text class="chart-label-strong" x="220" y="24" text-anchor="middle">朴素 Attention：物化整个 N×N</text>
+            <rect x="120" y="40" width="200" height="120" fill="var(--accent)" opacity="0.55" />
+            <text class="chart-caption" x="220" y="180" text-anchor="middle">1.07 GB 写回/读回 HBM（seq=4096, 32 heads）</text>
+
+            <text class="chart-label-strong" x="680" y="24" text-anchor="middle">FlashAttention：Tiling + SRAM 内归约</text>
+            <rect x="580" y="40" width="55" height="55" fill="var(--accent-2)" opacity="0.85" />
+            <rect x="645" y="40" width="55" height="55" fill="var(--accent-2)" opacity="0.65" />
+            <rect x="580" y="105" width="55" height="55" fill="var(--accent-2)" opacity="0.65" />
+            <rect x="645" y="105" width="55" height="55" fill="var(--accent-2)" opacity="0.45" />
+            <text class="chart-caption" x="680" y="180" text-anchor="middle">分块在 SRAM（≈19TB/s）算 softmax，只把结果写回 HBM</text>
+          </svg>
+          <p>
+            FlashAttention 省的不是 FLOPs（数学上等价），是 <b style="color: var(--text);">HBM 读写次数</b>——又一次"用什么带宽做什么事"的 roofline 式思考。
+          </p>
+        </div>
+
+        <!-- Section 5: MagiAttention / FFA -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title"><span class="term">MagiAttention / flex-flash-attn</span>：FA 的分布式 + 灵活掩码扩展</h3>
+          <p>
+            建立在上一节 FA-3 kernel 之上，③已讲过它在<b style="color: var(--text);">通讯</b>维度的表现（chunk 级负载均衡+零冗余重叠，跳过掩码外分片）；
+            本节收口它在 <b style="color: var(--text);">kernel/掩码</b> 维度的贡献：<span class="term">AttnSlice</span> 广义掩码让 block-causal、多模态等异构掩码也能享受 tiling/IO-aware 的好处，而不必退化成朴素稠密 attention。
+          </p>
+          <p>
+            一句话：③讲的是"分布式怎么切"，本节讲的是"单卡 kernel 怎么快"，两者叠加才是 MAGI 实际训练/推理用的完整方案。
+          </p>
+        </div>
+
+        <!-- Section 6: KV cache summary -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">KV Cache 收口：Philoflow SNL 流式 + LTX-2 vs minimax h3</h3>
+          <p>
+            <span class="term">SNL (Same-Noise-Level)</span>：MAGI self-forcing DMD 自回归生成的 KV-cache 噪声机制——上下文与当前去噪 chunk 处于同一噪声级，用 block-causal 掩码，每个噪声级一份 KV-cache；
+            <span class="term">streaming</span> 模式逐 chunk 生成、配 first-block/first-latent <b style="color: var(--text);">sink</b>，实现无限长生成。兑现①的 <span class="num">3.125</span>GB reservoir 数字：这就是 SNL 机制下的窗口大小。
+          </p>
+          <div class="panel">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>模型</th>
+                  <th>KV 策略</th>
+                  <th>KV 大小</th>
+                  <th>随生成长度</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>经典 LLM</td>
+                  <td>逐 token 全量缓存</td>
+                  <td>①：2GB（单请求）</td>
+                  <td>线性无界增长</td>
+                </tr>
+                <tr>
+                  <td>MAGI</td>
+                  <td>SNL 同噪声级 + reservoir</td>
+                  <td>①：3.125 GB</td>
+                  <td>恒定窗口</td>
+                </tr>
+                <tr>
+                  <td>LTX-2</td>
+                  <td>sink + 滑动窗口，文本交叉注意力K/V不缓存(依赖sigma)</td>
+                  <td>①：6.0 GB</td>
+                  <td>恒定，硬上限</td>
+                </tr>
+                <tr>
+                  <td>minimax h3</td>
+                  <td colspan="3">公开信息未描述明确的 AR 式 KV-cache 流式机制——<b style="color: var(--text);">推断边界</b>：若推理管线含类似缓存/流式扩展，会面临同样的"缓存窗口 vs 生成长度"权衡，但具体数字未公开、无法复算，本行仅作定性类比</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            四者是同一问题在不同架构假设下的不同取舍：经典 LLM 线性无界增长 → MAGI SNL 窗口恒定 → LTX-2 sink+滑窗恒定且部分K/V不存 → minimax h3 策略未公开。
+          </p>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <div class="page-indicator" id="page-indicator"></div>
+  <div class="deck-nav-hint">← → 翻页 · 滚动查看本页全部内容</div>
+
+  <script src="../nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!doctype html>
+<!--
+  Chapter 03 — ③ 序列维并行章 (context parallelism: Ulysses / Ring-Attention / MagiAttention).
+  Outline: .scratch/ai-infra-deck/04-sequence-parallelism/outline.md
+  Ticket:  .scratch/ai-infra-deck/issues/04-sequence-parallelism.md
+  Layout:  one scrollable page per chapter — see deck/chapters/_template.html.
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Infra 分享 — 序列并行</title>
+  <link rel="stylesheet" href="../theme.css" />
+</head>
+<body>
+  <div class="deck">
+    <section class="slide">
+      <p class="slide-kicker">③ 序列并行</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">长视频 token 序列怎么切：<span class="term">Context Parallelism</span></h2>
+
+      <div class="slide-body" style="max-width: none;">
+
+        <!-- Section 1: why CP, and how it differs from TP -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">为什么要切序列：CP 切的维度和 TP 不一样</h3>
+          <p>
+            ①已展示 seq=4096 时单层激活就有 <span class="num">3</span> GB 量级；离线/非流式长视频序列可达
+            <span class="num">131072</span>（128K）token（区别于①③MAGI streaming 用的 4096-token 单 chunk），激活线性暴涨，单卡装不下同一批次的完整序列。
+          </p>
+          <svg class="chart" viewBox="0 0 900 200" width="100%" height="200" role="img"
+               aria-label="两个矩形分别示意 CP 沿序列维竖切、TP 沿隐藏维横切，两者切分方向正交">
+            <text class="chart-label-strong" x="220" y="24" text-anchor="middle">CP（本章）：沿序列维切</text>
+            <rect x="80" y="40" width="60" height="110" fill="var(--accent)" opacity="0.85" />
+            <rect x="140" y="40" width="60" height="110" fill="var(--accent)" opacity="0.6" />
+            <rect x="200" y="40" width="60" height="110" fill="var(--accent)" opacity="0.4" />
+            <rect x="260" y="40" width="60" height="110" fill="var(--accent)" opacity="0.25" />
+            <text class="chart-caption" x="220" y="170" text-anchor="middle">每卡拿一段 token（全部 hidden）</text>
+
+            <text class="chart-label-strong" x="680" y="24" text-anchor="middle">TP（④）：沿隐藏/头维切</text>
+            <rect x="560" y="40" width="240" height="27.5" fill="var(--accent-2)" opacity="0.85" />
+            <rect x="560" y="67.5" width="240" height="27.5" fill="var(--accent-2)" opacity="0.6" />
+            <rect x="560" y="95" width="240" height="27.5" fill="var(--accent-2)" opacity="0.4" />
+            <rect x="560" y="122.5" width="240" height="27.5" fill="var(--accent-2)" opacity="0.25" />
+            <text class="chart-caption" x="680" y="170" text-anchor="middle">每卡拿全部 token 的一部分 hidden/头</text>
+          </svg>
+          <p>
+            三种 CP 方案的共同问题：Q 在本地就能算，但 attention 需要<b style="color: var(--text);">全部</b> K/V 才能算对——如何跨卡拿到全部 K/V，是分歧点。
+          </p>
+        </div>
+
+        <!-- Section 2: Ulysses -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">Ulysses：all-to-all 换轴</h3>
+          <p>
+            平时按"序列切分、头全量"存 Q/K/V；attention 计算前做一次 <span class="term">all-to-all</span>，换成"序列全量、头切分"（每卡拿到全部 token 但只算一部分 head），算完再换回去。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num"><span class="num">0.93</span> ms/层</span>
+              <span class="stat-label">P=8，每卡 QKV 张量 16384×5120×2bytes≈160MB，all-to-all 移动 (P-1)/P×160MB=140MB，耗时 140MB/300GB/s≈0.47ms；前后各一次（QKV 换轴+输出 O 换回）</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">硬约束</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">并行度 P 不能超过头数（MAGI heads=<span class="num">40</span>），是它相对 Ring 的限制。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Ring-Attention -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">Ring-Attention：KV 沿环流转</h3>
+          <p>
+            每卡固定持有一段 Q，K/V 分片像②的 ring all-reduce 一样沿环逐步传递（<span class="term">p2p</span>，P-1 步），每收到一个新分片就和本地 Q 做局部 attention 并累加 online softmax 统计量，不需要等全部 K/V 到齐。
+          </p>
+          <svg class="chart" viewBox="0 0 600 260" width="100%" height="240" role="img"
+               aria-label="8 张卡排成环形拓扑，K/V 分片沿环单向传递">
+            <line class="ring-arc" x1="300" y1="35" x2="367" y2="80" />
+            <line class="ring-arc" x1="367" y1="80" x2="390" y2="130" />
+            <line class="ring-arc" x1="390" y1="130" x2="367" y2="180" />
+            <line class="ring-arc" x1="367" y1="180" x2="300" y2="225" />
+            <line class="ring-arc" x1="300" y1="225" x2="233" y2="180" />
+            <line class="ring-arc" x1="233" y1="180" x2="210" y2="130" />
+            <line class="ring-arc" x1="210" y1="130" x2="233" y2="80" />
+            <line class="ring-arc" x1="233" y1="80" x2="300" y2="35" />
+            <circle class="ring-node" cx="300" cy="35" r="15" />
+            <circle class="ring-node" cx="367" cy="80" r="15" />
+            <circle class="ring-node" cx="390" cy="130" r="15" />
+            <circle class="ring-node" cx="367" cy="180" r="15" />
+            <circle class="ring-node" cx="300" cy="225" r="15" />
+            <circle class="ring-node" cx="233" cy="180" r="15" />
+            <circle class="ring-node" cx="210" cy="130" r="15" />
+            <circle class="ring-node" cx="233" cy="80" r="15" />
+            <text class="chart-caption" x="300" y="255" text-anchor="middle">每步传一个 K/V 分片，边收边算（online softmax），可与本地 attention 计算重叠</text>
+          </svg>
+          <div class="stat-row" style="margin-top: 0.5rem;">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">7.47</span> ms/层</span>
+              <span class="stat-label">P=8，每步 K+V 分片 2×16384×40×128×2bytes≈320MB，耗时≈1.07ms；P-1=7 步——原始通讯量，实际可与计算重叠，暴露墙钟时间通常远小于此</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">优势</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">不受头数限制，纯按 token 数切，P 可以很大——对超长序列更常见。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: MagiAttention / flex-flash-attn -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title"><span class="term">MagiAttention / flex-flash-attn</span>：给 Ring 加灵活掩码与负载均衡</h3>
+          <p>
+            建立在 FlashAttention-3 kernel 之上（tiling/IO-aware，⑤展开细节），核心新增两点：
+            <span class="term">AttnSlice</span> 广义掩码——能表达 MAGI 的 block-causal + 多模态掩码等异构 mask，并让不规则掩码仍可按 chunk 分布式切分；
+            <b style="color: var(--text);">chunk 级负载均衡 + 零冗余通讯重叠</b>——像 Ring-Attention 一样沿环传 KV，但对被掩码整块跳过的区域<b style="color: var(--text);">不计算也不搬运</b>。
+          </p>
+          <svg class="chart" viewBox="0 0 500 260" width="100%" height="220" role="img"
+               aria-label="8x8 网格示意注意力掩码，灰色虚线格子代表被掩码跳过的分片，不参与计算与通讯；彩色格子代表实际计算的分片">
+            <rect x="130" y="15" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="160" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="190" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="220" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="250" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="280" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="310" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="340" y="15" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="45" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="160" y="45" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="190" y="45" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="220" y="45" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="250" y="45" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="280" y="45" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="310" y="45" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="340" y="45" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="75" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.76" />
+            <rect x="160" y="75" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="190" y="75" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="220" y="75" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="250" y="75" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="280" y="75" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="310" y="75" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="340" y="75" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="105" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.69" />
+            <rect x="160" y="105" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.76" />
+            <rect x="190" y="105" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="220" y="105" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="250" y="105" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="280" y="105" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="310" y="105" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="340" y="105" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="135" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.62" />
+            <rect x="160" y="135" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.69" />
+            <rect x="190" y="135" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.76" />
+            <rect x="220" y="135" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="250" y="135" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="280" y="135" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="310" y="135" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="340" y="135" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="165" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.56" />
+            <rect x="160" y="165" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.62" />
+            <rect x="190" y="165" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.69" />
+            <rect x="220" y="165" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.76" />
+            <rect x="250" y="165" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="280" y="165" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="310" y="165" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="340" y="165" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.49" />
+            <rect x="160" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.56" />
+            <rect x="190" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.62" />
+            <rect x="220" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.69" />
+            <rect x="250" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.76" />
+            <rect x="280" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="310" y="195" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <rect x="340" y="195" width="26" height="26" rx="3" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+            <rect x="130" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.42" />
+            <rect x="160" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.49" />
+            <rect x="190" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.56" />
+            <rect x="220" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.62" />
+            <rect x="250" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.69" />
+            <rect x="280" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.76" />
+            <rect x="310" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.83" />
+            <rect x="340" y="225" width="26" height="26" rx="3" fill="var(--accent)" opacity="0.9" />
+            <text class="chart-caption" x="250" y="248" text-anchor="middle">block-causal 掩码：下三角+对角块计算并传输，上三角块（灰色）直接跳过</text>
+          </svg>
+          <p style="font-size: 0.9rem; color: var(--text-muted);">
+            定性结论（不给虚构精确基准数字）：对 MAGI 这种带 block-causal 结构化稀疏掩码的场景，FFA 的有效通讯量<b style="color: var(--text);">低于</b>上一节朴素 Ring 的 7.47ms/层估算，因为掩码外的分片直接跳过；具体加速比取决于掩码稀疏度，未公开可复算的基准数字，仅作定性说明。这是 MAGI 真实使用的方案。
+          </p>
+        </div>
+
+        <!-- Section 5: comparison summary -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">三方案对比小结</h3>
+          <div class="panel">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>方案</th>
+                  <th>切分依据</th>
+                  <th>通讯原语</th>
+                  <th>并行度上限</th>
+                  <th>本章数字</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Ulysses</td>
+                  <td>序列↔头 反复换轴</td>
+                  <td>all-to-all ×2/层</td>
+                  <td>受限于头数（≤40）</td>
+                  <td>0.93 ms/层</td>
+                </tr>
+                <tr>
+                  <td>Ring-Attention</td>
+                  <td>固定按序列切，KV 环传</td>
+                  <td>p2p ×(P-1)/层</td>
+                  <td>不受头数限制</td>
+                  <td>7.47 ms/层（原始，可重叠）</td>
+                </tr>
+                <tr>
+                  <td>MagiAttention/FFA</td>
+                  <td>同 Ring + 灵活掩码</td>
+                  <td>p2p（跳过掩码块）</td>
+                  <td>不受头数限制</td>
+                  <td>低于 Ring（定性，视掩码稀疏度）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            三者都在回答"Q 在本地，K/V 怎么凑齐"，差异在换轴代价 vs 环传代价 vs 能否利用掩码稀疏性省掉无效传输——
+            ④<span class="term">训练并行范式</span>会在此基础上叠加 DP/TP/PP/EP。
+          </p>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <div class="page-indicator" id="page-indicator"></div>
+  <div class="deck-nav-hint">← → 翻页 · 滚动查看本页全部内容</div>
+
+  <script src="../nav.js"></script>
+</body>
+</html>

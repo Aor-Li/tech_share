@@ -1,0 +1,212 @@
+<!doctype html>
+<!--
+  Chapter 02 — ② 通讯原语与代价模型章 (collective ops + α-β cost model).
+  Outline: .scratch/ai-infra-deck/03-communication-primitives/outline.md
+  Ticket:  .scratch/ai-infra-deck/issues/03-communication-primitives.md
+  Layout:  one scrollable page per chapter — see deck/chapters/_template.html.
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Infra 分享 — 通讯原语</title>
+  <link rel="stylesheet" href="../theme.css" />
+</head>
+<body>
+  <div class="deck">
+    <section class="slide">
+      <p class="slide-kicker">② 通讯原语</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">五种通讯原语 + <span class="term">α-β</span> 代价模型</h2>
+
+      <div class="slide-body" style="max-width: none;">
+
+        <!-- Section 1: five primitives overview -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">五原语：谁在搬什么</h3>
+          <p>
+            后面③④两章的并行方案，本质上都是"用哪种原语搬多少数据"。先建立统一直觉，再挂公式。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card stat-card--accent">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">all-reduce</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">每卡一份数据，规约后<b style="color: var(--text);">每卡都拿到相同的完整结果</b>。</p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">all-gather</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">每卡一片数据，<b style="color: var(--text);">不规约</b>，每卡拿到所有分片拼起来的集合。</p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">reduce-scatter</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">每卡完整数据，规约后<b style="color: var(--text);">每卡只留自己那一片</b>，结果分散不重复。</p>
+            </div>
+          </div>
+          <div class="stat-row" style="margin-top: 1.25rem;">
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">all-to-all</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">每卡给<b style="color: var(--text);">每张卡</b>发不同的一小片（转置式交换），常见于路由类操作。</p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">p2p (point-to-point)</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">只在<b style="color: var(--text);">两张卡之间</b>单向/双向传一份数据，无广播无规约。</p>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            all-reduce/all-gather/reduce-scatter 常成对出现在参数/梯度分片场景，all-to-all 用于路由，p2p 用于流水线相邻阶段——④会逐一对号入座。
+          </p>
+        </div>
+
+        <!-- Section 2: alpha-beta cost model + ring vs naive -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title"><span class="term">α-β</span> 代价模型：朴素做法 vs Ring</h3>
+          <p>
+            单次点对点传输 <span class="term">T = α + β·M</span>：α 是每条消息的固定延迟（消息越小越吃亏），
+            β=1/带宽 是搬运成本（消息越大越吃这个）。硬件量级：节点内 <span class="term">NVLink</span> <span class="num">300</span> GB/s（α≈<span class="num">5</span>μs），
+            跨节点 200Gbps <span class="term">InfiniBand</span> 仅 <span class="num">25</span> GB/s——约为 NVLink 的 <span class="num">1/12</span>，④讲多机训练时拓扑感知的伏笔。
+          </p>
+          <p>
+            以①的经典 LLM 梯度（bf16 <span class="num">13.4</span> GB）在 <span class="term">P=8</span> 卡 NVLink 环上做 all-reduce 为例：
+          </p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">625</span> ms</span>
+              <span class="stat-label">朴素做法（单卡收集再广播）：瓶颈卡收 7 份、发 7 份 = 2×7×13.4GB / 300GB/s，且随 P 线性变差</span>
+            </div>
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num"><span class="num">78</span> ms</span>
+              <span class="stat-label">Ring all-reduce：每卡只搬 2×(8-1)/8×13.4GB ≈ 23.45GB，耗时 23.45GB / 300GB/s——快 <span class="num">8</span>×</span>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            ring 算法把"单点瓶颈"摊成"环上均摊"：每卡数据量随 P 增大趋于常数 <span class="term">2M</span>，代价从 <span class="term">O(P)</span> 降到 <span class="term">O(1)</span>（单卡视角）。
+          </p>
+        </div>
+
+        <!-- Section 3: ring all-reduce step animation -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">Ring All-Reduce 分步动画：reduce-scatter 半环 + all-gather 半环</h3>
+          <p>
+            8 卡排成环。阶段一 <span class="term">reduce-scatter</span>（7 步）：每步把一个分片发给右邻居并累加，7 步后每卡恰好持有一个"完全规约好"的分片。
+            阶段二 <span class="term">all-gather</span>（7 步）：把已规约的分片继续沿环转发（不再累加），7 步后每卡集齐全部分片。共 <span class="term">2(P-1)=14</span> 步，
+            每步每卡收发一个大小 <span class="term">M/P</span> 的分片——正是上一节 78ms 数字背后的真实数据流。
+          </p>
+          <svg class="chart" viewBox="0 0 600 300" width="100%" height="300" role="img"
+               aria-label="8 张卡排成环形拓扑，动画沿环流动的高亮弧线代表数据分片传递；节点颜色交替代表 reduce-scatter 与 all-gather 两个阶段">
+            <text class="chart-label-strong phase-label-a" x="300" y="24" text-anchor="middle">阶段一 · Reduce-Scatter（7 步，累加分片）</text>
+            <text class="chart-label-strong phase-label-b" x="300" y="24" text-anchor="middle">阶段二 · All-Gather（7 步，转发分片）</text>
+
+            <!-- ring edges: 8 nodes octagon, center (300,150) r=105 -->
+            <line class="ring-arc" x1="300" y1="45" x2="377" y2="97" />
+            <line class="ring-arc" x1="377" y1="97" x2="405" y2="150" />
+            <line class="ring-arc" x1="405" y1="150" x2="377" y2="203" />
+            <line class="ring-arc" x1="377" y1="203" x2="300" y2="255" />
+            <line class="ring-arc" x1="300" y1="255" x2="223" y2="203" />
+            <line class="ring-arc" x1="223" y1="203" x2="195" y2="150" />
+            <line class="ring-arc" x1="195" y1="150" x2="223" y2="97" />
+            <line class="ring-arc" x1="223" y1="97" x2="300" y2="45" />
+
+            <line class="ring-arc-flow" style="animation-delay:0.0s" x1="300" y1="45" x2="377" y2="97" />
+            <line class="ring-arc-flow" style="animation-delay:0.8s" x1="377" y1="97" x2="405" y2="150" />
+            <line class="ring-arc-flow" style="animation-delay:1.6s" x1="405" y1="150" x2="377" y2="203" />
+            <line class="ring-arc-flow" style="animation-delay:2.4s" x1="377" y1="203" x2="300" y2="255" />
+            <line class="ring-arc-flow" style="animation-delay:3.2s" x1="300" y1="255" x2="223" y2="203" />
+            <line class="ring-arc-flow" style="animation-delay:4.0s" x1="223" y1="203" x2="195" y2="150" />
+            <line class="ring-arc-flow" style="animation-delay:4.8s" x1="195" y1="150" x2="223" y2="97" />
+            <line class="ring-arc-flow" style="animation-delay:5.6s" x1="223" y1="97" x2="300" y2="45" />
+
+            <!-- 8 GPU nodes -->
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.0s" cx="300" cy="45" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.1s" cx="377" cy="97" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.2s" cx="405" cy="150" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.3s" cx="377" cy="203" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.4s" cx="300" cy="255" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.5s" cx="223" cy="203" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.6s" cx="195" cy="150" r="16" />
+            <circle class="ring-node ring-node-pulse" style="animation-delay:0.7s" cx="223" cy="97" r="16" />
+
+            <text class="chart-label" x="300" y="49" text-anchor="middle" fill="var(--bg)">0</text>
+            <text class="chart-label" x="377" y="101" text-anchor="middle" fill="var(--bg)">1</text>
+            <text class="chart-label" x="405" y="154" text-anchor="middle" fill="var(--bg)">2</text>
+            <text class="chart-label" x="377" y="207" text-anchor="middle" fill="var(--bg)">3</text>
+            <text class="chart-label" x="300" y="259" text-anchor="middle" fill="var(--bg)">4</text>
+            <text class="chart-label" x="223" y="207" text-anchor="middle" fill="var(--bg)">5</text>
+            <text class="chart-label" x="195" y="154" text-anchor="middle" fill="var(--bg)">6</text>
+            <text class="chart-label" x="223" y="101" text-anchor="middle" fill="var(--bg)">7</text>
+
+            <text class="chart-caption" x="300" y="290" text-anchor="middle">
+              每步每卡收发一个大小 M/P 的分片，方向沿环单向传递（0→1→2→…→7→0）
+            </text>
+          </svg>
+        </div>
+
+        <!-- Section 4: cost comparison table -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">五原语代价对比：谁在④出场</h3>
+          <div class="panel">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>原语</th>
+                  <th>每卡数据量（最优实现）</th>
+                  <th>延迟敏感度</th>
+                  <th>④出场</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>all-reduce</td>
+                  <td><span class="term">2(P-1)/P·M</span></td>
+                  <td>中（消息大时 β 主导）</td>
+                  <td>TP 每层前向/反向同步激活</td>
+                </tr>
+                <tr>
+                  <td>all-gather</td>
+                  <td><span class="term">(P-1)/P·M</span></td>
+                  <td>中</td>
+                  <td>DP/ZeRO 收集分片参数</td>
+                </tr>
+                <tr>
+                  <td>reduce-scatter</td>
+                  <td><span class="term">(P-1)/P·M</span></td>
+                  <td>中</td>
+                  <td>DP/ZeRO 规约并分片梯度</td>
+                </tr>
+                <tr>
+                  <td>all-to-all</td>
+                  <td><span class="term">(P-1)/P·M</span>，常配小消息</td>
+                  <td><b style="color: var(--text);">高</b>（α 常主导）</td>
+                  <td>EP 路由 token 到专家卡</td>
+                </tr>
+                <tr>
+                  <td>p2p</td>
+                  <td><span class="term">M</span>（单次）</td>
+                  <td>低（大消息时）</td>
+                  <td>PP 相邻 stage 传激活</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="stat-row" style="margin-top: 1.25rem;">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">35</span> μs</span>
+              <span class="stat-label">all-to-all 例（MoE 路由，每卡给其余 7 卡各发 2MB）：7×5μs(α项) + (7/8×16MB)/300GB/s(β项≈0.05μs)——消息越碎，α 越主导，是 EP 章要优化的根源</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">0.34</span> ms</span>
+              <span class="stat-label">p2p 例（PP 传 100MB 激活）：5μs + 100MB/300GB/s——远小于 all-reduce，因为只发一份不做规约/收集</span>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            五种原语的代价差异，本质是"消息大小 vs 消息数量"在 α/β 两项之间的取舍——这套语言会在③④两章反复复用。
+          </p>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <div class="page-indicator" id="page-indicator"></div>
+  <div class="deck-nav-hint">← → 翻页 · 滚动查看本页全部内容</div>
+
+  <script src="../nav.js"></script>
+</body>
+</html>

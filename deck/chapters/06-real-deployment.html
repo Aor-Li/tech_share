@@ -1,0 +1,99 @@
+<!doctype html>
+<!--
+  Chapter 06 — 结尾：组合成真实部署页 (Philoflow 16-GPU + minimax h3, closing).
+  Outline: .scratch/ai-infra-deck/07-real-deployment/outline.md
+  Ticket:  .scratch/ai-infra-deck/issues/07-real-deployment-closing.md
+  Layout:  one scrollable page per chapter — see deck/chapters/_template.html.
+  No new numbers introduced — everything here reuses ①-⑤'s established figures.
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Infra 分享 — 组合成真实部署</title>
+  <link rel="stylesheet" href="../theme.css" />
+</head>
+<body>
+  <div class="deck">
+    <section class="slide">
+      <p class="slide-kicker">结尾 · Real Deployment</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title slide-title--hero">组合成真实部署</h2>
+
+      <div class="slide-body" style="max-width: none;">
+
+        <!-- Section 1: Philoflow 16-GPU stack -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">Philoflow 16-GPU 训练部署：技术如何叠加</h3>
+          <svg class="chart" viewBox="0 0 900 220" width="100%" height="220" role="img"
+               aria-label="三层技术栈示意图，自下而上：硬件层16张GPU+NVLink，并行层FSDP与可选CP，优化层激活重计算与混合精度">
+            <rect x="40" y="150" width="820" height="50" rx="8" fill="var(--surface)" stroke="var(--border)" />
+            <text class="chart-label-strong" x="450" y="180" text-anchor="middle">硬件层：16× GPU，节点内 NVLink 300GB/s（②）</text>
+
+            <rect x="40" y="90" width="820" height="50" rx="8" fill="var(--accent)" opacity="0.3" stroke="var(--border)" />
+            <text class="chart-label-strong" x="450" y="120" text-anchor="middle">并行层：FSDP=ZeRO-3（④，13.2GB/卡）+ 长序列时可叠加 CP（③，Ring/MagiAttention）</text>
+
+            <rect x="40" y="30" width="820" height="50" rx="8" fill="var(--accent-2)" opacity="0.3" stroke="var(--border)" />
+            <text class="chart-label-strong" x="450" y="60" text-anchor="middle">优化层：激活重计算（⑤，97→2GB）+ 混合精度（⑤，bf16计算/fp32状态）</text>
+          </svg>
+          <p>
+            ④已交代：Philoflow 不用 TP/PP，靠 FSDP 扩展——本页不重复推导，只复述结论。
+            13.2GB/卡的数字背后，是④的分片策略 + ⑤的显存优化共同作用的结果，而不是单一技术的功劳。
+          </p>
+        </div>
+
+        <!-- Section 2: minimax h3 inference -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">minimax h3 推理部署：EP + KV Cache（推断边界）</h3>
+          <p>
+            <span class="term">minimax h3</span>（Hailuo 3.0）是本场 <b style="color: var(--text);">EP 的落点</b>（④，token-routed MoE，35μs 路由通讯）+
+            <b style="color: var(--text);">KV cache 推断边界讨论</b>（⑤，未公开明确 AR 式缓存机制的定性类比）。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">35</span> μs</span>
+              <span class="stat-label">EP 路由通讯（复用④数字）：token 经 all-to-all 送到专家所在卡</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">流式生成的理论叠加</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                若做长视频流式生成，理论上要在 EP 路由通讯之上叠加类似 SNL/sink+滑窗（⑤）的缓存策略控制显存——具体实现未公开，仅重申这是同一套语言能覆盖的问题，不新增数字。
+              </p>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            对比 Philoflow：minimax h3 用 <span class="term">EP</span>（专家维度并行），Philoflow 用 <span class="term">FSDP</span>（参数维度并行）——
+            两个真实系统选择了不同的并行维度，因为瓶颈不同：h3 的瓶颈在专家计算的稀疏调度，Philoflow 的瓶颈在稠密参数量。
+          </p>
+        </div>
+
+        <!-- Section 3: closing recap -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">收束：回到全景地图</h3>
+          <p>
+            ①估了显存/算力 → ②给了通讯代价的语言 → ③④用这套语言解释了序列/训练并行怎么切 → ⑤把每一项代价都想办法压低 → 本页把它们在两个真实系统里重新组装。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card"><span class="stat-label" style="color: var(--text); font-weight: 700;">① 性能估计</span><p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">显存三项分解 + roofline</p></div>
+            <div class="stat-card"><span class="stat-label" style="color: var(--text); font-weight: 700;">② 通讯原语</span><p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">α-β 代价模型</p></div>
+            <div class="stat-card"><span class="stat-label" style="color: var(--text); font-weight: 700;">③ 序列并行</span><p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">Ulysses/Ring/MagiAttn</p></div>
+          </div>
+          <div class="stat-row" style="margin-top: 1.25rem;">
+            <div class="stat-card"><span class="stat-label" style="color: var(--text); font-weight: 700;">④ 并行范式</span><p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">DP/ZeRO/TP/PP/EP</p></div>
+            <div class="stat-card"><span class="stat-label" style="color: var(--text); font-weight: 700;">⑤ 显存计算优化</span><p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">重计算/精度/offload/FA/KV</p></div>
+            <div class="stat-card stat-card--accent"><span class="stat-label" style="color: var(--text); font-weight: 700;">本页：真实部署</span><p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">Philoflow 16-GPU + minimax h3</p></div>
+          </div>
+          <p style="margin-top: 1.5rem; font-size: 1.05rem;">
+            谢谢，欢迎 <span class="term">Q&amp;A</span>。
+          </p>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <div class="page-indicator" id="page-indicator"></div>
+  <div class="deck-nav-hint">← → 翻页 · 滚动查看本页全部内容</div>
+
+  <script src="../nav.js"></script>
+</body>
+</html>

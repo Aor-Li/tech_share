@@ -1,0 +1,266 @@
+<!doctype html>
+<!--
+  Chapter 04 — ④ 训练并行范式章 (DP/ZeRO, TP, PP, EP). Heaviest chapter (~12min).
+  Outline: .scratch/ai-infra-deck/05-parallelism-paradigms/outline.md
+  Ticket:  .scratch/ai-infra-deck/issues/05-parallelism-paradigms.md
+  Layout:  one scrollable page per chapter — see deck/chapters/_template.html.
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Infra 分享 — 训练并行范式</title>
+  <link rel="stylesheet" href="../theme.css" />
+</head>
+<body>
+  <div class="deck">
+    <section class="slide">
+      <p class="slide-kicker">④ 训练并行范式</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">DP/ZeRO · TP · PP · EP：切什么，花多少</h2>
+
+      <div class="slide-body" style="max-width: none;">
+
+        <!-- Section 1: DP problem + ZeRO stages -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">DP 的问题：单卡装不下 + ZeRO/FSDP 怎么解决</h3>
+          <p>
+            朴素<span class="term">数据并行 (DP)</span>：每卡存<b style="color: var(--text);">完整</b>模型+优化器状态，仅切分 batch；
+            ①已算出 7B 训练权重+优化器 = <span class="num">120.6</span> GB，单张 80GB 卡放不下——DP 单独用不了。
+          </p>
+          <svg class="chart" viewBox="0 0 900 190" width="100%" height="190" role="img"
+               aria-label="四行条形图，从上到下分别是 DP、ZeRO-1、ZeRO-2、ZeRO-3，条形宽度代表单卡显存占用，逐级变窄">
+            <text class="chart-label" x="20" y="24" text-anchor="start">DP（每卡全量）</text>
+            <rect x="220" y="10" width="640" height="24" rx="4" fill="var(--accent)" opacity="0.85" />
+
+            <text class="chart-label" x="20" y="64" text-anchor="start">ZeRO-1（分片优化器状态）</text>
+            <rect x="220" y="50" width="460" height="24" rx="4" fill="var(--accent)" opacity="0.75" />
+
+            <text class="chart-label" x="20" y="104" text-anchor="start">ZeRO-2（+分片梯度）</text>
+            <rect x="220" y="90" width="330" height="24" rx="4" fill="var(--accent)" opacity="0.65" />
+
+            <text class="chart-label" x="20" y="144" text-anchor="start">ZeRO-3 / FSDP（+分片参数）</text>
+            <rect x="220" y="130" width="180" height="24" rx="4" fill="var(--accent-2)" opacity="0.9" />
+
+            <text class="chart-caption" x="220" y="175" text-anchor="start">
+              每卡只常驻 1/P 的权重/梯度/优化器状态；用前 all-gather 参数，用后 reduce-scatter 梯度（②原语）
+            </text>
+          </svg>
+        </div>
+
+        <!-- Section 2: Philoflow FSDP 16-GPU + why no TP/PP -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">落到 Philoflow：16-GPU FSDP 训练 MAGI 级模型</h3>
+          <p>
+            <span class="term">Philoflow</span> 用 <span class="term">accelerate</span> + <span class="term">FSDP(=ZeRO-3)</span>，<span class="term">P=16</span> 卡训练 MAGI 级（<span class="num">12.6</span>B）模型。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">210.6</span> GB</span>
+              <span class="stat-label">训练总显存占用（AdamW混合精度，按①7B同比例 120.6/13.4≈9× 估算）：bf16权重23.4GB × 9</span>
+            </div>
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num"><span class="num">13.2</span> GB/卡</span>
+              <span class="stat-label">FSDP-3 分到 16 卡后：210.6GB / 16——单卡轻松放下，且留有余量给激活</span>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            <b style="color: var(--text);">为什么不用 TP/PP</b>：MAGI 级模型（12.6B）远小于需要 TP/PP 的百亿级+ LLM，FSDP 分片已把单卡显存压到 &lt;20GB；
+            引入 TP 要承受每层同步 all-reduce 的延迟（下节），引入 PP 要承受流水线气泡（下下节）——在当前模型规模和 16 卡单集群规模下，两者的复杂度收益比不划算，Philoflow 选择只用 FSDP 扩展。
+          </p>
+        </div>
+
+        <!-- Section 3: TP -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">TP（张量并行）：切开单层权重矩阵</h3>
+          <p>
+            Megatron 式 TP：把单层权重矩阵（QKV、MLP）按列/行切到多卡，每卡算一部分，层末用 <span class="term">all-reduce</span> 合并结果——用②的 all-reduce 公式，但发生在<b style="color: var(--text);">每一层</b>内部。
+          </p>
+          <svg class="chart" viewBox="0 0 700 150" width="100%" height="150" role="img"
+               aria-label="一个权重矩阵被竖切成 4 份分给 4 张卡，计算后箭头汇聚做 all-reduce">
+            <rect x="30" y="20" width="60" height="90" fill="var(--accent)" opacity="0.9" />
+            <rect x="100" y="20" width="60" height="90" fill="var(--accent)" opacity="0.7" />
+            <rect x="170" y="20" width="60" height="90" fill="var(--accent)" opacity="0.5" />
+            <rect x="240" y="20" width="60" height="90" fill="var(--accent)" opacity="0.35" />
+            <text class="chart-caption" x="150" y="130" text-anchor="middle">权重矩阵按列切给 4 张卡</text>
+
+            <path class="chart-line accent-2" d="M60,110 L400,75" />
+            <path class="chart-line accent-2" d="M130,110 L400,75" />
+            <path class="chart-line accent-2" d="M200,110 L400,75" />
+            <path class="chart-line accent-2" d="M270,110 L400,75" />
+            <circle cx="400" cy="75" r="8" fill="var(--accent-2)" />
+            <text class="chart-label-strong" x="450" y="60" text-anchor="start">all-reduce</text>
+            <text class="chart-caption" x="450" y="80" text-anchor="start">合并各卡部分结果，同步阻塞</text>
+          </svg>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">0.39</span> ms/层</span>
+              <span class="stat-label">经典LLM，TP=8：单层消息 4096×4096×2bytes≈33.6MB，all-reduce 2×(8-1)/8×33.6MB/300GB/s≈0.196ms，attn+MLP各一次</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">12.6</span> ms/step</span>
+              <span class="stat-label">32 层累加；all-reduce 同步阻塞、延迟极敏感，几乎只用节点内 NVLink——Slide2 中 Philoflow 放弃 TP 的另一理由</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: PP -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">PP（流水线并行）：切开层，代价是气泡而非带宽</h3>
+          <p>
+            把模型按层切成多个 stage，跨卡分布；stage 间只需 <span class="term">p2p</span> 传激活/梯度（②公式，代价很低）。核心代价不是通讯量，而是<b style="color: var(--text);">流水线气泡 (bubble)</b>：
+            P 个 stage、M 个 micro-batch 时，气泡占比 ≈ <span class="term">(P-1)/(P-1+M)</span>。
+          </p>
+          <svg class="chart" viewBox="0 0 720 180" width="100%" height="180" role="img"
+               aria-label="4 行代表 4 个流水线 stage 的时间轴甘特图，色块为前向/反向计算，灰色虚线块为等待气泡，stage 越靠后启动越晚">
+            <!-- stage 0..3, each row offset to show bubble -->
+            <g>
+              <rect x="20" y="10" width="60" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <rect x="80" y="10" width="440" height="24" fill="var(--accent)" opacity="0.85" />
+              <rect x="520" y="10" width="60" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <text class="chart-label" x="590" y="27" text-anchor="start">stage 0</text>
+            </g>
+            <g>
+              <rect x="20" y="48" width="120" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <rect x="140" y="48" width="380" height="24" fill="var(--accent)" opacity="0.75" />
+              <rect x="520" y="48" width="60" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <text class="chart-label" x="590" y="65" text-anchor="start">stage 1</text>
+            </g>
+            <g>
+              <rect x="20" y="86" width="180" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <rect x="200" y="86" width="320" height="24" fill="var(--accent)" opacity="0.65" />
+              <rect x="520" y="86" width="60" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <text class="chart-label" x="590" y="103" text-anchor="start">stage 2</text>
+            </g>
+            <g>
+              <rect x="20" y="124" width="240" height="24" fill="none" stroke="var(--border)" stroke-dasharray="2 2" opacity="0.5" />
+              <rect x="260" y="124" width="260" height="24" fill="var(--accent)" opacity="0.55" />
+              <text class="chart-label" x="530" y="141" text-anchor="start">stage 3</text>
+            </g>
+            <text class="chart-caption" x="20" y="165" text-anchor="start">
+              灰色虚线块 = 等待气泡；色块 = 前向/反向计算（p2p 传递激活，代价很低）
+            </text>
+          </svg>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">27.3</span> %</span>
+              <span class="stat-label">P=4 stage，M=8 micro-batch：气泡 = (4-1)/(4-1+8) = 3/11</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">15.8</span> %</span>
+              <span class="stat-label">M 增到 16：气泡降到 3/19——micro-batch 越多气泡越薄，但需缓存更多 in-flight 激活</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 5: EP -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">EP（专家并行）：token-routed 才能 EP，modality-experts 不行</h3>
+          <p>
+            MoE 层每卡常驻若干专家的全部权重，<span class="term">router</span> 给每个 token 动态选 top-k 专家，token 需经 <span class="term">all-to-all</span>（②公式）跨卡送到专家所在卡，算完再送回——这是 <b style="color: var(--text);">token-routed experts</b>。
+          </p>
+          <svg class="chart" viewBox="0 0 900 190" width="100%" height="190" role="img"
+               aria-label="左侧 token-routed：路由器把 token 用交叉箭头分发到不同专家卡；右侧 modality-experts：不同模态的 token 各自直线走向固定专家，没有交叉">
+            <text class="chart-label-strong" x="220" y="24" text-anchor="middle">token-routed（minimax h3 / 经典 MoE LLM）</text>
+            <circle cx="220" cy="60" r="14" fill="var(--accent)" />
+            <text class="chart-label" x="220" y="65" text-anchor="middle" fill="var(--bg)">R</text>
+            <circle cx="100" cy="140" r="16" fill="none" stroke="var(--border)" />
+            <circle cx="180" cy="140" r="16" fill="none" stroke="var(--border)" />
+            <circle cx="260" cy="140" r="16" fill="none" stroke="var(--border)" />
+            <circle cx="340" cy="140" r="16" fill="none" stroke="var(--border)" />
+            <path class="chart-line accent-2" d="M220,74 L100,126" />
+            <path class="chart-line accent-2" d="M220,74 L260,126" />
+            <path class="chart-line" d="M220,74 L180,126" />
+            <path class="chart-line" d="M220,74 L340,126" />
+            <text class="chart-caption" x="220" y="175" text-anchor="middle">router 动态选专家 → all-to-all 跨卡交叉发送</text>
+
+            <text class="chart-label-strong" x="680" y="24" text-anchor="middle">modality-experts（MAGI NativeMoELinear）</text>
+            <circle cx="580" cy="140" r="16" fill="var(--accent-2)" opacity="0.85" />
+            <text class="chart-caption" x="580" y="170" text-anchor="middle">video</text>
+            <circle cx="680" cy="140" r="16" fill="var(--accent-2)" opacity="0.85" />
+            <text class="chart-caption" x="680" y="170" text-anchor="middle">text</text>
+            <circle cx="780" cy="140" r="16" fill="var(--accent-2)" opacity="0.85" />
+            <text class="chart-caption" x="780" y="170" text-anchor="middle">audio-like</text>
+            <path class="chart-line" d="M580,60 L580,124" />
+            <path class="chart-line" d="M680,60 L680,124" />
+            <path class="chart-line" d="M780,60 L780,124" />
+            <text class="chart-caption" x="680" y="55" text-anchor="middle">按模态静态分派，无交叉、无 all-to-all</text>
+          </svg>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">35</span> μs</span>
+              <span class="stat-label">直接复用②Slide4 的路由数字：8 卡、每卡给其余 7 卡各发 2MB 分片，α 项主导——EP 的通讯瓶颈本质就是②讲过的"消息碎、α 项吃紧"</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1rem;">MAGI modality-experts 为何不需要 EP</span>
+              <p style="margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                <span class="term">num_modality=3</span>：不是 router 学出来的动态选择，而是按模态（video/text/…）静态决定用哪套投影，同一模态的 token 永远走同一分支——不需要跨卡动态路由，也就不需要 all-to-all。
+              </p>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            一句话区分：EP 解决"动态路由到哪张卡"的通讯问题，只对 token-routed experts 有意义；MAGI 的 modality-experts 是静态分派，压根不产生 EP 要解决的那种通讯模式。
+          </p>
+        </div>
+
+        <!-- Section 6: summary table -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">四种范式对比小结</h3>
+          <div class="panel">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>范式</th>
+                  <th>切什么</th>
+                  <th>用②哪种原语</th>
+                  <th>代价来源</th>
+                  <th>本章落点</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>DP/ZeRO(FSDP)</td>
+                  <td>参数/梯度/优化器状态</td>
+                  <td>all-gather + reduce-scatter</td>
+                  <td>通讯量随分片数增加</td>
+                  <td>Philoflow 16-GPU，13.2GB/卡</td>
+                </tr>
+                <tr>
+                  <td>TP</td>
+                  <td>单层权重矩阵</td>
+                  <td>all-reduce（层内，同步阻塞）</td>
+                  <td>延迟敏感，需高速互联</td>
+                  <td>经典 LLM，0.39ms/层</td>
+                </tr>
+                <tr>
+                  <td>PP</td>
+                  <td>层（stage）</td>
+                  <td>p2p（stage 间）</td>
+                  <td>流水线气泡，非带宽</td>
+                  <td>4 stage/8 microbatch，27.3%气泡</td>
+                </tr>
+                <tr>
+                  <td>EP</td>
+                  <td>token-routed 专家</td>
+                  <td>all-to-all</td>
+                  <td>消息碎、α 主导</td>
+                  <td>minimax h3 / 经典 MoE LLM，35μs</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top: 1.25rem;">
+            四种范式切的维度互不相同（参数 vs 层内权重 vs 层 vs 专家），可以叠加组合（如 TP+PP+DP 的 3D 并行），但都建立在②的同一套原语与代价语言之上——
+            ⑤<span class="term">显存与计算优化</span>会在此基础上讲如何进一步压缩每一项代价。
+          </p>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <div class="page-indicator" id="page-indicator"></div>
+  <div class="deck-nav-hint">← → 翻页 · 滚动查看本页全部内容</div>
+
+  <script src="../nav.js"></script>
+</body>
+</html>

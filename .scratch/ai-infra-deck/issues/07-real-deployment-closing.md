@@ -4,9 +4,9 @@
 
 **Blocked by:** 06 — 显存与计算优化章
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `.scratch/ai-infra-deck/07-real-deployment/outline.md` 大纲经作者确认
-- [ ] 综合举例使用的数字与前面各章大纲一致，不产生新的、未在其他章节出现的数字
-- [ ] `deck/chapters/06-real-deployment.html` 与共享主题同构，可独立打开
-- [ ] 已并入 `index.html`，作为全场最后一页
+- [x] `.scratch/ai-infra-deck/07-real-deployment/outline.md` 大纲经作者确认
+- [x] 综合举例使用的数字与前面各章大纲一致，不产生新的、未在其他章节出现的数字
+- [x] `deck/chapters/06-real-deployment.html` 与共享主题同构，可独立打开
+- [x] 已并入 `index.html`，作为全场最后一页

@@ -4,10 +4,10 @@
 
 **Blocked by:** 00 — 视觉与骨架基础设施
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `.scratch/ai-infra-deck/03-communication-primitives/outline.md` 大纲经作者确认，通讯代价数字可复算
-- [ ] 覆盖 all-reduce/all-gather/reduce-scatter/all-to-all/p2p 五种原语 + α-β 代价模型
-- [ ] ring all-reduce 数据流有简单分步动画
-- [ ] `deck/chapters/02-communication-primitives.html` 与共享主题同构，可独立打开
-- [ ] 已并入 `index.html`，图表数字与大纲一致
+- [x] `.scratch/ai-infra-deck/03-communication-primitives/outline.md` 大纲经作者确认，通讯代价数字可复算
+- [x] 覆盖 all-reduce/all-gather/reduce-scatter/all-to-all/p2p 五种原语 + α-β 代价模型
+- [x] ring all-reduce 数据流有简单分步动画
+- [x] `deck/chapters/02-communication-primitives.html` 与共享主题同构，可独立打开
+- [x] 已并入 `index.html`，图表数字与大纲一致

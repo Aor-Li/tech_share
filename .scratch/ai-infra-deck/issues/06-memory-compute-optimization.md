@@ -4,11 +4,11 @@
 
 **Blocked by:** 05 — 训练并行范式章
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `.scratch/ai-infra-deck/06-memory-compute-optimization/outline.md` 大纲经作者确认，数字可复算
-- [ ] 覆盖激活重计算/混合精度/offload
-- [ ] FlashAttention 基础 + MagiAttention flex-flash-attn 进阶都讲到
-- [ ] KV cache 结合 Philoflow SNL 讲流式无限长，并做 LTX-2 vs minimax h3 对比，minimax h3 相关内容标注为公开信息推断
-- [ ] `deck/chapters/05-memory-compute-optimization.html` 与共享主题同构，可独立打开
-- [ ] 已并入 `index.html`，图表数字与大纲一致
+- [x] `.scratch/ai-infra-deck/06-memory-compute-optimization/outline.md` 大纲经作者确认，数字可复算
+- [x] 覆盖激活重计算/混合精度/offload
+- [x] FlashAttention 基础 + MagiAttention flex-flash-attn 进阶都讲到
+- [x] KV cache 结合 Philoflow SNL 讲流式无限长，并做 LTX-2 vs minimax h3 对比，minimax h3 相关内容标注为公开信息推断
+- [x] `deck/chapters/05-memory-compute-optimization.html` 与共享主题同构，可独立打开
+- [x] 已并入 `index.html`，图表数字与大纲一致
