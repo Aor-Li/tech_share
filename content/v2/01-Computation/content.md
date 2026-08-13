@@ -1,7 +1,7 @@
-# 第一章 · 计算：内容大纲（content_v2）
+# 第一章 · 计算：内容大纲（content/v2）
 
 术语/规格依据同目录 `outline_1.md`；展示层复用根 `content/theme.css` + `content/nav.js`（不新增组件类）。
-本稿把 `outline_1.md` 的写作大纲收拢成可直接落地的 `slide.html`，遵循 `content/NN-<slug>` 的通用惯例：
+本稿把 `outline_1.md` 的写作大纲收拢成可直接落地的 `slide.html`，遵循 `content/vN/NN-<slug>` 的通用惯例：
 **整章一页 `<section class="slide">`，内部按小节堆叠 `<div class="chapter-section">`，靠滚动条浏览**，不做翻页。
 
 ## 主线是 infra 概念，不是 MiniMax H3
