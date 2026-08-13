@@ -1,0 +1,505 @@
+<!doctype html>
+<!--
+  Chapter 01 — 计算 (Computation).
+  Outline: outline_1.md (source) / content.md (section-by-section breakdown), same directory.
+  This file lives two levels below the shared theme (content_v2/01-Computation/),
+  so it links ../../content/theme.css + ../../content/nav.js — the same shared
+  files the content/NN-<slug> chapters use, no fork, no per-chapter CSS.
+
+  Layout convention (matches content/NN-<slug>): one chapter = one scrollable
+  page = one <section class="slide">. Each sub-topic becomes a stacked
+  <div class="chapter-section">, divided by a rule. Mouse wheel/trackpad
+  scrolls within the page; there is only one page in this file so nav.js's
+  paging keys are inert here (kept for structural consistency with the rest
+  of the deck, harmless with a single slide).
+
+  Content framing: the throughline is general infra reasoning (how to count
+  FLOPs, when attention's s^2 term matters, precision formats, peak compute,
+  MFU) — NOT the MiniMax H3 model. H3 only appears as a worked numeric
+  example that verifies a general formula; it never titles a section or
+  opens a hook. See content.md's "主线是 infra 概念，不是 MiniMax H3" note.
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Infra 分享 — 第一章 · 计算</title>
+  <link rel="stylesheet" href="../../content/theme.css" />
+</head>
+<body>
+  <div class="deck">
+    <section class="slide">
+      <p class="slide-kicker">第一章 · 计算</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title">算力账怎么算：<span class="term">FLOPs</span> → 精度 → 峰值 → <span class="term">MFU</span></h2>
+
+      <div class="slide-body" style="max-width: none;">
+
+        <!-- 0. 本章任务 -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">本章任务</h3>
+          <p>
+            开篇抛出一个具体问题：<b style="color: var(--text);">「实时流式生成一段 768p 视频，需要多少算力？」</b>
+            回答它要补齐四块拼图：① 要算多少次浮点运算（FLOPs 估算）② 用什么数据格式算（精度体系）
+            ③ 机器一秒能算多少（算力峰值）④ 实际能拿到多少（<span class="term">MFU</span>）。
+          </p>
+          <p style="font-size: 0.9rem;">
+            LLM 推理基础设施的两条公理——「decode 是访存受限的」「attention 的 s² 项可以忽略」——不是普适真理，
+            而是<b style="color: var(--text);">在特定条件下成立的经验规则</b>。本章逐条讲清楚它们的成立边界，
+            并用一个视频 <span class="term">DiT</span> 例子（MiniMax H3）做验证，而不是反过来讲一个模型的规格书。
+          </p>
+          <div class="panel" style="margin-top: 1rem;">
+            <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 0.9rem;">
+              本章验证用例（非主角）· MiniMax H3，视频 DiT
+            </span>
+            <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+              33B dense / 50 层 / hidden 5376 · AdaLN 分支 ≈13B 可预计算缓存 → 计算路径有效参数
+              <span class="term">N_eff ≈ 20B</span> · VAE 空间16×/时间4×压缩 · 输出 24fps 原生2K、最长15秒、同步立体声。
+            </p>
+          </div>
+        </div>
+
+        <!-- 1.1 -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.1 一切都是矩阵乘</h3>
+          <p><span class="term">[m,k] × [k,n] 的 GEMM = 2mkn FLOPs</span>（乘、加各算一次）。
+            Transformer 里 95%+ 的浮点运算集中在少数几个 GEMM 上，所以「数 FLOPs」约等于「数矩阵乘」——
+            这对任何 Transformer 变体（LLM、DiT）都成立，是全章的通用起点。</p>
+          <svg class="chart" viewBox="0 0 1000 220" width="100%" height="200" role="img"
+               aria-label="单 block 参数占比与 FLOPs 占比对照条形图：AdaLN 分支占约 40% 的参数，但在 FLOPs 条上几乎不可见；self-attention、cross-modal attention、FFN 占据了 FLOPs 条的绝大部分">
+            <text class="chart-label" x="20" y="34">参数占比</text>
+            <rect x="180" y="16" width="240" height="30" rx="4" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-caption" x="300" y="36" text-anchor="middle" fill="var(--bg)">AdaLN ≈40%</text>
+            <rect x="420" y="16" width="180" height="30" rx="4" fill="var(--accent-2)" opacity="0.7" />
+            <text class="chart-caption" x="510" y="36" text-anchor="middle">Attention</text>
+            <rect x="600" y="16" width="220" height="30" rx="4" fill="var(--accent-2)" opacity="0.45" />
+            <text class="chart-caption" x="710" y="36" text-anchor="middle">FFN</text>
+
+            <text class="chart-label" x="20" y="104">FLOPs占比</text>
+            <rect x="180" y="86" width="8" height="30" rx="2" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-caption" x="196" y="106">AdaLN≈0（按 timestep 而非 token 计算）</text>
+            <rect x="420" y="86" width="260" height="30" rx="4" fill="var(--accent-2)" opacity="0.7" />
+            <text class="chart-caption" x="550" y="106" text-anchor="middle" fill="var(--bg)">Attention（随 s² 增长）</text>
+            <rect x="680" y="86" width="260" height="30" rx="4" fill="var(--accent-2)" opacity="0.45" />
+            <text class="chart-caption" x="810" y="106" text-anchor="middle">FFN + Linear</text>
+
+            <text class="chart-caption" x="20" y="150" font-size="0.78rem">
+              验证例（H3）：AdaLN 占 40% 参数却几乎不占 FLOPs——「数参数量 ≠ 数 FLOPs」这个通用陷阱在按 timestep 调制的架构上更容易踩。
+            </text>
+          </svg>
+        </div>
+
+        <!-- 1.2 -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.2 前向 2N，以及「N 到底是多少」</h3>
+          <p><span class="term">每 token 前向 ≈ 2N FLOPs</span>——每个权重恰好参与一次乘加，FLOPs 直接正比于参数量。
+            这条公式对任何 dense Transformer 都成立，关键是先弄清楚 N 该怎么数。</p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">验证：H3 的 N 不是 33B</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                AdaLN 不参与逐 token 计算 → N_eff≈20B，每 token 约 <span class="num">40</span> GFLOPs。
+                架构参数反推：50层×12×5376² ≈ <span class="num">17.3</span>B，与 20B 量级吻合。
+              </p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">token 数是平方项×线性项</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                对图像/视频类模型：分辨率是平方项，时长是线性项，二者相乘容易爆炸——这是设计任何多维序列系统时的通用直觉。
+              </p>
+            </div>
+          </div>
+          <svg class="chart" viewBox="0 0 1000 260" width="100%" height="240" role="img"
+               aria-label="四个配置的 token 数条形图：1344×768 分辨率 5 秒为 30,240 token，15 秒为 90,720 token；2560×1440(2K) 分辨率 5 秒为 108,000 token，15 秒为 324,000 token">
+            <line class="chart-grid" x1="80" y1="220" x2="960" y2="220" />
+            <rect x="120" y="196" width="80" height="24" rx="3" fill="var(--accent-2)" opacity="0.55" />
+            <rect x="320" y="148" width="80" height="72" rx="3" fill="var(--accent-2)" opacity="0.8" />
+            <rect x="520" y="133" width="80" height="87" rx="3" fill="var(--accent)" opacity="0.55" />
+            <rect x="720" y="20" width="80" height="200" rx="3" fill="var(--accent)" opacity="0.85" />
+
+            <text class="chart-label" x="160" y="240" text-anchor="middle">1344×768 / 5s</text>
+            <text class="chart-caption" x="160" y="185" text-anchor="middle">30,240</text>
+            <text class="chart-label" x="360" y="240" text-anchor="middle">1344×768 / 15s</text>
+            <text class="chart-caption" x="360" y="138" text-anchor="middle">90,720</text>
+            <text class="chart-label" x="560" y="240" text-anchor="middle">2K / 5s</text>
+            <text class="chart-caption" x="560" y="123" text-anchor="middle">108,000</text>
+            <text class="chart-label" x="760" y="240" text-anchor="middle">2K / 15s</text>
+            <text class="chart-caption" x="760" y="10" text-anchor="middle">324,000</text>
+          </svg>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            附带一句通用观察：多模态系统里非视觉轨（如音频）在 token 预算里的占比通常远小于视觉轨——
+            H3 的音频轨 15 秒仅约 1,200 token，占比 <span class="num">0.4</span>%，只是一个例证，不是本节重点。
+          </p>
+        </div>
+
+        <!-- 1.3 -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.3 训练的 6ND</h3>
+          <p><span class="term">C ≈ 6ND</span>。反向要算两组梯度：<b style="color: var(--text);">dX</b>（对输入的梯度，用于继续向前传播）、
+            <b style="color: var(--text);">dW</b>（对权重的梯度，用于参数更新），各需一次同规模 GEMM——2N（前向）+2N（dX）+2N（dW）=6N，
+            对任何 Transformer 训练都成立。</p>
+          <svg class="chart" viewBox="0 0 1000 170" width="100%" height="150" role="img"
+               aria-label="前向反向 FLOPs 累加图：forward 贡献 2N，加上 dX 贡献 2N 累计到 4N，加上 dW 贡献 2N 累计到 6N">
+            <rect x="40" y="45" width="260" height="70" rx="8" fill="none" stroke="var(--accent-2)" stroke-width="2" />
+            <text class="chart-label-strong" x="170" y="80" text-anchor="middle">forward</text>
+            <text class="chart-caption" x="170" y="100" text-anchor="middle">+2N → 累计 2N</text>
+
+            <text class="chart-label" x="320" y="85" text-anchor="middle">→</text>
+
+            <rect x="370" y="45" width="260" height="70" rx="8" fill="none" stroke="var(--accent)" stroke-width="2" />
+            <text class="chart-label-strong" x="500" y="80" text-anchor="middle">dX（对输入梯度）</text>
+            <text class="chart-caption" x="500" y="100" text-anchor="middle">+2N → 累计 4N</text>
+
+            <text class="chart-label" x="650" y="85" text-anchor="middle">→</text>
+
+            <rect x="700" y="45" width="260" height="70" rx="8" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-label-strong" x="830" y="80" text-anchor="middle" fill="var(--bg)">dW（对权重梯度）</text>
+            <text class="chart-caption" x="830" y="100" text-anchor="middle" fill="var(--bg)">+2N → 累计 6N</text>
+          </svg>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            验证：扩散这一类架构的两个共性例外——训练时调制分支（如 AdaLN）要算梯度而推理时可缓存，训练与推理的有效参数量不同；
+            扩散训练每样本只随机采一个 timestep 前向一次，训练侧不乘步数（与 1.5 节推理侧的「steps × cfg」形成对照）。
+          </p>
+        </div>
+
+        <!-- 1.4 -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.4 Attention 的 s² 项：什么时候不能再忽略</h3>
+          <p><span class="term">attention / linear ≈ s / (6h)</span>——全章最重要的一个判据，适用于任何 Transformer：
+            序列长度 s 相对 hidden h 越大，attention 占比越高。LLM 场景 s 通常远小于 6h，所以「attention 可忽略」
+            是一条<b style="color: var(--text);">在特定 s/h 区间下成立的经验规则</b>，不是公理。</p>
+          <table class="data-table">
+            <thead><tr><th>场景</th><th>s</th><th>比值</th></tr></thead>
+            <tbody>
+              <tr><td>LLM 对话（h=4096, s=4K）</td><td>4,096</td><td><span class="num">0.17</span></td></tr>
+              <tr><td>长序列例 / H3 768p·5s（h=5376）</td><td>30,240</td><td><span class="num">0.94</span></td></tr>
+              <tr><td>长序列例 / H3 768p·15s</td><td>90,720</td><td><span class="num">2.8</span></td></tr>
+              <tr><td>长序列例 / H3 2K·5s</td><td>108,000</td><td><span class="num">3.3</span></td></tr>
+              <tr><td>长序列例 / H3 2K·15s</td><td>324,000</td><td><span class="num">10.0</span></td></tr>
+            </tbody>
+          </table>
+          <svg class="chart" viewBox="0 0 1000 320" width="100%" height="300" role="img"
+               aria-label="Attention 占比随 token 数变化的折线图，横轴为 token 数对数刻度，纵轴为注意力 FLOPs 占线性层的比例，五个场景点从 LLM 对话的 0.17 一路上升到最长配置的 10.0">
+            <line class="chart-grid" x1="80" y1="280" x2="940" y2="280" />
+            <line class="chart-grid" x1="80" y1="280" x2="80" y2="30" />
+            <path class="chart-line" d="M120,272 L340,263 L560,218 L700,200 L900,40" />
+
+            <circle cx="120" cy="272" r="6" fill="var(--accent-2)" />
+            <text class="chart-caption" x="120" y="250" text-anchor="middle">LLM 4K</text>
+            <text class="chart-label" x="120" y="300" text-anchor="middle">0.17</text>
+
+            <circle cx="340" cy="263" r="6" fill="var(--accent-2)" />
+            <text class="chart-caption" x="340" y="241" text-anchor="middle">768p/5s</text>
+            <text class="chart-label" x="340" y="300" text-anchor="middle">0.94</text>
+
+            <circle cx="560" cy="218" r="6" fill="var(--accent)" />
+            <text class="chart-caption" x="560" y="196" text-anchor="middle">768p/15s</text>
+            <text class="chart-label" x="560" y="300" text-anchor="middle">2.8</text>
+
+            <circle cx="700" cy="200" r="6" fill="var(--accent)" />
+            <text class="chart-caption" x="700" y="178" text-anchor="middle">2K/5s</text>
+            <text class="chart-label" x="700" y="300" text-anchor="middle">3.3</text>
+
+            <circle cx="900" cy="40" r="7" fill="var(--accent)" />
+            <text class="chart-label-strong" x="900" y="24" text-anchor="middle">2K/15s</text>
+            <text class="chart-label" x="900" y="300" text-anchor="middle">10.0</text>
+
+            <line class="chart-grid" x1="80" y1="272" x2="940" y2="272" stroke-dasharray="3 3" />
+            <text class="chart-caption" x="900" y="266" text-anchor="end">比值 = 1（attention 与线性层持平）</text>
+
+            <text class="chart-label" x="500" y="315" text-anchor="middle">token 数（对数轴）→</text>
+          </svg>
+          <div class="stat-card stat-card--accent">
+            <span class="stat-label" style="color: var(--text); font-weight: 700;">
+              不是「DiT 需要不同的公式」，而是「同一个公式，token 数一旦跨过 6h 这个尺度，结论就会反转」。
+            </span>
+            <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+              这是可迁移到任何长序列系统（长文档、长视频、长音频）的判断方法，视频 DiT 只是恰好最容易越过这条线的一类例子。
+            </p>
+          </div>
+        </div>
+
+        <!-- 1.5 -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.5 扩散模型推理的计算结构（补充公式）</h3>
+          <p>
+            这是 LLM 材料里没有的一类计算结构——不是「DiT 特有」，而是<b style="color: var(--text);">扩散/迭代式生成模型</b>这一类方法共有的结构：
+            <span class="term">推理 FLOPs ≈ steps × cfg × (2·N_eff·s + 4·L·s²·h) + 解码 + 编码</span>。
+          </p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-num"><span class="num">2.2</span> PFLOPs</span>
+              <span class="stat-label">单步合计（验证例：H3 768p/5s）</span>
+            </div>
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num"><span class="num">220</span> PFLOPs</span>
+              <span class="stat-label">50步×CFG2 端到端；单张 H100（MFU 40%）约 9 分钟 = 110× 实时</span>
+            </div>
+          </div>
+          <table class="data-table" style="margin-top: 1rem;">
+            <thead><tr><th>杠杆</th><th>收益</th></tr></thead>
+            <tbody>
+              <tr><td>步数蒸馏（50步→4步）</td><td><span class="num">12.5</span>×</td></tr>
+              <tr><td>CFG 简化（2→1）</td><td><span class="num">2</span>×</td></tr>
+              <tr><td>二者叠加</td><td>220 → <span class="num">8.8</span> PFLOPs，单卡 <span class="num">22</span> 秒</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            通用结论：迭代式生成模型的优化空间主要在「减少迭代次数」，这条经验可迁移到扩散图像生成、扩散语言模型等场景，
+            H3 只是当前用来给出具体数字手感的案例。别忘了解码器（如 VAE）工作在未压缩域，2K 输出时其绝对 FLOPs 与激活也不小。
+          </p>
+        </div>
+
+        <!-- 1.6 -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.6 流式推理与 LLM decode 的本质差异</h3>
+          <table class="data-table">
+            <thead><tr><th></th><th>LLM decode</th><th>分块自回归的迭代式生成</th></tr></thead>
+            <tbody>
+              <tr><td>每步计算的 token 数</td><td>1</td><td>远大于 1（验证例：H3 chunk=6,048）</td></tr>
+              <tr><td>算术强度</td><td>≈ 1</td><td>高 2–3 个数量级</td></tr>
+              <tr><td>瓶颈</td><td>访存受限</td><td><b style="color: var(--text);">仍然计算受限</b></td></tr>
+            </tbody>
+          </table>
+          <div class="stat-card stat-card--accent" style="margin-top: 1rem;">
+            <span class="stat-label" style="color: var(--text); font-weight: 700;">
+              任何「每步处理 token 数远大于 1」的自回归系统，都不能直接套用 LLM decode 的优化经验。
+            </span>
+            <p style="margin: 0.5rem 0 0; font-size: 0.9rem; color: var(--text-muted);">
+              continuous batching、投机解码、权重量化优先——这套前提在这类系统上不成立；杠杆在步数、注意力复杂度、算力效率上。
+            </p>
+          </div>
+          <svg class="chart" viewBox="0 0 1000 260" width="100%" height="240" role="img"
+               aria-label="单块耗时随生成进度增长的折线图：full history 随进度线性上升，滑动窗口保持平稳，历史压缩介于两者之间">
+            <line class="chart-grid" x1="80" y1="220" x2="940" y2="220" />
+            <line class="chart-grid" x1="80" y1="220" x2="80" y2="30" />
+            <path class="chart-line" d="M100,190 L300,150 L500,100 L700,60 L900,35" />
+            <text class="chart-label-strong" x="900" y="25" text-anchor="end" fill="var(--accent)">full history</text>
+
+            <path class="chart-line accent-2" d="M100,190 L300,168 L500,152 L700,148 L900,146" />
+            <text class="chart-label-strong" x="900" y="164" text-anchor="end">历史压缩</text>
+
+            <path d="M100,190 L300,187 L500,185 L700,184 L900,183" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="5 4" />
+            <text class="chart-label" x="900" y="200" text-anchor="end">滑动窗口</text>
+
+            <text class="chart-label" x="500" y="245" text-anchor="middle">生成进度（第 n 个 chunk）→</text>
+          </svg>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">
+            补充说明：H3 本身是全序列双向的一次性生成，不是流式模型；这里讨论的是"假设做分块自回归会怎样"的推演，用它的 chunk 数字（5秒时历史约3万 token，单块开销涨约5倍）给出具体量级。
+          </p>
+        </div>
+
+        <!-- 1.7 -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.7 精度体系</h3>
+          <svg class="chart" viewBox="0 0 900 260" width="100%" height="240" role="img"
+               aria-label="数据格式位域条形图，从上到下依次为 FP32、TF32、FP16、BF16、FP8 E4M3、FP8 E5M2、FP4，条形宽度按位宽比例绘制，颜色区分符号位、指数位、尾数位">
+            <text class="chart-label" x="20" y="26">FP32</text>
+            <rect x="120" y="14" width="10" height="18" fill="var(--text-muted)" />
+            <rect x="130" y="14" width="80" height="18" fill="var(--accent)" opacity="0.8" />
+            <rect x="210" y="14" width="230" height="18" fill="var(--accent-2)" opacity="0.6" />
+            <text class="chart-label" x="20" y="58">TF32</text>
+            <rect x="120" y="46" width="10" height="18" fill="var(--text-muted)" />
+            <rect x="130" y="46" width="80" height="18" fill="var(--accent)" opacity="0.8" />
+            <rect x="210" y="46" width="100" height="18" fill="var(--accent-2)" opacity="0.6" />
+            <text class="chart-label" x="20" y="90">FP16</text>
+            <rect x="120" y="78" width="10" height="18" fill="var(--text-muted)" />
+            <rect x="130" y="78" width="50" height="18" fill="var(--accent)" opacity="0.8" />
+            <rect x="180" y="78" width="100" height="18" fill="var(--accent-2)" opacity="0.6" />
+            <text class="chart-label" x="20" y="122">BF16</text>
+            <rect x="120" y="110" width="10" height="18" fill="var(--text-muted)" />
+            <rect x="130" y="110" width="80" height="18" fill="var(--accent)" opacity="0.8" />
+            <rect x="210" y="110" width="70" height="18" fill="var(--accent-2)" opacity="0.6" />
+            <text class="chart-label" x="20" y="154">FP8 E4M3</text>
+            <rect x="120" y="142" width="10" height="18" fill="var(--text-muted)" />
+            <rect x="130" y="142" width="40" height="18" fill="var(--accent)" opacity="0.8" />
+            <rect x="170" y="142" width="30" height="18" fill="var(--accent-2)" opacity="0.6" />
+            <text class="chart-label" x="20" y="186">FP8 E5M2</text>
+            <rect x="120" y="174" width="10" height="18" fill="var(--text-muted)" />
+            <rect x="130" y="174" width="50" height="18" fill="var(--accent)" opacity="0.8" />
+            <rect x="180" y="174" width="20" height="18" fill="var(--accent-2)" opacity="0.6" />
+            <text class="chart-label" x="20" y="218">FP4</text>
+            <rect x="120" y="206" width="10" height="18" fill="var(--text-muted)" />
+            <rect x="130" y="206" width="20" height="18" fill="var(--accent)" opacity="0.8" />
+            <rect x="150" y="206" width="10" height="18" fill="var(--accent-2)" opacity="0.6" />
+
+            <rect x="120" y="236" width="10" height="10" fill="var(--text-muted)" /><text class="chart-caption" x="135" y="245">符号位　</text>
+            <rect x="185" y="236" width="10" height="10" fill="var(--accent)" opacity="0.8" /><text class="chart-caption" x="200" y="245">指数位（动态范围）</text>
+            <rect x="345" y="236" width="10" height="10" fill="var(--accent-2)" opacity="0.6" /><text class="chart-caption" x="360" y="245">尾数位（有效精度）</text>
+          </svg>
+          <div class="stat-card stat-card--accent" style="margin-top: 0.75rem;">
+            <span class="stat-label" style="color: var(--text); font-weight: 700;">
+              BF16 用精度换动态范围，所以训练不需要 loss scaling 而 FP16 需要——这是 BF16 成为默认的根本原因。
+            </span>
+          </div>
+          <div class="stat-row" style="margin-top: 1rem;">
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">混合精度三件套</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">FP32 主权重副本 + BF16 计算 + FP32 累加。</p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">FP8 必须配 scaling</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">per-tensor delayed scaling 与 per-block 的差别，点到为止。</p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">误差沿步数累积（迭代式生成通用）</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                N 步迭代是串联的，低精度误差会沿步数累积——不只 H3 如此，容忍度要按最终输出质量评估。
+              </p>
+            </div>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.75rem;">
+            数值印象：精度每降一档，硬件峰值大致翻倍。分模块精度策略举例（验证例，来自 H3）：主干可 FP8，attention 正在往 FP8 走，
+            解码器保守保留高精度，调制分支（AdaLN）缓存可独立定精度——最后一条是 H3 具体实现，供参考。
+          </p>
+        </div>
+
+        <!-- 1.8 -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.8 算力峰值：读懂 spec sheet</h3>
+          <p><span class="term">峰值 = SM 数 × 每 SM 每周期 Tensor Core MAC 数 × 2 × 频率</span>——完全通用，与具体模型架构无关。</p>
+          <svg class="chart" viewBox="0 0 900 260" width="100%" height="240" role="img"
+               aria-label="A100、H100、H200、B200 四代 GPU 的 BF16 与 FP8 稠密峰值算力对数柱状图，数字为示意性口径，需在定稿前核对官方 spec sheet">
+            <line class="chart-grid" x1="70" y1="220" x2="860" y2="220" />
+            <rect x="110" y="188" width="40" height="32" fill="var(--accent-2)" opacity="0.75" />
+            <text class="chart-label" x="130" y="235" text-anchor="middle">A100</text>
+            <text class="chart-caption" x="130" y="182" text-anchor="middle">312</text>
+            <rect x="290" y="130" width="40" height="90" fill="var(--accent-2)" opacity="0.75" />
+            <rect x="335" y="70" width="40" height="150" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-label" x="352" y="235" text-anchor="middle">H100</text>
+            <text class="chart-caption" x="310" y="124" text-anchor="middle">989</text>
+            <text class="chart-caption" x="355" y="64" text-anchor="middle">1979</text>
+            <rect x="490" y="130" width="40" height="90" fill="var(--accent-2)" opacity="0.75" />
+            <rect x="535" y="70" width="40" height="150" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-label" x="552" y="235" text-anchor="middle">H200</text>
+            <text class="chart-caption" x="552" y="245" text-anchor="middle" font-size="0.68rem">同算力，高显存/带宽</text>
+            <rect x="690" y="45" width="40" height="175" fill="var(--accent-2)" opacity="0.75" />
+            <rect x="735" y="10" width="40" height="210" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-label" x="752" y="235" text-anchor="middle">B200</text>
+            <text class="chart-caption" x="710" y="39" text-anchor="middle">2250</text>
+            <text class="chart-caption" x="755" y="4" text-anchor="middle">4500</text>
+
+            <rect x="70" y="6" width="10" height="10" fill="var(--accent-2)" opacity="0.75" /><text class="chart-caption" x="86" y="15">BF16 稠密</text>
+            <rect x="170" y="6" width="10" height="10" fill="var(--accent)" opacity="0.85" /><text class="chart-caption" x="186" y="15">FP8 稠密</text>
+            <text class="chart-caption" x="860" y="15" text-anchor="end">单位 TFLOPS · 示意性口径，定稿前核对官方数据</text>
+          </svg>
+          <div class="stat-row" style="margin-top: 0.75rem;">
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">三个坑</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                稀疏峰值=稠密×2，宣传常用前者；TF32 只是 FP32 的入口，实际走 Tensor Core；标称频率≠持续功耗下的实际频率。
+              </p>
+            </div>
+            <div class="stat-card stat-card--accent">
+              <span class="stat-num">≈ <span class="num">1</span> PFLOPS</span>
+              <span class="stat-label">H100 SXM BF16（稠密）——记住这个数就够推大部分账。</span>
+            </div>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.75rem;">
+            显存与算力的配比选择，在计算密集型架构（如 DiT）和访存密集型场景（如 LLM decode）上导向不同的硬件选型——
+            验证例：H3 单个 DiT BF16 就要 66.3GB，"高显存低算力"的卡对 LLM decode 友好，对 DiT 反而吃亏。
+          </p>
+        </div>
+
+        <!-- 1.9 -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.9 MFU：从峰值到现实</h3>
+          <p><span class="term">MFU = 实际 FLOPs/s ÷ 峰值 FLOPs/s</span>；MFU vs HFU 的区别在于重计算的 FLOPs 算不算进分子。</p>
+          <table class="data-table">
+            <thead><tr><th>场景</th><th>MFU</th></tr></thead>
+            <tbody>
+              <tr><td>LLM 稠密训练</td><td><span class="num">35–50</span>%</td></tr>
+              <tr><td>LLM MoE 训练</td><td>更低</td></tr>
+              <tr><td>LLM decode</td><td>&lt; <span class="num">5</span>%</td></tr>
+              <tr><td>计算受限的迭代式生成系统</td><td>天然较高</td></tr>
+            </tbody>
+          </table>
+          <svg class="chart" viewBox="0 0 1000 340" width="100%" height="320" role="img"
+               aria-label="双栏 MFU 瀑布图，左栏为 LLM decode，主损耗在访存受限；右栏为计算受限的迭代式生成系统，主损耗在非 GEMM 算子与流水气泡，两栏对比展示两类系统优化重心的分岔">
+            <text class="chart-label-strong" x="230" y="26" text-anchor="middle">LLM decode</text>
+            <text class="chart-label-strong" x="770" y="26" text-anchor="middle">计算受限的迭代式生成系统</text>
+            <line class="chart-grid" x1="60" y1="300" x2="460" y2="300" />
+            <line class="chart-grid" x1="540" y1="300" x2="940" y2="300" />
+
+            <rect x="70" y="50" width="60" height="240" fill="var(--accent-2)" opacity="0.85" />
+            <text class="chart-caption" x="100" y="45" text-anchor="middle">峰值 100%</text>
+            <rect x="150" y="70" width="60" height="20" fill="var(--border)" />
+            <text class="chart-caption" x="180" y="65" text-anchor="middle" font-size="0.68rem">非GEMM</text>
+            <rect x="230" y="90" width="60" height="180" fill="var(--border)" />
+            <text class="chart-caption" x="260" y="85" text-anchor="middle" font-size="0.68rem">访存受限（主因）</text>
+            <rect x="310" y="270" width="60" height="10" fill="var(--border)" />
+            <rect x="390" y="280" width="60" height="10" fill="var(--accent)" opacity="0.9" />
+            <text class="chart-label-strong" x="420" y="300" text-anchor="middle">实际 &lt;5%</text>
+
+            <rect x="560" y="50" width="60" height="240" fill="var(--accent-2)" opacity="0.85" />
+            <text class="chart-caption" x="590" y="45" text-anchor="middle">峰值 100%</text>
+            <rect x="640" y="70" width="60" height="60" fill="var(--border)" />
+            <text class="chart-caption" x="670" y="65" text-anchor="middle" font-size="0.68rem">非GEMM</text>
+            <rect x="720" y="130" width="60" height="30" fill="var(--border)" />
+            <text class="chart-caption" x="750" y="124" text-anchor="middle" font-size="0.68rem">流水气泡</text>
+            <rect x="800" y="160" width="60" height="20" fill="var(--border)" />
+            <text class="chart-caption" x="830" y="154" text-anchor="middle" font-size="0.68rem">通讯</text>
+            <rect x="880" y="180" width="60" height="110" fill="var(--accent)" opacity="0.9" />
+            <text class="chart-label-strong" x="910" y="300" text-anchor="middle">实际较高</text>
+
+            <text class="chart-caption" x="230" y="320" text-anchor="middle">主损耗：访存受限（KV cache 读取）</text>
+            <text class="chart-caption" x="770" y="320" text-anchor="middle">主损耗：非 GEMM 算子 + 流水气泡，不是访存</text>
+          </svg>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            这张图是全章方法论的总结：两栏的损失项构成完全不同，一图说清两类系统优化重心的分岔；
+            右栏的量级参照来自 H3，但结论适用于任何计算受限系统。好消息是不容易被带宽卡死，坏消息是没有"白捡"的优化空间，只能真刀真枪减 FLOPs。
+          </p>
+          <svg class="chart" viewBox="0 0 1000 160" width="100%" height="140" role="img"
+               aria-label="实时性预算推演阶梯图：从单卡 220 PFLOPs 需 9 分钟出发，经过 4 步蒸馏降到 22 秒，再经过多卡并行逼近 1 倍实时速度">
+            <rect x="30" y="45" width="220" height="60" rx="8" fill="none" stroke="var(--border)" stroke-width="2" />
+            <text class="chart-label-strong" x="140" y="72" text-anchor="middle">220 PFLOPs</text>
+            <text class="chart-caption" x="140" y="92" text-anchor="middle">单卡 ≈9分钟 = 110×实时</text>
+
+            <text class="chart-label" x="300" y="65" text-anchor="middle">→</text>
+            <text class="chart-caption" x="300" y="85" text-anchor="middle">4步蒸馏+无CFG</text>
+
+            <rect x="350" y="45" width="220" height="60" rx="8" fill="none" stroke="var(--accent-2)" stroke-width="2" />
+            <text class="chart-label-strong" x="460" y="72" text-anchor="middle">8.8 PFLOPs</text>
+            <text class="chart-caption" x="460" y="92" text-anchor="middle">单卡 ≈22秒 = 4.4×实时</text>
+
+            <text class="chart-label" x="620" y="65" text-anchor="middle">→</text>
+            <text class="chart-caption" x="620" y="85" text-anchor="middle">多卡并行+算力效率</text>
+
+            <rect x="670" y="45" width="260" height="60" rx="8" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-label-strong" x="800" y="72" text-anchor="middle" fill="var(--bg)">逼近 1× 实时</text>
+            <text class="chart-caption" x="800" y="92" text-anchor="middle" fill="var(--bg)">需要的卡数 = 本节推演的答案，方法可迁移到任何模型</text>
+          </svg>
+        </div>
+
+        <!-- 1.10 -->
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.10 速查卡与过渡</h3>
+          <table class="data-table">
+            <thead><tr><th></th><th>LLM</th><th>长序列 / 迭代式生成系统</th></tr></thead>
+            <tbody>
+              <tr><td>每 token 前向</td><td>2N</td><td>2N_eff（注意调制分支是否参与逐 token 计算）</td></tr>
+              <tr><td>训练总量</td><td>6ND</td><td>6N_eff·D，通常无步数乘子</td></tr>
+              <tr><td>attn 占比</td><td>s/(6h) ≈ 0.17（典型对话）</td><td>可达 1～10（s 越过 6h 后）</td></tr>
+              <tr><td>推理成本</td><td>2N/token</td><td>steps × cfg × (...)（迭代式）</td></tr>
+              <tr><td>decode/流式瓶颈</td><td>访存受限</td><td>可能仍是计算受限</td></tr>
+            </tbody>
+          </table>
+          <div class="stat-card stat-card--accent" style="margin-top: 1rem;">
+            <span class="stat-label" style="color: var(--text); font-weight: 700; font-size: 1.05rem;">
+              「既然一直是计算受限，第二章的访存分析还有意义吗？」
+            </span>
+            <p style="margin: 0.6rem 0 0; font-size: 0.95rem; color: var(--text-muted);">
+              有——VAE 解码、norm 类算子、以及流式的历史 KV，恰恰是访存侧的大头。
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <div class="page-indicator" id="page-indicator"></div>
+  <div class="deck-nav-hint">滚动查看本页全部内容</div>
+
+  <script src="../../content/nav.js"></script>
+</body>
+</html>
