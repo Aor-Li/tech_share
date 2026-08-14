@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="可直接分享的单文件技术报告">
+  <title>技术分享报告</title>
+  <style>
+    :root { --ink:#17231e; --paper:#f3f1e9; --lime:#dbff45; --orange:#ff6a47; --muted:#65706a; --line:rgba(23,35,30,.18); }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:var(--paper); font:16px/1.65 system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+    a { color:inherit; }
+    .wrap { width:min(1120px,90vw); margin:auto; }
+    header { min-height:72vh; padding:0 0 8vh; color:var(--paper); background:var(--ink); display:flex; flex-direction:column; }
+    nav { height:76px; border-bottom:1px solid rgba(243,241,233,.24); display:flex; align-items:center; justify-content:space-between; }
+    nav strong,.label { font:700 .75rem/1.2 ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing:.14em; text-transform:uppercase; }
+    nav div { display:flex; gap:1.5rem; }
+    nav a { text-decoration:none; font-size:.88rem; }
+    .hero { margin-top:auto; padding-top:10vh; }
+    h1 { max-width:1000px; margin:1.2rem 0; font-size:clamp(3.5rem,9vw,8rem); line-height:.9; letter-spacing:-.065em; }
+    .intro { max-width:720px; margin:0; color:#c8d0ca; font-size:clamp(1.05rem,2vw,1.4rem); }
+    .meta { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:2.2rem; }
+    .meta span { padding:.45rem .85rem; border:1px solid #536159; border-radius:99px; font:12px ui-monospace,monospace; }
+    section { padding:8vw 0; }
+    .heading { display:grid; grid-template-columns:1fr 2fr; gap:2rem; margin-bottom:4rem; }
+    h2 { margin:0; font-size:clamp(2.5rem,5vw,5rem); line-height:.95; letter-spacing:-.05em; }
+    .heading .note { grid-column:2; max-width:580px; color:var(--muted); }
+    .outline { display:grid; grid-template-columns:repeat(2,1fr); margin:0; padding:0; list-style:none; border-top:1px solid var(--line); border-left:1px solid var(--line); }
+    .outline > li { min-height:310px; padding:2rem; border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .outline > li:first-child { background:var(--lime); }
+    .number { display:flex; justify-content:space-between; font:12px ui-monospace,monospace; }
+    h3 { margin:3rem 0 1rem; font-size:1.9rem; line-height:1.15; letter-spacing:-.03em; }
+    ul { padding-left:1.15rem; }
+    .chapter { border-top:1px solid var(--line); display:grid; grid-template-columns:1fr 2fr; gap:3rem; padding:4rem 0; }
+    .chapter h3 { margin:0; }
+    .chapter-content > p:first-child { margin-top:0; font-size:1.25rem; }
+    .callout { margin:2rem 0; padding:1.5rem; border-left:5px solid var(--orange); background:#fff; }
+    .sources { background:var(--orange); }
+    .source-box { padding:2rem; border:1px solid var(--ink); }
+    footer { padding:2rem 0; color:var(--paper); background:var(--ink); font-size:.82rem; }
+    footer .wrap { display:flex; justify-content:space-between; }
+    @media print { nav { display:none; } header { min-height:auto; padding:3rem 0; } section { padding:3rem 0; } .outline>li { break-inside:avoid; } }
+    @media (max-width:720px) { nav div { display:none; } header { min-height:620px; } .heading,.chapter,.outline { grid-template-columns:1fr; } .heading .note { grid-column:1; } .outline>li { min-height:auto; } }
+  </style>
+</head>
+<body>
+  <!-- 编辑提示：直接搜索“待填写”逐项替换；章节可复制或删除。 -->
+  <header id="top">
+    <nav class="wrap"><strong>TECH / SHARE</strong><div><a href="#outline">大纲</a><a href="#content">正文</a><a href="#sources">来源</a></div></nav>
+    <div class="hero wrap">
+      <p class="label">技术分享报告</p>
+      <h1>在这里填写分享主题</h1>
+      <p class="intro">用一两句话说明这次分享解决什么问题，以及听众能获得什么。</p>
+      <div class="meta"><span>听众：待填写</span><span>时长：35 分钟</span><span>日期：待填写</span></div>
+    </div>
+  </header>
+
+  <main>
+    <section id="outline"><div class="wrap">
+      <div class="heading"><p class="label">01 / Outline</p><h2>内容大纲</h2><p class="note">先调整这里的章节、目标和时间。大纲确认后，再扩写下方正文。</p></div>
+      <ol class="outline">
+        <li><div class="number"><span>01</span><span>5 MIN</span></div><h3>背景与问题</h3><p>建立共同语境，说明主题为什么值得讨论。</p><ul><li>背景</li><li>真实痛点</li><li>分享边界</li></ul></li>
+        <li><div class="number"><span>02</span><span>10 MIN</span></div><h3>核心概念</h3><p>用一个清晰模型讲明最重要的原理。</p><ul><li>概念定义</li><li>工作机制</li><li>常见误区</li></ul></li>
+        <li><div class="number"><span>03</span><span>15 MIN</span></div><h3>实践与案例</h3><p>用可复现的案例连接概念与真实工作。</p><ul><li>方案设计</li><li>关键实现</li><li>效果与取舍</li></ul></li>
+        <li><div class="number"><span>04</span><span>5 MIN</span></div><h3>总结与行动</h3><p>收束观点，并给听众明确的下一步。</p><ul><li>三个结论</li><li>适用边界</li><li>延伸阅读</li></ul></li>
+      </ol>
+    </div></section>
+
+    <section id="content"><div class="wrap">
+      <div class="heading"><p class="label">02 / Report</p><h2>报告正文</h2><p class="note">以下是正文占位结构。每章先给结论，再补解释、证据与示例。</p></div>
+      <article class="chapter"><h3>01　背景与问题</h3><div class="chapter-content"><p><strong>本章结论：</strong>待填写。</p><p>在这里补充必要背景，解释现状与问题。避免把所有资料都堆进正文，只保留支撑结论的信息。</p><div class="callout"><strong>关键证据</strong><br>待加入数据、观察或可追溯的案例。</div></div></article>
+      <article class="chapter"><h3>02　核心概念</h3><div class="chapter-content"><p><strong>本章结论：</strong>待填写。</p><p>给出准确、简短的定义，再说明它如何工作。必要时加入图、表或短代码片段。</p></div></article>
+      <article class="chapter"><h3>03　实践与案例</h3><div class="chapter-content"><p><strong>本章结论：</strong>待填写。</p><p>说明场景、方案、结果与取舍，让读者能够判断这个方法是否适用于自己。</p></div></article>
+      <article class="chapter"><h3>04　总结与行动</h3><div class="chapter-content"><p><strong>三个关键结论：</strong></p><ol><li>待填写</li><li>待填写</li><li>待填写</li></ol><p><strong>建议的下一步：</strong>待填写。</p></div></article>
+    </div></section>
+
+    <section class="sources" id="sources"><div class="wrap">
+      <div class="heading"><p class="label">03 / Sources</p><h2>来源与延伸阅读</h2></div>
+      <div class="source-box"><ol><li>待添加：作者或机构，《资料标题》，链接，访问日期。</li></ol></div>
+    </div></section>
+  </main>
+  <footer><div class="wrap"><span>TECH / SHARE</span><span>单文件报告 · 可直接分享或打印为 PDF</span></div></footer>
+</body>
+</html>
