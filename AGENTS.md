@@ -11,6 +11,15 @@
 
 ## specs 工作流（修订草稿 → 定版）
 
+**内容的唯一来源是 `specs/`，不是上一版 `content/vN`。**
+
+写或重写某一节的 `content/vN/`（`content.md` + `slide.html`）时：
+
+- 结构、章节边界、论点顺序、图表意图、该出现哪些模型/数字——一律跟当前 `specs/<slug>/`。
+- `content/v1`、`v2`……是历史快照，用来回看，**默认不继承**。不要把旧版的叙事主线、小节划分、开场钩子、或把别的 spec 里的材料（例如总览的实例表）搬进本章。
+- 只有 `specs/` 里出现 `- [REF] …` 时，才去复用旧版的图、数据口径或组件样式；没有 `[REF]` 就当旧版不存在。
+- slug 不要混：`specs/c0/` 是导览/总览，`specs/c1/` 是第一章「计算」，依此类推。落盘到 `content/vN/NN-<slug>/` 时对上号，禁止把 c0 的内容写进 c1 的目录。
+
 一节内容在定版前，反复修订的中间过程记录在 `specs/<slug>/`：
 
 - `outline.md` —— 大纲草稿。`content.md` —— 内容草稿。
@@ -47,8 +56,7 @@
    - 关键结论用 `>` blockquote，`⭐` 前缀标全章最重点、`⚠️` 前缀标最值得对照警示的一条——已在
      `specs/c1/outline.md` 里用开，直接沿用，不用再造新符号。
 
-**引用已有资源**：`- [REF] <路径或说明>`，指向 `content/vN/<slug>/...` 里已经做好的图 / 数据 /
-配色方案 / 组件，告诉 AI 复用而不是重新设计。例："`- [REF] 配色同 content/v1/05-memory-compute-optimization/slide.html 的显存条形图`"。
+**引用已有资源**：`- [REF] <路径或说明>` 是**唯一**允许从旧版 `content/vN` 取材的入口（图 / 数据口径 / 配色 / 组件）。没有这条标记，就按 `specs/` 正文和图表标题重新做，不要自行对照旧稿「补全」。例："`- [REF] 配色同 content/v1/05-memory-compute-optimization/slide.html 的显存条形图`"。
 
 ```markdown
 - [NOTE] 这段是给听众的心理预期，语气要轻

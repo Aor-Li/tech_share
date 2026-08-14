@@ -1,0 +1,110 @@
+<!doctype html>
+<!--
+  Chapter 00 — 总览. Source: specs/c0/content.md
+  Paths: ../../theme.css + ../../nav.js (two levels under content/).
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Infra 分享 — 总览</title>
+  <link rel="stylesheet" href="../../theme.css" />
+</head>
+<body>
+  <div class="deck">
+    <section class="slide">
+      <p class="slide-kicker">总览</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title slide-title--hero">导览</h2>
+
+      <div class="slide-body" style="max-width: none;">
+        <div class="chapter-section">
+          <p>浏览大模型训推过程中的 infra 基础，形成简单认知。</p>
+          <nav class="pano-track" aria-label="章节导览">
+            <div class="pano-station pano-station--here" aria-current="page">
+              <span class="pano-station-name">总览</span>
+              <span class="pano-station-meta">你在这里</span>
+            </div>
+            <span class="pano-track-rail" aria-hidden="true"></span>
+            <div class="pano-station pano-station--next pano-node--link" data-goto="1"
+                 role="link" tabindex="0" aria-label="跳转到第一章 计算">
+              <span class="pano-station-name">计算</span>
+              <span class="pano-station-meta">FLOPs → MFU</span>
+            </div>
+            <span class="pano-track-rail pano-track-rail--fade" aria-hidden="true"></span>
+            <div class="pano-station pano-station--later">
+              <span class="pano-station-name">后续</span>
+              <span class="pano-station-meta">随 specs 增加</span>
+            </div>
+          </nav>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">参考实例</h3>
+          <div class="panel">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Qwen3-32B</th>
+                  <th>MiniMax H3</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>类型</td>
+                  <td>稠密 decoder-only LLM</td>
+                  <td>视频 DiT（H3-Omni-Transformer）</td>
+                </tr>
+                <tr>
+                  <td>参数</td>
+                  <td><span class="num">32.8</span>B（非 embed <span class="num">31.2</span>B）</td>
+                  <td><span class="num">33</span>B dense；AdaLN ≈<span class="num">13</span>B 可缓存 → 推理有效 ≈<span class="num">20</span>B</td>
+                </tr>
+                <tr>
+                  <td>深度</td>
+                  <td><span class="num">64</span> 层</td>
+                  <td><span class="num">50</span> block</td>
+                </tr>
+                <tr>
+                  <td>hidden</td>
+                  <td><span class="num">5,120</span></td>
+                  <td><span class="num">5,376</span></td>
+                </tr>
+                <tr>
+                  <td>Attention</td>
+                  <td>GQA 64/8</td>
+                  <td>56×128 heads</td>
+                </tr>
+                <tr>
+                  <td>FFN</td>
+                  <td>SwiGLU <span class="num">25,600</span></td>
+                  <td>SwiGLU</td>
+                </tr>
+                <tr>
+                  <td>位置</td>
+                  <td>—</td>
+                  <td>MM-RoPE</td>
+                </tr>
+                <tr>
+                  <td>序列</td>
+                  <td>文本 token；原生 32K，YaRN 至 131K</td>
+                  <td>潜空间 token；24fps，最长 15s；开源默认 768p、托管可达 2K</td>
+                </tr>
+                <tr>
+                  <td>精度</td>
+                  <td>默认 BF16；官方 FP8（block 128）</td>
+                  <td>权重 BF16；DiT 可 FP8；VAE / 文本编码器通常更高精度</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="page-indicator" id="page-indicator"></div>
+  <div class="deck-nav-hint">← → 翻页 · 点击节点跳章</div>
+  <script src="../../nav.js"></script>
+</body>
+</html>

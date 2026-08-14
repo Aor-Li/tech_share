@@ -328,9 +328,106 @@ body {
   opacity: 0.85;
 }
 
+/* Named station track (overview roadmap — titles, not numbered rings) */
+.pano-track {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 0.35rem 0 0;
+}
+
+.pano-track-rail {
+  flex: 1 1 2.5rem;
+  min-width: 1.5rem;
+  align-self: center;
+  height: 2px;
+  margin: 0 0.65rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  opacity: 0.55;
+}
+
+.pano-track-rail--fade {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--border) 0 6px,
+    transparent 6px 12px
+  );
+  opacity: 0.9;
+}
+
+.pano-station {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 8.5rem;
+  padding: 0.85rem 1.15rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  text-decoration: none;
+  color: inherit;
+}
+
+.pano-station-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.pano-station-meta {
+  margin-top: 0.28rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.pano-station--here {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-raised));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent),
+              0 0 28px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.pano-station--here .pano-station-name {
+  color: var(--accent);
+}
+
+.pano-station--here .pano-station-meta {
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+.pano-station--next {
+  border-color: color-mix(in srgb, var(--accent-2) 50%, var(--border));
+}
+
+.pano-station--next .pano-station-name {
+  color: var(--accent-2);
+}
+
+.pano-station--later {
+  border-style: dashed;
+  opacity: 0.72;
+}
+
 /* Clickable panorama nodes — jump to the matching chapter */
 .pano-node--link {
   cursor: pointer;
+}
+
+.pano-node--link.pano-station:hover,
+.pano-node--link.pano-station:focus-visible {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-raised));
+}
+
+.pano-node--link.pano-station:hover .pano-station-name,
+.pano-node--link.pano-station:focus-visible .pano-station-name {
+  color: var(--accent);
 }
 
 .pano-node--link .pano-ring {
@@ -376,6 +473,15 @@ body {
   .pano-node:nth-of-type(5) { animation-delay: 0.49s; }
   .pano-node:nth-of-type(6) { animation-delay: 0.60s; }
   .pano-node:nth-of-type(7) { animation-delay: 0.71s; }
+
+  .pano-station {
+    opacity: 0;
+    animation: fade-up 0.5s ease forwards;
+  }
+
+  .pano-station--here { animation-delay: 0.05s; }
+  .pano-station--next { animation-delay: 0.16s; }
+  .pano-station--later { animation-delay: 0.27s; }
 
   .pano-current-glow {
     animation: pulse-glow 2.6s ease-in-out infinite;

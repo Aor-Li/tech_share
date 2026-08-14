@@ -8,7 +8,5 @@
 ***实例选取***
 全程选取 Qwen3-32 和 minimax h3 作为参考实例。
 
-
-- [CHART] 一个对比参考图：
-  - Qwen3-32B 的基本数据
-  - MiniMax H3 的基本数据
+- [EDIT] 参考实例：主视觉是模型名（Qwen3-32B / MiniMax H3）
+- [EDIT] 对照列出两者的详细信息

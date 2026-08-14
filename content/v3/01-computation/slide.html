@@ -1,0 +1,347 @@
+<!doctype html>
+<!--
+  Chapter 01 — 计算. Source: specs/c1/outline.md
+  Paths: ../../theme.css + ../../nav.js.
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Infra 分享 — 第一章 · 计算</title>
+  <link rel="stylesheet" href="../../theme.css" />
+</head>
+<body>
+  <div class="deck">
+    <section class="slide">
+      <p class="slide-kicker">第一章 · 计算</p>
+      <div class="slide-eyebrow-rule"></div>
+      <h2 class="slide-title"><span class="term">FLOPs</span> → 精度 → 峰值 → <span class="term">MFU</span></h2>
+
+      <div class="slide-body" style="max-width: none;">
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">0. 本章定位</h3>
+          <p><b style="color: var(--text);">如何分析一次大模型输出需要多少算力？</b></p>
+          <p>① 要算多少次浮点运算（<span class="term">FLOPs</span>）② 用什么数据格式算（精度）③ 机器一秒能算多少（峰值）④ 实际能拿到多少（<span class="term">MFU</span>）。</p>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.1.1 基本概念</h3>
+          <p>一次浮点乘法或加法各计 1 <span class="term">FLOP</span>。乘加（MAC）= 2 FLOPs。</p>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.1.2 基本思路</h3>
+          <p>Transformer 里 95%+ 的浮点运算集中在少数 GEMM 上，「数 FLOPs」≈「数矩阵乘」。</p>
+          <p><span class="term">[m,k] × [k,n] 的 GEMM = 2mkn FLOPs</span>（乘、加各算一次）。</p>
+          <svg class="chart" viewBox="0 0 880 200" width="100%" height="180" role="img"
+               aria-label="每个输出元素做 k 次乘加，m 乘 n 个输出共 2mkn 次浮点运算">
+            <rect x="36" y="36" width="50" height="128" fill="none" stroke="var(--accent-2)" stroke-width="2" />
+            <text class="chart-label" x="61" y="24" text-anchor="middle">[m,k]</text>
+            <text class="chart-label" x="118" y="104">×</text>
+            <rect x="150" y="78" width="180" height="40" fill="none" stroke="var(--accent-2)" stroke-width="2" />
+            <text class="chart-label" x="240" y="66" text-anchor="middle">[k,n]</text>
+            <text class="chart-label" x="360" y="104">=</text>
+            <rect x="400" y="50" width="160" height="100" fill="var(--accent)" opacity="0.2" stroke="var(--accent)" stroke-width="2" />
+            <rect x="464" y="86" width="24" height="24" fill="var(--accent)" />
+            <text class="chart-label" x="480" y="38" text-anchor="middle">[m,n]</text>
+            <text class="chart-caption" x="590" y="70">每个输出：k 乘 + k 加</text>
+            <text class="chart-caption" x="590" y="96">m×n 个输出</text>
+            <text class="chart-label-strong" x="590" y="132">→ 2mkn FLOPs</text>
+          </svg>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.1.3 Dense Transformer</h3>
+          <p><span class="term">每 token 前向 ≈ 2N</span>。反向再算 dW 与 dX，<span class="term">训练 C ≈ 6ND</span>。</p>
+          <p style="font-size: 0.9rem;">单层（hidden = h，MHA，FFN 扩张 4、两矩阵）：QKVO ≈ <span class="num">4</span>h²，MLP ≈ <span class="num">8</span>h²，合计 ≈ <span class="term">12h²</span>。SwiGLU 是三矩阵，同样扩张比下 MLP ≈ 12h²。</p>
+          <svg class="chart" viewBox="0 0 880 110" width="100%" height="100" role="img" aria-label="单层参数约 4h 平方注意力投影加 8h 平方 MLP">
+            <rect x="40" y="36" width="220" height="36" fill="var(--accent-2)" opacity="0.75" />
+            <text class="chart-caption" x="150" y="59" text-anchor="middle" fill="var(--bg)">QKVO ≈ 4h²</text>
+            <rect x="260" y="36" width="440" height="36" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-caption" x="480" y="59" text-anchor="middle" fill="var(--bg)">MLP ≈ 8h²</text>
+            <text class="chart-label" x="40" y="22">单层 ≈ 12h²（教学估算）</text>
+          </svg>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">注意力分数随 s²，与参数量无关。前向 <span class="term">attn / linear ≈ s/(6h)</span>。s≈4K、h≈4K 时约 <span class="num">0.17</span>。</p>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.1.4 Qwen3-32B</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">规格见总览。对 2N / 6ND 的调整：</p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">N 用实算，不套 12h²</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                Q 维 8,192≠h，SwiGLU、intermediate=5h。单层 ≈487.6M ×64 = 31.2B（官方非 embed）。
+                每 token 前向 N≈32.0B → <span class="num">64</span> GFLOPs。
+              </p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">分数按 d_q 计</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                d_q=8,192。短对话分数项仍远小于线性；YaRN 131K 时分数项超过线性投影。
+              </p>
+            </div>
+          </div>
+          <svg class="chart" viewBox="0 0 900 230" width="100%" height="210" role="img"
+               aria-label="三种序列长度下线性投影与注意力分数的相对高度">
+            <line class="chart-grid" x1="70" y1="190" x2="860" y2="190" />
+            <text class="chart-label" x="180" y="212" text-anchor="middle">对话 4K</text>
+            <rect x="140" y="150" width="80" height="40" fill="var(--accent-2)" opacity="0.65" />
+            <rect x="140" y="145" width="80" height="5" fill="var(--accent)" />
+            <text class="chart-label" x="450" y="212" text-anchor="middle">原生 32K</text>
+            <rect x="410" y="150" width="80" height="40" fill="var(--accent-2)" opacity="0.65" />
+            <rect x="410" y="108" width="80" height="42" fill="var(--accent)" />
+            <text class="chart-label" x="720" y="212" text-anchor="middle">YaRN 131K</text>
+            <rect x="680" y="150" width="80" height="40" fill="var(--accent-2)" opacity="0.65" />
+            <rect x="680" y="28" width="80" height="122" fill="var(--accent)" />
+            <rect x="70" y="8" width="10" height="10" fill="var(--accent-2)" opacity="0.65" />
+            <text class="chart-caption" x="86" y="17">线性投影</text>
+            <rect x="200" y="8" width="10" height="10" fill="var(--accent)" />
+            <text class="chart-caption" x="216" y="17">attn 分数</text>
+          </svg>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.1.5 MiniMax H3 DiT</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">规格见总览。对 2N / 6ND 的调整：</p>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">2N 用 N_eff</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                AdaLN ≈13B 不参与逐 token。N_eff≈20B → 每 token ≈<span class="num">40</span> GFLOPs，不是 66。
+              </p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">6ND 不乘步数</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                训练时 AdaLN 要算梯度；扩散训练每样本通常只采一个 timestep。
+              </p>
+            </div>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.75rem;">
+            attn / linear（s/(6h)）约 <span class="num">0.94</span>～<span class="num">10</span>。同一公式，谁先越过 6h，谁的账先变。
+          </p>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.2.1 精度体系</h3>
+          <svg class="chart" viewBox="0 0 880 250" width="100%" height="230" role="img"
+               aria-label="各格式符号位、指数位、尾数位宽度">
+            <text class="chart-label" x="16" y="28">FP32</text>
+            <rect x="110" y="16" width="10" height="16" fill="var(--text-muted)" />
+            <rect x="120" y="16" width="80" height="16" fill="var(--accent)" opacity="0.8" />
+            <rect x="200" y="16" width="230" height="16" fill="var(--accent-2)" opacity="0.6" />
+            <text class="chart-label" x="16" y="60">TF32</text>
+            <rect x="110" y="48" width="10" height="16" fill="var(--text-muted)" />
+            <rect x="120" y="48" width="80" height="16" fill="var(--accent)" opacity="0.8" />
+            <rect x="200" y="48" width="100" height="16" fill="var(--accent-2)" opacity="0.6" />
+            <text class="chart-label" x="16" y="92">FP16</text>
+            <rect x="110" y="80" width="10" height="16" fill="var(--text-muted)" />
+            <rect x="120" y="80" width="50" height="16" fill="var(--accent)" opacity="0.8" />
+            <rect x="170" y="80" width="100" height="16" fill="var(--accent-2)" opacity="0.6" />
+            <text class="chart-label" x="16" y="124">BF16</text>
+            <rect x="110" y="112" width="10" height="16" fill="var(--text-muted)" />
+            <rect x="120" y="112" width="80" height="16" fill="var(--accent)" opacity="0.8" />
+            <rect x="200" y="112" width="70" height="16" fill="var(--accent-2)" opacity="0.6" />
+            <text class="chart-label" x="16" y="156">E4M3</text>
+            <rect x="110" y="144" width="10" height="16" fill="var(--text-muted)" />
+            <rect x="120" y="144" width="40" height="16" fill="var(--accent)" opacity="0.8" />
+            <rect x="160" y="144" width="30" height="16" fill="var(--accent-2)" opacity="0.6" />
+            <text class="chart-label" x="16" y="188">E5M2</text>
+            <rect x="110" y="176" width="10" height="16" fill="var(--text-muted)" />
+            <rect x="120" y="176" width="50" height="16" fill="var(--accent)" opacity="0.8" />
+            <rect x="170" y="176" width="20" height="16" fill="var(--accent-2)" opacity="0.6" />
+            <rect x="110" y="214" width="10" height="10" fill="var(--text-muted)" />
+            <text class="chart-caption" x="126" y="223">符号</text>
+            <rect x="180" y="214" width="10" height="10" fill="var(--accent)" opacity="0.8" />
+            <text class="chart-caption" x="196" y="223">指数 → 范围</text>
+            <rect x="320" y="214" width="10" height="10" fill="var(--accent-2)" opacity="0.6" />
+            <text class="chart-caption" x="336" y="223">尾数 → 精度</text>
+          </svg>
+          <svg class="chart" viewBox="0 0 640 240" width="100%" height="220" role="img"
+               aria-label="横轴精度（尾数），纵轴范围（指数）。BF16 与 FP32 同高">
+            <line class="chart-grid" x1="60" y1="200" x2="600" y2="200" />
+            <line class="chart-grid" x1="60" y1="200" x2="60" y2="20" />
+            <text class="chart-caption" x="330" y="228" text-anchor="middle">尾数 → 精度</text>
+            <text class="chart-caption" x="16" y="110" text-anchor="middle" transform="rotate(-90 16 110)">指数 → 范围</text>
+            <circle cx="520" cy="40" r="7" fill="var(--accent)" />
+            <text class="chart-label" x="534" y="44">FP32</text>
+            <circle cx="280" cy="40" r="7" fill="var(--accent)" opacity="0.7" />
+            <text class="chart-label" x="294" y="44">TF32</text>
+            <circle cx="220" cy="40" r="7" fill="var(--accent-2)" />
+            <text class="chart-label" x="140" y="32">BF16</text>
+            <circle cx="280" cy="110" r="7" fill="var(--accent-2)" opacity="0.8" />
+            <text class="chart-label" x="294" y="114">FP16</text>
+            <circle cx="140" cy="135" r="6" fill="var(--text-muted)" />
+            <text class="chart-label" x="70" y="128">E4M3</text>
+            <circle cx="120" cy="110" r="6" fill="var(--text-muted)" />
+            <text class="chart-label" x="70" y="100">E5M2</text>
+          </svg>
+          <div class="stat-card stat-card--accent" style="margin-top: 0.75rem;">
+            <span class="stat-label" style="color: var(--text); font-weight: 700;">
+              BF16 用精度换动态范围（与 FP32 同指数宽），训练通常不需要 loss scaling。
+            </span>
+          </div>
+          <p style="font-size: 0.9rem; margin-top: 0.75rem;">混合精度：FP32 主权重 + BF16/FP16 计算 + FP32 累加。FP8 必须配 scaling。</p>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.2.2 Qwen3</h3>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">默认 BF16</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">官方 torch_dtype: bfloat16。</p>
+            </div>
+            <div class="stat-card stat-card--accent">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">官方 FP8</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">Qwen3-32B-FP8，block size 128。</p>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label" style="color: var(--text); font-weight: 700;">社区 INT4</span>
+              <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-muted);">AWQ / GPTQ。同代 LLM：训练 BF16 → 推理 FP8 → 端侧 INT4。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.2.3 MiniMax H3</h3>
+          <p style="font-size: 0.9rem;">权重 BF16。部署时 DiT 可 FP8；VAE 与文本编码器通常保留更高精度。AdaLN 可单独定精度。</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">扩散步串联，量化要按最终画面评估。流式视频 DiT 同此约束。</p>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.3.1 Nvidia GPU</h3>
+          <p><span class="term">算力峰值 = SM 数 × 每 SM 每周期 Tensor Core MAC 数 × 2 × 频率</span></p>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.3.2 代际数据</h3>
+          <svg class="chart" viewBox="0 0 860 240" width="100%" height="220" role="img"
+               aria-label="A100 H100 H200 B200 的 BF16 与 FP8 稠密峰值">
+            <line class="chart-grid" x1="60" y1="200" x2="820" y2="200" />
+            <rect x="100" y="170" width="36" height="30" fill="var(--accent-2)" opacity="0.75" />
+            <text class="chart-label" x="118" y="218" text-anchor="middle">A100</text>
+            <text class="chart-caption" x="118" y="164" text-anchor="middle">312</text>
+            <rect x="280" y="118" width="36" height="82" fill="var(--accent-2)" opacity="0.75" />
+            <rect x="322" y="64" width="36" height="136" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-label" x="319" y="218" text-anchor="middle">H100</text>
+            <text class="chart-caption" x="298" y="112" text-anchor="middle">989</text>
+            <text class="chart-caption" x="340" y="58" text-anchor="middle">1979</text>
+            <rect x="470" y="118" width="36" height="82" fill="var(--accent-2)" opacity="0.75" />
+            <rect x="512" y="64" width="36" height="136" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-label" x="509" y="218" text-anchor="middle">H200</text>
+            <rect x="660" y="42" width="36" height="158" fill="var(--accent-2)" opacity="0.75" />
+            <rect x="702" y="12" width="36" height="188" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-label" x="699" y="218" text-anchor="middle">B200</text>
+            <text class="chart-caption" x="678" y="36" text-anchor="middle">2250</text>
+            <text class="chart-caption" x="720" y="8" text-anchor="middle">4500</text>
+            <rect x="60" y="6" width="10" height="10" fill="var(--accent-2)" opacity="0.75" />
+            <text class="chart-caption" x="76" y="15">BF16</text>
+            <rect x="140" y="6" width="10" height="10" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-caption" x="156" y="15">FP8 · TFLOPS</text>
+          </svg>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.3.3 数值锚点</h3>
+          <div class="stat-card stat-card--accent">
+            <span class="stat-num">≈ 1 PFLOPS</span>
+            <span class="stat-label">H100 SXM BF16（稠密）——记住这个数就够推大部分账。</span>
+          </div>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.3.4 算力估计的陷阱</h3>
+          <p>① 稀疏峰值 = 稠密 × 2，宣传数字常用前者。② TF32 只是 FP32 的入口，实际走 Tensor Core。③ 标称频率 ≠ 持续功耗下的实际频率。</p>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">1.4 MFU</h3>
+          <p><span class="term">MFU = 实际 FLOPs/s ÷ 峰值 FLOPs/s</span>。重计算的 FLOPs：HFU 计入分子，MFU 不计。</p>
+          <table class="data-table">
+            <thead><tr><th>场景</th><th>MFU</th></tr></thead>
+            <tbody>
+              <tr><td>LLM 稠密训练</td><td><span class="num">35–50</span>%</td></tr>
+              <tr><td>LLM MoE 训练</td><td>更低</td></tr>
+              <tr><td>LLM decode</td><td>&lt; <span class="num">5</span>%</td></tr>
+              <tr><td>DiT 推理</td><td>天然较高（始终计算受限）</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">双栏 MFU 瀑布</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">⭐ 本章压轴图。各段损失对应后面章节。</p>
+          <svg class="chart" viewBox="0 0 960 320" width="100%" height="300" role="img"
+               aria-label="左栏 LLM decode 主损访存；右栏 H3 流式主损非 GEMM、通讯与流水气泡">
+            <text class="chart-label-strong" x="220" y="24" text-anchor="middle">LLM decode</text>
+            <text class="chart-label-strong" x="740" y="24" text-anchor="middle">H3 流式</text>
+            <line class="chart-grid" x1="50" y1="280" x2="430" y2="280" />
+            <line class="chart-grid" x1="530" y1="280" x2="910" y2="280" />
+            <rect x="60" y="48" width="52" height="232" fill="var(--accent-2)" opacity="0.85" />
+            <text class="chart-caption" x="86" y="42" text-anchor="middle">峰值</text>
+            <rect x="128" y="68" width="52" height="24" fill="var(--border)" />
+            <text class="chart-caption" x="154" y="62" text-anchor="middle">非GEMM</text>
+            <rect x="196" y="92" width="52" height="168" fill="var(--border)" />
+            <text class="chart-caption" x="222" y="86" text-anchor="middle">访存</text>
+            <rect x="264" y="260" width="52" height="20" fill="var(--border)" />
+            <text class="chart-caption" x="290" y="254" text-anchor="middle">通讯</text>
+            <rect x="332" y="268" width="52" height="12" fill="var(--accent)" opacity="0.9" />
+            <text class="chart-label-strong" x="358" y="304" text-anchor="middle">&lt;5%</text>
+            <rect x="540" y="48" width="52" height="232" fill="var(--accent-2)" opacity="0.85" />
+            <text class="chart-caption" x="566" y="42" text-anchor="middle">峰值</text>
+            <rect x="608" y="72" width="52" height="56" fill="var(--border)" />
+            <text class="chart-caption" x="634" y="66" text-anchor="middle">非GEMM</text>
+            <rect x="676" y="128" width="52" height="28" fill="var(--border)" />
+            <text class="chart-caption" x="702" y="122" text-anchor="middle">访存</text>
+            <rect x="744" y="156" width="52" height="36" fill="var(--border)" />
+            <text class="chart-caption" x="770" y="150" text-anchor="middle">通讯</text>
+            <rect x="812" y="192" width="52" height="28" fill="var(--border)" />
+            <text class="chart-caption" x="838" y="186" text-anchor="middle">气泡</text>
+            <rect x="880" y="220" width="52" height="60" fill="var(--accent)" opacity="0.9" />
+            <text class="chart-label-strong" x="906" y="304" text-anchor="middle">较高</text>
+          </svg>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">实时性预算</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">⭐ 本章压轴推演。目标：24fps = 每秒 <span class="num">6,048</span> token。起点：单卡 <span class="num">220</span> PFLOPs / 9 分钟。</p>
+          <svg class="chart" viewBox="0 0 960 150" width="100%" height="130" role="img"
+               aria-label="从单卡九分钟出发，用分辨率、步数、注意力形态和卡数逼近实时">
+            <rect x="20" y="40" width="200" height="56" rx="8" fill="none" stroke="var(--border)" stroke-width="2" />
+            <text class="chart-label-strong" x="120" y="64" text-anchor="middle">220 PFLOPs</text>
+            <text class="chart-caption" x="120" y="84" text-anchor="middle">单卡 9 分钟</text>
+            <text class="chart-label" x="250" y="72" text-anchor="middle">→</text>
+            <rect x="280" y="40" width="360" height="56" rx="8" fill="none" stroke="var(--accent-2)" stroke-width="2" />
+            <text class="chart-label-strong" x="460" y="64" text-anchor="middle">分辨率 × 步数 × 注意力 × 卡数</text>
+            <text class="chart-caption" x="460" y="84" text-anchor="middle">压 FLOPs 或加机器</text>
+            <text class="chart-label" x="670" y="72" text-anchor="middle">→</text>
+            <rect x="700" y="40" width="230" height="56" rx="8" fill="var(--accent)" opacity="0.85" />
+            <text class="chart-label-strong" x="815" y="64" text-anchor="middle" fill="var(--bg)">24fps 实时</text>
+            <text class="chart-caption" x="815" y="84" text-anchor="middle" fill="var(--bg)">6,048 token / s</text>
+          </svg>
+        </div>
+
+        <div class="chapter-section">
+          <h3 class="chapter-section-title">The Takeaways</h3>
+          <table class="data-table">
+            <thead><tr><th></th><th>LLM</th><th>H3 / 视频 DiT</th></tr></thead>
+            <tbody>
+              <tr><td>每 token 前向</td><td>2N</td><td>2N_eff（注意 AdaLN）</td></tr>
+              <tr><td>训练总量</td><td>6ND</td><td>6N_eff·D，无步数乘子</td></tr>
+              <tr><td>attn 占比</td><td>s/(6h) ≈ 0.17</td><td>0.94 ~ 10</td></tr>
+              <tr><td>推理成本</td><td>2N/token</td><td>steps × cfg × (...)</td></tr>
+              <tr><td>decode / 流式瓶颈</td><td>访存受限</td><td>计算受限</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <div class="page-indicator" id="page-indicator"></div>
+  <div class="deck-nav-hint">滚动查看本页全部内容</div>
+  <script src="../../nav.js"></script>
+</body>
+</html>
