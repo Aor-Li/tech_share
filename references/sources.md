@@ -4,20 +4,23 @@
 
 | 编号 | 参考资料 | 相关章节 | 可借鉴内容 | 采纳状态 |
 | --- | --- | --- | --- | --- |
-| REF-001 | [How to Scale Your Model](articles/how-to-scale-your-model/README.md)（[Google DeepMind 原文](https://jax-ml.github.io/scaling-book/)） | 01 计算；后续性能与并行章节 | Roofline 叙事、TPU/GPU 介绍、分片和训练/推理章节组织 | 待形成参考对照 |
-| REF-002 | [大型语言模型的推理演算](articles/llm-inference-arithmetic-zh/README.md)（[OneFlow 中文编译](https://zhuanlan.zhihu.com/p/620170671)） | 01 计算；后续推理章节 | 从模型结构推导容量、时延、KV cache 和通讯成本的方法 | 待形成参考对照 |
-| REF-003 | [Transformer Math 101](articles/transformer-math-101/README.md)（[EleutherAI 原文](https://blog.eleuther.ai/transformer-math/)） | 01 计算；后续显存章节 | 训练算力、显存、混合精度和重计算的讲解顺序与公式组织 | 待形成参考对照 |
-| REF-004 | [The Ultra-Scale Playbook](articles/ultra-scale-playbook/README.md)（[Hugging Face / nanotron 原文](https://huggingface.co/spaces/nanotron/ultrascale-playbook)） | 后续通讯与并行章节 | 数据、张量、上下文、流水线和专家并行的结构与交互图思路 | 待形成参考对照 |
+| REF-001 | [How to Scale Your Model](articles/how-to-scale-your-model/README.md)（[Google DeepMind 原文](https://jax-ml.github.io/scaling-book/)） | 01–04 | Roofline、分片和训推分析的完整知识地图；主讲只采纳其中面向直觉与量级估算的部分 | 计划采纳 |
+| REF-002 | [大型语言模型的推理演算](articles/llm-inference-arithmetic-zh/README.md)（[OneFlow 中文编译](https://zhuanlan.zhihu.com/p/620170671)） | 01 资源直觉；03 推理 | 从模型结构推导容量、时延、KV cache 和通信量级的方法 | 计划采纳 |
+| REF-003 | [Transformer Math 101](articles/transformer-math-101/README.md)（[EleutherAI 原文](https://blog.eleuther.ai/transformer-math/)） | 01 资源直觉；02 训练 | 训练计算、显存、混合精度和重计算的简化讲解顺序 | 计划采纳 |
+| REF-004 | [The Ultra-Scale Playbook](articles/ultra-scale-playbook/README.md)（[Hugging Face / nanotron 原文](https://huggingface.co/spaces/nanotron/ultrascale-playbook)） | 02 训练 | 数据、状态、张量和序列切分的动机与交互图思路；组合并行细节不进入主讲 | 计划采纳 |
+| REF-005 | [CUDA C++ Best Practices Guide](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html)；[FlashAttention 原论文](https://arxiv.org/abs/2205.14135) | 01 资源直觉 | 用两层内存直觉和 IO-aware attention 区分“容量”与“数据移动” | 计划采纳 |
+| REF-006 | [NCCL 官方文档](https://docs.nvidia.com/deeplearning/nccl/index.html)；[Megatron Core Parallelism Guide](https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/parallelism-guide.html) | 01 资源直觉；02 训练 | 用张量输入输出解释核心通信原语，并按切分对象说明常见并行方案 | 计划采纳 |
+| REF-007 | [Google Scaling Book 推理章](https://jax-ml.github.io/scaling-book/inference/)；[PagedAttention/vLLM 原论文](https://arxiv.org/abs/2309.06180)；[TensorRT-LLM 官方文档](https://nvidia.github.io/TensorRT-LLM/) | 03 推理 | 按工作负载、目标、cache、batching 和复制/切分组织推理内容；调度实现仅作资料入口 | 计划采纳 |
 
 ## 事实依据
 
 | 编号 | 事实依据 | 相关章节 | 可核验主张 | 具体定位 | 核验状态 |
 | --- | --- | --- | --- | --- | --- |
 | FACT-001 | `codes/philoflow-monorepo` | 后续实践章节 | 代码实现及固定提交中的实际配置 | 当前只记录提交 `74124a2`，缺少 `.gitmodules` 上游映射 | 待核验 |
-| FACT-002 | [Qwen3 官方发布说明](https://qwenlm.github.io/blog/qwen3/)；[Qwen3-32B 官方配置](https://huggingface.co/Qwen/Qwen3-32B/blob/main/config.json) | 00 总览；01 计算 | Qwen3-32B 是 32B dense 模型；层数、隐藏维度、Attention/KV heads 等基础规格 | 发布说明的模型规格表；配置文件中的 `hidden_size`、`intermediate_size`、`num_*` 字段 | 已核验 |
-| FACT-003 | [OLMo 2 32B 官方发布说明](https://allenai.org/blog/olmo2-32b)；[官方模型卡](https://huggingface.co/allenai/OLMo-2-0325-32B) | 01 计算；后续通讯与并行章节 | 32B 模型规格、训练集群、吞吐、MFU，以及并行与 checkpoint 工程案例 | 发布说明的 “Training infrastructure”“OLMo-core Trainer” 与 “Training on Google Cloud Engine”；模型卡规格表 | 已核验 |
+| FACT-002 | [Qwen3 官方发布说明](https://qwenlm.github.io/blog/qwen3/)；[Qwen3-32B 官方配置](https://huggingface.co/Qwen/Qwen3-32B/blob/main/config.json) | 00 总览；01 资源直觉 | Qwen3-32B 是 32B dense 模型；层数、隐藏维度、Attention/KV heads 等基础规格 | 发布说明的模型规格表；配置文件中的 `hidden_size`、`intermediate_size`、`num_*` 字段 | 已核验 |
+| FACT-003 | [OLMo 2 32B 官方发布说明](https://allenai.org/blog/olmo2-32b)；[官方模型卡](https://huggingface.co/allenai/OLMo-2-0325-32B) | 02 训练 | 32B 模型规格、训练集群、吞吐、MFU，以及并行与 checkpoint 工程案例 | 发布说明的 “Training infrastructure”“OLMo-core Trainer” 与 “Training on Google Cloud Engine”；模型卡规格表 | 已核验 |
 
-当前 `01-computation.md` 中的 Transformer GEMM 占比、H100 峰值、一般化 MFU 区间和实时预算尚未登记对应事实依据，均保持“待核验”；Qwen3-32B 规格与 OLMo 2 32B 公开训练案例已登记。
+原计算章草稿中的 Transformer GEMM 占比、H100 峰值、一般化 MFU 区间和实时预算尚未登记对应事实依据；本轮结构调整没有把这些数值写入新大纲。Qwen3-32B 规格与 OLMo 2 32B 公开训练案例已登记。
 
 ## 章节参考对照
 
@@ -25,4 +28,8 @@
 
 | 参考编号 | 结构亮点 | 可借鉴内容 | 图表思路 | 与本章关系 | 是否采纳 |
 | --- | --- | --- | --- | --- | --- |
-| REF-NNN | 待分析 | 待分析 | 待分析 | 待分析 | 待决定 |
+| REF-001 | 先 Roofline 和硬件，再讲 Transformer 数学、训练、推理与实践 | 保留统一分析入口，但把完整性能模型压缩为三类资源直觉 | 简化 Roofline、分片矩阵、训练/推理算术表 | 影响 01–04；为目标听众删除大部分硬件和公式细节 | 是 |
+| REF-004 | 从单卡起步，按 DP、TP、CP、PP、EP 解释动机后再组合 | 并行策略先回答“为什么需要”；主讲只保留 DP、FSDP、TP、序列切分 | 切分对象与设备的交互图 | 主要影响 02；PP/EP 和组合搜索降为识别或补充材料 | 是 |
+| REF-005 | 从内存层次和 IO 解释性能，不把显存只当静态容量 | 保留容量与数据移动的区别，以 FlashAttention 作为唯一深入案例 | HBM–片上存储与 tiled attention 对照 | 影响 01；压缩为两层内存直觉，不讲硬件层次细节 | 是 |
+| REF-006 | NCCL 定义原语，Megatron Core 定义并行策略与组合 | 核心 collective 只用输入输出讲直觉，再连接训练切分 | collective 张量卡片与切分对象 | 影响 01/02；删除通信成本公式和拓扑调参 | 是 |
+| REF-007 | 推理先区分阶段和服务目标，再进入 cache、调度和部署 | prefill/decode 与 H3 先分支；显存节省必须连接并发和吞吐 | 双阶段账本、请求队列和状态池 | 影响 03；复杂调度与分布式 serving 只作资料入口 | 是 |
