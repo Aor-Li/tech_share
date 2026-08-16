@@ -20,7 +20,7 @@
 | FACT-002 | [Qwen3 官方发布说明](https://qwenlm.github.io/blog/qwen3/)；[Qwen3-32B 官方配置](https://huggingface.co/Qwen/Qwen3-32B/blob/main/config.json) | 00 总览；01 资源直觉 | Qwen3-32B 是 32B dense 模型；层数、隐藏维度、Attention/KV heads 等基础规格 | 发布说明的模型规格表；配置文件中的 `hidden_size`、`intermediate_size`、`num_*` 字段 | 已核验 |
 | FACT-003 | [OLMo 2 32B 官方发布说明](https://allenai.org/blog/olmo2-32b)；[官方模型卡](https://huggingface.co/allenai/OLMo-2-0325-32B) | 02 训练 | 32B 模型规格、训练集群、吞吐、MFU，以及并行与 checkpoint 工程案例 | 发布说明的 “Training infrastructure”“OLMo-core Trainer” 与 “Training on Google Cloud Engine”；模型卡规格表 | 已核验 |
 
-原计算章草稿中的 Transformer GEMM 占比、H100 峰值、一般化 MFU 区间和实时预算尚未登记对应事实依据；本轮结构调整没有把这些数值写入新大纲。Qwen3-32B 规格与 OLMo 2 32B 公开训练案例已登记。
+第一章现已规划 GEMM/Attention 到模型级 FLOPs、NVIDIA GPU 理论时间下界和 MFU/HFU 基本口径，但尚未写入具体硬件数值或经验利用率。进入正文前，需要先确定 GPU 型号与精度口径，并为硬件峰值/带宽、MFU/HFU 定义、MiniMax H3 输入假设和演算结果登记对应 `FACT-NNN`；不得沿用未核验的 H100 峰值、一般化 MFU 区间或实时预算。Qwen3-32B 规格与 OLMo 2 32B 公开训练案例已登记。
 
 ## 章节参考对照
 
