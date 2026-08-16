@@ -19,8 +19,9 @@
 | FACT-001 | `codes/philoflow-monorepo` | 后续实践章节 | 代码实现及固定提交中的实际配置 | 当前只记录提交 `74124a2`，缺少 `.gitmodules` 上游映射 | 待核验 |
 | FACT-002 | [Qwen3 官方发布说明](https://qwenlm.github.io/blog/qwen3/)；[Qwen3-32B 官方配置](https://huggingface.co/Qwen/Qwen3-32B/blob/main/config.json) | 00 总览；01 资源直觉 | Qwen3-32B 是 32B dense 模型；层数、隐藏维度、Attention/KV heads 等基础规格 | 发布说明的模型规格表；配置文件中的 `hidden_size`、`intermediate_size`、`num_*` 字段 | 已核验 |
 | FACT-003 | [OLMo 2 32B 官方发布说明](https://allenai.org/blog/olmo2-32b)；[官方模型卡](https://huggingface.co/allenai/OLMo-2-0325-32B) | 02 训练 | 32B 模型规格、训练集群、吞吐、MFU，以及并行与 checkpoint 工程案例 | 发布说明的 “Training infrastructure”“OLMo-core Trainer” 与 “Training on Google Cloud Engine”；模型卡规格表 | 已核验 |
+| FACT-004 | MiniMax H3 经授权的模型规格（来源与稳定定位待补充） | 00 总览；01 资源直觉 | 使用与 Qwen3-32B 相同口径比较模型规模，并判断两者是否处于可比量级 | 待补充总参数/活跃参数口径、数值及内部材料定位 | 待核验 |
 
-第一章现已规划 GEMM/Attention 到模型级 FLOPs、NVIDIA GPU 理论时间下界和 MFU/HFU 基本口径，但尚未写入具体硬件数值或经验利用率。进入正文前，需要先确定 GPU 型号与精度口径，并为硬件峰值/带宽、MFU/HFU 定义、MiniMax H3 输入假设和演算结果登记对应 `FACT-NNN`；不得沿用未核验的 H100 峰值、一般化 MFU 区间或实时预算。Qwen3-32B 规格与 OLMo 2 32B 公开训练案例已登记。
+第一章现已规划 GEMM/Attention 到模型级 FLOPs、NVIDIA GPU 理论时间下界和 MFU/HFU 基本口径，但尚未写入具体硬件数值或经验利用率。进入正文前，需要先确定 GPU 型号与精度口径，并为硬件峰值/带宽、MFU/HFU 定义、MiniMax H3 输入假设和演算结果登记对应 `FACT-NNN`；不得沿用未核验的 H100 峰值、一般化 MFU 区间或实时预算。Qwen3-32B 规格已核验；H3 与 Qwen3-32B 的规模对比已登记为 `FACT-004`，在统一口径和来源定位补齐前不得填入精确数值或表述为严格相等。
 
 ## 章节参考对照
 
