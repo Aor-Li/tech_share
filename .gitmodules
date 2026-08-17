@@ -1,0 +1,3 @@
+[submodule "references/codes/philoflow-monorepo"]
+	path = references/codes/philoflow-monorepo
+	url = git@gitlab.philoai.com:Aor/philoflow-monorepo.git
