@@ -5,7 +5,7 @@
 | 小节 | 状态 | 本轮约束 |
 | --- | --- | --- |
 | 1.1 问题引入 | 待确认 | 从资源问题自然引出三本账，不单列“本章结论” |
-| 1.2 计算工作量 | 待确认 | 说明 FLOP 全称、常见计算与乘加计数，再进入可重复代入的公式 |
+| 1.2 计算工作量 | 待确认 | 用 self-attention forward 演示三类计算；参数量近似用 Qwen3-32B 与 H3-Omni-Transformer 做 `2P`/`6P` 量级对照，不展开工作单元 |
 | 1.3 数据移动 | 待确认 | 讲容量、搬运与复用的区别，不进入 GPU 微架构 |
 | 1.4 理论时间边界 | 待确认 | 硬件示例统一使用 `FACT-005` 的 BF16 稠密口径 |
 | 1.5 显存容量 | 待确认 | 只讲通用生命周期，不展开训推专属账本 |
@@ -43,88 +43,71 @@
 - Elementwise：激活函数、bias 加法、残差连接等逐元素计算；
 - Reduction：沿某个维度求和、取最大值等聚合计算；归一化和 softmax 通常同时包含 Reduction 与 Elementwise。
 
-其中，矩阵乘法通常贡献大部分 FLOPs，也最适合先用 shape 做量级估算。因此后文先估算占比最大的 GEMM，再按 Attention 和 FFN 模块汇总计算量。逐元素运算和归约并非不存在，只是在大尺寸 dense block 的第一轮估算中常被作为低阶项暂时忽略；遇到小矩阵、长序列或特殊算子时，需要重新判断。
+从总计算工作量看，三类操作可以先做如下量级估算：
 
-本报告把一次乘加记作 **2 FLOPs**，因为表达式 `a × b + c` 在数学上包含一次乘法和一次加法。硬件可能用一条 fused multiply-add（FMA，融合乘加）指令完成它，但“指令条数”和“浮点运算次数”是两种口径：一条 FMA 指令仍完成了两次浮点运算。也有资料把一次乘加计为一次操作，因此比较数字前要先确认计数约定，否则结果可能相差一倍。
+- GEMM：若 `[m, k] × [k, n] → [m, n]`，按一次乘法和一次加法各计 1 FLOP，约为 `2mkn FLOPs`；
+- Elementwise：若共有 `n` 个元素、每个元素执行 `c` 次基础运算，约为 `c × n FLOPs`；
+- Reduction：对 `n` 个元素做一次求和等归约，总工作量约为 `n FLOPs`；充分并行时，其依赖深度可以降到 `log n` 量级。
 
-还要注意，FLOPs 描述的是**工作量**，不是耗时。相同的 FLOPs 可能因为数据精度、shape、数据搬运和 kernel 效率不同而花费完全不同的时间；这正是后文还要继续计算数据移动与理论时间边界的原因。
+这些公式按**实际执行到的那一次运算**计数。推理通常只有前向。训练在前向之后还要对每个 GEMM 做反向：对 `C = A W`，既要算对权重的梯度，也要算对输入的梯度，两次各约 `2mkn FLOPs`。因此单个 GEMM 的训练工作量大约是前向的三倍。optimizer update 和逐元素反向相对这一项通常是低阶；把整网加成 `6P`、以及重计算把倍数抬到约 `8P`，放在下一小节。
 
-### GEMM：先读 shape，再套公式
+对典型 dense Transformer 的大尺寸计算，矩阵乘法通常贡献主要 FLOPs。逐元素与归约操作在量级估算中作为低阶项，除非是小 shape、长序列或特殊算子，需要重新分析。下面先用一次 self-attention **forward** 看三类操作如何同时出现。
 
-设输入矩阵 `X` 的形状为 `[m, k]`，权重矩阵 `W` 的形状为 `[k, n]`，输出 `Y = XW` 的形状为 `[m, n]`。输出中有 `m × n` 个元素，每个元素需要沿 `k` 维完成一次点积，因此：
+以标准的全局 self-attention forward 为例，可以看到这三类计算如何出现在同一条执行链中。设输入形状为 `[batch_size, token_size, hidden_dim]`，共有 `head_size` 个 attention head，每个 head 的维度为 `head_dim`，且 `hidden_dim = head_size × head_dim`。
 
-```text
-[m, k] × [k, n] → [m, n]
-总工作量 = 2 × m × k × n FLOPs
-```
+| 顺序 | forward 计算 | 主要类型 | 输出形状 | 一阶计算量 |
+| --- | --- | --- | --- | ---: |
+| 1 | 生成 Query、Key、Value | GEMM | 各为 `[batch_size, head_size, token_size, head_dim]` | `6 × batch_size × token_size × hidden_dim² FLOPs` |
+| 2 | `Query × Keyᵀ` 生成 score | GEMM | `[batch_size, head_size, token_size, token_size]` | `2 × batch_size × token_size² × hidden_dim FLOPs` |
+| 3 | score 除以 `√head_dim` | Elementwise | 同 score | `batch_size × head_size × token_size²` 次除法或等价乘法 |
+| 4 | 应用 attention mask | Elementwise | 同 score | 最多约 `batch_size × head_size × token_size²` 次判断或加法 |
+| 5 | 对 score 做 softmax | Reduction + Elementwise | 同 score | 约 `5 × batch_size × head_size × token_size²` 次基础或特殊运算 |
+| 6 | attention probability × Value | GEMM | `[batch_size, head_size, token_size, head_dim]` | `2 × batch_size × token_size² × hidden_dim FLOPs` |
+| 7 | 合并各 head 并做输出投影 | GEMM | `[batch_size, token_size, hidden_dim]` | `2 × batch_size × token_size × hidden_dim² FLOPs` |
 
-例如 `[2048, 4096] × [4096, 16384]`：
+忽略 layout 变换后，可以把表中的工作量分成矩阵乘和其他两类。
 
-```text
-2 × 2048 × 4096 × 16384
-= 274,877,906,944 FLOPs
-≈ 0.275 TFLOPs
-```
-
-这个数字只描述“要做多少工作”，还没有回答“要做多久”。
-
-### Attention：投影线性增长，位置交互二次增长
-
-对一组标准的全局 self-attention，记：
-
-- `B`：独立样本数；
-- `T`：每个样本的位置数；
-- `D`：隐藏维度；
-- `H`：头数；
-- `d`：每头维度，且 `D = H × d`。
-
-Q、K、V 和输出投影都可归入 GEMM。若四个投影权重均为 `[D, D]`，它们的前向计算量合计为：
+矩阵乘来自四次投影和两次 Attention 矩阵乘法。第 1 步的三个投影各需要 `2 × batch_size × token_size × hidden_dim² FLOPs`，第 7 步再做一次同规模投影；第 2 步 `Query × Keyᵀ` 和第 6 步 `attention probability × Value` 各需要 `2 × batch_size × token_size² × hidden_dim FLOPs`。合计为：
 
 ```text
-4 个投影：2 × B × T × 4D² FLOPs
+投影 = 8 × batch_size × token_size × hidden_dim² FLOPs
+两次 Attention 矩阵乘法 = 4 × batch_size × token_size² × hidden_dim FLOPs
 ```
 
-位置之间的交互包含两次主要矩阵乘法：
+其它操作作用在 score 上：缩放和 mask 各约一遍逐元素工作，softmax 则把 Reduction 与 Elementwise 串在一起。对每一行 score，通常要依次求最大值、减最大值、计算指数、求和并归一化。表中的系数 `5` 只是把这五遍各粗略记作一次操作；指数和除法的实际成本并不等于普通加法，因此下面的合计只用来判断量级：
 
 ```text
-QKᵀ：2 × B × T² × D FLOPs
-AV ：2 × B × T² × D FLOPs
-合计：4 × B × T² × D FLOPs
+缩放 + mask + softmax ≈ 7 × batch_size × head_size × token_size² 次操作
 ```
 
-因此，投影项随 `T` 线性增长，位置交互项随 `T²` 增长。这是形状关系，不代表实际时间一定被 Attention 主导：投影和 FFN 的常数项可能更大，kernel 也可能避免物化完整的 score 矩阵。mask、局部窗口或稀疏模式还会改变有效计算范围，必须按实际操作重算。
+例如取 `batch_size = 1`、`token_size = 2048`、`hidden_dim = 4096`、`head_size = 32`、`head_dim = 128`：矩阵乘约为 `0.344 TFLOPs`（投影 `0.275`，两次 Attention 矩阵乘法 `0.0687`），其它操作按上述口径约为 `9.40 亿` 次。这个例子说明，在该 shape 下矩阵乘仍贡献主要工作量，但 Elementwise 和 Reduction 也确实存在，且它们的实际耗时不能只凭操作次数判断。
 
-### 参数量近似：好用，但要把条件写在旁边
+随 `token_size` 的增长也分两类：投影随 `token_size` 线性增长；两次 Attention 矩阵乘法，以及缩放、mask、softmax，都随 `token_size²` 增长。这是标准全局 attention 的形状关系，不代表实际时间一定被 Attention 主导，也不代表实现一定物化完整的 score 矩阵。causal mask、局部窗口、稀疏模式或能够跳过无效区域的 kernel 会改变有效工作量，必须按实际执行方式重算。
 
-对于一次前向中每个位置恰好使用一次的 dense 权重：
+### 参数量近似
 
-```text
-每个位置、每个激活参数约做一次乘加
-一次前向计算量 ≈ 2 × 位置数 × 激活参数量
-```
+对 dense Transformer，常见做法是用参数量反推计算量。起点仍是 GEMM：一次前向里，每个 token 对每个激活参数大约做一次乘加。把前向、训练和推理放在同一口径下，就是下面这组倍数：
 
-这个近似不自动包含 Attention 的位置交互，也不适用于未激活的参数或重复调用的权重。它更适合做量级校验，而不是替代逐项计算。
+| 口径 | 常见近似 | 它在数什么 |
+| --- | --- | --- |
+| 一次前向 | `2 × token 数 × 激活参数量` | 每个激活参数做一次乘加 |
+| 训练（前向 + 反向） | `6 × token 数 × 激活参数量` | 反向还要对输入和权重各再做一次同规模 GEMM |
+| 训练总计算 | `C ≈ 6 × 参数量 × 训练 token 数` | 把上面的每 token 成本乘到整个数据集 |
+| 推理前向 | 与一次前向相同，约 `2P / token` | 没有反向；处理一段输入时按前向估 |
 
-### 一个无品牌的标准 block 账本
+反向约为前向的两倍，来自上一小节的单个 GEMM 计数。optimizer update 相对这两项通常可忽略。整网加成 `6P`，就是 scaling laws 文献里 `C ≈ 6PD` 的来源。
 
-取一个简化 block：四个 `[D, D]` Attention 投影，加上 `D → 4D → D` 的两层 FFN。忽略 norm、激活函数和残差加法等低阶项，则每层用于 GEMM 的参数量约为：
+把同一组倍数代入后面两章会用到的两个模型，只比较「处理 2048 个 token 时，投影类 GEMM 的量级」。Qwen3-32B 总参数 32.8B，全部激活；非 embedding 为 31.2B，若改用该口径，数字会略低。H3-Omni-Transformer 总参数约 33B，其中约 13B 在 AdaLN 相关分支，推理时可预计算并缓存，因此推理激活参数约 20B；若训练要更新全部权重，仍按 33B 计。
 
-```text
-Attention 投影：4D²
-FFN：D×4D + 4D×D = 8D²
-合计：12D²
-```
+| 模型 | 所用参数量 | 2048 token 前向 `2P` | 同 token 训练 `6P` |
+| --- | ---: | ---: | ---: |
+| Qwen3-32B | 32.8B 全激活 | 134 TFLOPs | 403 TFLOPs |
+| H3-Omni-Transformer | 33B 全量 | 135 TFLOPs | 406 TFLOPs |
+| H3-Omni-Transformer | 约 20B 推理激活 | 82 TFLOPs | — |
 
-令 `B=1`、`T=2048`、`D=4096`、层数 `L=32`：
+两者按全量参数看，2048 token 的前向都在约 `0.13 PFLOPs` 这一档，训练约为三倍。H3 若只计推理激活参数，同一段前向会明显更低。这张表没有计入两次 Attention 矩阵乘法、H3 的 encoder/VAE、稀疏 attention，也没有把一次训练更新或一次视频生成的 token 数加总；那些分别留到 02、03。
 
-| 项目 | 单层 | 32 层 |
-| --- | ---: | ---: |
-| GEMM 参数量 | 2.013 亿 | 64.42 亿 |
-| 投影与 FFN | 0.825 TFLOPs | 26.39 TFLOPs |
-| 两次 Attention 矩阵乘法 | 0.0687 TFLOPs | 2.20 TFLOPs |
-| 合计 | 0.893 TFLOPs | **28.59 TFLOPs** |
-
-参数量近似给出 `2 × 2048 × 64.42 亿 ≈ 26.39 TFLOPs`，正好对应投影与 FFN；再把位置交互补上，得到约 28.59 TFLOPs。这个例子不是某个模型的规格，只用于演示“算子 → 单层 → 层堆叠”的方法。
+使用时还要把条件写在旁边：统计的是当前 token **真正用到的 dense 权重**；每个权重在这次前向里只用一次，重计算大约会把训练从 `6P` 抬到 `8P`；有的报告排除 embedding。它适合做数量级核对，不能替代按 shape 逐项计算。
 
 ## 1.3 数据移动：计算多，不等于一定受算力限制
 
@@ -177,7 +160,7 @@ HBM：容量大、离计算单元更远
 
 高于这个量级，理想模型更偏向 compute-bound；低于这个量级，更偏向 bandwidth-bound。这里的“偏向”仍然是假设，不是测量结论。
 
-回到前面的 GEMM。若假设输入、权重各从 HBM 读取一次，输出写回一次，且采用 BF16：
+看两个不同 shape 的 GEMM。若假设输入、权重各从 HBM 读取一次，输出写回一次，且采用 BF16：
 
 | shape | FLOPs | 最小逻辑搬运量 | 算术强度 | 理想判断 |
 | --- | ---: | ---: | ---: | --- |
@@ -186,7 +169,7 @@ HBM：容量大、离计算单元更远
 
 权重相同，只把 `m` 从 2048 改为 1，计算量和数据复用就完全不同。由此可以得到一个比“矩阵乘很耗算力”更有用的判断：**shape 决定复用，复用决定计算账和搬运账谁更可能成为上限。**
 
-Attention 也要区分数学目标和实现。位置交互的 FLOPs 可以随 `T²` 增长，但实现并不一定把完整的 `T × T` score 矩阵写入 HBM。tiling 或 IO-aware attention 的核心直觉，就是在近似不改变数学目标的前提下，让中间结果更多地在片上复用，减少 HBM 往返。具体 kernel 是否受益，仍取决于 shape、精度和实现。
+Attention 也要区分数学目标和实现。两次 Attention 矩阵乘法的 FLOPs 可以随 `T²` 增长，但实现并不一定把完整的 `T × T` score 矩阵写入 HBM。tiling 或 IO-aware attention 的核心直觉，就是在近似不改变数学目标的前提下，让中间结果更多地在片上复用，减少 HBM 往返。具体 kernel 是否受益，仍取决于 shape、精度和实现。
 
 ## 1.4 从工作量和数据量到理论时间边界
 
@@ -361,8 +344,11 @@ Attention 详细推导、参数量近似的例外和 IO-aware 示例可以口头
 
 ## 参考映射
 
-- `REF-001`：统一的 FLOPs、bytes、Roofline 与多设备分析入口；
-- `REF-003`：从矩阵计算到 Transformer 量级估算的讲解方式；
+- `REF-001`：统一的 FLOPs、bytes、Roofline 与多设备分析入口；训练约 `6P`、推理约 `2P` 的矩阵推导；
+- `REF-002`：推理前向按 `2P` 估、逐步生成仍读一遍权重，但时间常受搬运限制；
+- `REF-003`：从矩阵计算到 `C ≈ 6PD` 的讲解方式；
 - `REF-005`：HBM、片上复用、有效带宽与 IO-aware attention 直觉；
 - `REF-006`：AllReduce、AllGather、ReduceScatter 与 send/recv 的输入输出语义；
+- `FACT-002`：Qwen3-32B 总参数 32.8B、非 embedding 31.2B；
+- `FACT-004`：H3-Omni-Transformer 约 33B，其中约 13B 为 AdaLN、推理激活约 20B；
 - `FACT-005`：H100 SXM BF16 稠密峰值、HBM 带宽及本章数值演算口径。
