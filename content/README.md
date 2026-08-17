@@ -7,7 +7,7 @@
 | 章节 | 文件 | 正文状态 | 最近确认基线 |
 | --- | --- | --- | --- |
 | 00 总览 | — | —（等待大纲确认） | — |
-| 01 资源直觉 | [01-resource-intuition.md](01-resource-intuition.md) | 已确认 | 1.1 @ efed67c；1.3 @ 1d4cdca；1.2、1.4–1.5 @ 本次确认提交 |
+| 01 资源直觉 | [01-resource-intuition.md](01-resource-intuition.md) | 已确认 | 1.1 @ efed67c；1.3 @ 1d4cdca；1.2、1.4–1.5 @ cef76fa |
 | 02 训练 | — | —（等待大纲确认） | — |
 | 03 推理 | — | —（等待大纲确认） | — |
 
