@@ -1,0 +1,2135 @@
+<!doctype html>
+<!--
+TechShare presentation snapshot
+version: v2
+status: outdated
+baseline: 7b1577d
+chapters: 01, 02, 03 (design preview; includes draft content)
+notes: NOTES.md
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="大模型训练与推理中的 AI Infra 基础 · 报告展示网页 v2">
+<title>大模型训练与推理中的 AI Infra 基础 · v2</title>
+<style>
+:root{
+  --paper:#f7f5ef;--paper-2:#efede6;--ink:#14202b;--muted:#66717b;
+  --blue:#3454d1;--blue-soft:#e7ebfb;--lime:#dbe85a;--coral:#ef6b5a;
+  --line:rgba(20,32,43,.16);--line-strong:rgba(20,32,43,.34);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory}
+body{margin:0;background:#0d151d;color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+button,a{font:inherit;color:inherit} button{cursor:pointer}
+.slide{min-height:100svh;display:grid;place-items:center;padding:clamp(.55rem,1.5vh,1.25rem);background:var(--paper);scroll-snap-align:start;scroll-snap-stop:always}
+.slide:nth-of-type(6n+2){background:var(--paper-2)}
+.frame{width:min(96vw,1380px);height:min(93svh,840px);display:flex;flex-direction:column;overflow:hidden;font-size:clamp(15.5px,1.9vh,19px);line-height:1.42}
+.top,.foot{display:flex;justify-content:space-between;align-items:center;gap:1rem;font:650 .78em/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.top{padding-bottom:.62em;border-bottom:1px solid var(--line)} .foot{padding-top:.58em;border-top:1px solid var(--line);text-transform:none;letter-spacing:.02em;font-weight:500}
+.top b{color:var(--blue)} .num{font-variant-numeric:tabular-nums}
+.body{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:.78em;padding:.72em 0}
+h1,h2,h3,h4,p,ul,ol,figure,table,pre{margin:0}
+h1{font-size:3.75em;line-height:.98;letter-spacing:-.055em;max-width:15em;font-weight:760}
+h2{font-size:2.08em;line-height:1.1;letter-spacing:-.035em;font-weight:740;margin:.42em 0 .12em}
+h3{font-size:1.16em;line-height:1.23;letter-spacing:-.015em} h4{font-size:1.04em}
+.lede{font-size:1.12em;line-height:1.48;color:var(--muted);max-width:64em}.lede strong{color:var(--ink)}
+.eyebrow{font:700 .8em/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--blue)}
+.display{font-size:2.65em;line-height:1.07;letter-spacing:-.045em;font-weight:740;max-width:18em}.display em{font-style:normal;color:var(--blue)}
+.grid{display:grid;gap:.65em}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g21{grid-template-columns:1.45fr 1fr}.g12{grid-template-columns:1fr 1.45fr}
+.card{border:1px solid var(--line);border-radius:.72em;padding:.78em .88em;display:flex;flex-direction:column;gap:.36em;min-width:0;background:rgba(255,255,255,.2)}
+.card p,.card li{color:var(--muted);font-size:1em}.card strong{color:var(--ink)}
+.card.blue{background:var(--blue);color:white;border-color:transparent}.card.blue p,.card.blue li{color:rgba(255,255,255,.78)}.card.blue strong{color:white}
+.card.soft{background:var(--blue-soft);border-color:transparent}.card.lime{background:var(--lime);border-color:transparent}.card.coral{background:#fbe8e4;border-color:transparent}
+.label{font:700 .8em/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--blue)}.blue .label{color:var(--lime)}.coral .label{color:var(--coral)}
+.metric{font:750 2.15em/1.05 var(--mono);letter-spacing:-.05em;color:var(--blue)}.metric small{font-size:.38em;color:var(--muted);letter-spacing:0}
+.formula{font:650 1.02em/1.65 var(--mono);background:var(--blue-soft);border-left:.28em solid var(--blue);padding:.75em 1em;border-radius:0 .55em .55em 0}.formula strong{color:var(--blue)}
+.flow{display:flex;align-items:stretch;gap:.42em}.step{flex:1;min-width:0;border:1px solid var(--line);border-radius:.65em;padding:.68em;display:flex;flex-direction:column;gap:.25em}.step p{color:var(--muted);font-size:.98em}.arrow{align-self:center;color:var(--blue);font:700 1.2em var(--mono)}
+.bullets{list-style:none;padding:0;display:flex;flex-direction:column;gap:.46em}.bullets li{padding-left:1.15em;position:relative;color:var(--muted)}.bullets li:before{content:"";position:absolute;left:.1em;top:.58em;width:.38em;height:.38em;border-radius:50%;background:var(--blue)}.bullets strong{color:var(--ink)}
+.table{width:100%;border-collapse:collapse;font-size:1em}.table th,.table td{text-align:left;padding:.47em .58em;border-bottom:1px solid var(--line);vertical-align:top}.table th{font:700 .79em/1.25 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom-color:var(--line-strong)}.table tr:last-child td{border-bottom:0}.table .n{text-align:right;white-space:nowrap;font-family:var(--mono)}.table .k{font-weight:700;white-space:nowrap}
+.splitmap{display:grid;grid-template-columns:1.25fr repeat(2,1fr);gap:2px;background:var(--line);border:1px solid var(--line);border-radius:.65em;overflow:hidden}.splitmap>*{padding:.65em .78em;background:var(--paper)}.splitmap .hd{font:700 .8em/1 var(--mono);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}.splitmap strong{color:var(--blue)}
+.timeline{display:grid;grid-template-columns:8em 1fr;gap:.34em .62em;align-items:center}.timeline .lab{text-align:right;font:650 .84em var(--mono);color:var(--muted)}.track{display:grid;grid-auto-flow:column;gap:3px}.cell{min-height:2.15em;display:grid;place-items:center;border-radius:.3em;background:var(--line);font:650 .8em var(--mono);color:var(--muted)}.cell.a{background:var(--blue);color:white}.cell.b{background:var(--lime);color:var(--ink)}.cell.c{background:#f5c9c2;color:#8e3125}.cell.empty{background:transparent;border:1px dashed var(--line-strong);color:transparent}
+.barset{display:flex;align-items:flex-end;gap:.7em;height:11em;padding:.6em 1em 0;border-left:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong)}.bar{flex:1;min-width:3em;background:var(--blue);border-radius:.35em .35em 0 0;display:flex;justify-content:center;align-items:flex-start;padding-top:.5em;color:white;font:700 .82em var(--mono)}.bar.alt{background:var(--coral)}.bar.lm{background:var(--lime);color:var(--ink)}
+.visual{flex:1;min-height:0;display:grid;place-items:center;border:1px solid var(--line);border-radius:.8em;background:rgba(255,255,255,.28);padding:.55em;overflow:hidden}
+.diagram{display:block;width:100%;height:100%;max-height:30em;overflow:visible}
+.diagram text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;fill:var(--ink)}
+.diagram .mono{font-family:var(--mono)}.diagram .muted{fill:var(--muted)}.diagram .white{fill:white}.diagram .blue-text{fill:var(--blue)}.diagram .coral-text{fill:var(--coral)}
+.diagram .box{fill:var(--paper);stroke:var(--line-strong);stroke-width:1.5}.diagram .soft{fill:var(--blue-soft);stroke:var(--blue);stroke-width:1.5}.diagram .blue-box{fill:var(--blue);stroke:var(--blue);stroke-width:1.5}.diagram .lime-box{fill:var(--lime);stroke:#aab72b;stroke-width:1.5}.diagram .coral-box{fill:#fbe8e4;stroke:var(--coral);stroke-width:1.5}
+.diagram .line{fill:none;stroke:var(--line-strong);stroke-width:2}.diagram .blue-line{fill:none;stroke:var(--blue);stroke-width:3}.diagram .coral-line{fill:none;stroke:var(--coral);stroke-width:3}.diagram .dash{stroke-dasharray:7 7}.diagram .thin{stroke-width:1.5}
+.takeaway{display:flex;align-items:center;gap:.7em;font-size:1.04em;color:var(--muted)}.takeaway:before{content:"";width:.7em;height:.7em;flex:0 0 auto;border-radius:50%;background:var(--blue)}.dark .visual{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.16)}.dark .diagram text{fill:var(--paper)}.dark .diagram .muted{fill:#aeb9c2}.dark .diagram .box{fill:#182631;stroke:rgba(255,255,255,.25)}.dark .diagram .line{stroke:rgba(255,255,255,.28)}
+.quote{font-size:1.12em;line-height:1.5;border-left:.28em solid var(--blue);padding:.65em 0 .65em 1em}.quote.bad{border-color:var(--coral);color:var(--muted)}
+.note{font-size:.94em;color:var(--muted)}.note strong{color:var(--ink)} code{font:.95em var(--mono);background:var(--blue-soft);padding:.1em .3em;border-radius:.28em}
+.dark{background:var(--ink)!important;color:var(--paper)}.dark .frame{color:var(--paper)}.dark .top,.dark .foot,.dark .lede,.dark .card p,.dark .card li,.dark .note{color:#aeb9c2}.dark .top,.dark .foot,.dark .card,.dark .step{border-color:rgba(247,245,239,.18)}.dark .top b,.dark .label,.dark .eyebrow{color:var(--lime)}.dark .card strong,.dark .bullets strong{color:var(--paper)}.dark code{background:rgba(255,255,255,.1)}
+.cover .body{justify-content:center;gap:1.4em}.cover .lede{font-size:1.18em;max-width:44em}.cover-line{width:6.5em;height:.55em;background:var(--lime);border-radius:1em}.meta{display:flex;flex-wrap:wrap;gap:.5em}.pill{font:650 .78em/1 var(--mono);letter-spacing:.04em;border:1px solid currentColor;border-radius:2em;padding:.48em .8em;color:var(--muted)}.dark .pill{color:#b8c2ca}.chapter .body{justify-content:center}.chapter-no{font:750 8em/.8 var(--mono);letter-spacing:-.08em;color:var(--lime)}.chapter h2{font-size:3.25em;max-width:16em;margin:.3em 0}.chapter .lede{font-size:1.15em;max-width:48em}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:.62em}.summary .card{min-height:8.4em}.summary .label{font-size:.82em}.summary h3{font-size:1.1em}
+.progress{position:fixed;z-index:30;inset:0 auto auto 0;width:0;height:3px;background:var(--lime);transition:width .18s ease}
+.controls{position:fixed;z-index:30;right:1rem;bottom:1rem;display:flex;align-items:center;gap:.25rem;background:rgba(13,21,29,.92);color:white;border:1px solid rgba(255,255,255,.18);border-radius:2rem;padding:.28rem;box-shadow:0 12px 35px rgba(0,0,0,.28);backdrop-filter:blur(14px)}.controls button{width:2.05rem;height:2.05rem;border:0;border-radius:50%;background:transparent;color:inherit}.controls button:hover,.controls button:focus-visible{background:var(--lime);color:var(--ink);outline:none}.controls output{min-width:3.6rem;text-align:center;font:650 .7rem var(--mono)}
+#toc{position:fixed;z-index:50;inset:0;background:rgba(13,21,29,.98);color:white;padding:clamp(1.3rem,4vw,3.5rem);overflow:auto}#toc[hidden]{display:none}#toc h2{margin:0 0 1rem;font-size:2rem}#toc .tocgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:1.4rem 2rem;max-width:86rem}#toc h3{font:700 .75rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--lime);margin-bottom:.5rem}#toc ol{list-style:none;padding:0;margin:0}#toc a{display:flex;gap:.7rem;text-decoration:none;padding:.32rem .45rem;border-radius:.35rem;color:#c0c9d0;font-size:.88rem}#toc a:hover,#toc a:focus-visible{background:rgba(219,232,90,.13);color:white;outline:none}#toc .ix{color:var(--lime);font:700 .75rem/1.55 var(--mono);min-width:1.7rem}#tocClose{position:absolute;right:1rem;top:1rem;color:white;border:1px solid rgba(255,255,255,.28);border-radius:2rem;padding:.45rem .9rem;background:transparent}
+@media(max-width:840px){html{scroll-snap-type:none}.slide{min-height:auto;padding:1rem}.frame{width:100%;height:auto;min-height:calc(100svh - 2rem);font-size:16px;overflow:visible}.g2,.g3,.g4,.g21,.g12,.summary{grid-template-columns:1fr}.flow{flex-direction:column}.arrow{transform:rotate(90deg)}.splitmap{grid-template-columns:1fr}.splitmap .hd{display:none}.timeline{grid-template-columns:5.5em 1fr}.controls{right:.6rem;bottom:.6rem}h1{font-size:3em}.chapter-no{font-size:6em}.body{justify-content:flex-start}.card{min-height:auto!important}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.progress{transition:none}}
+@media print{@page{size:landscape;margin:0}html{scroll-snap-type:none}body{background:white}.slide{page-break-after:always;break-after:page;min-height:100vh;padding:1.5cm}.slide:last-of-type{page-break-after:auto}.frame{width:100%;height:calc(100vh - 3cm);font-size:10.5pt}.controls,.progress,#toc{display:none!important}.dark{background:var(--ink)!important}.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="progress" aria-hidden="true">
+</div>
+<nav class="controls" aria-label="演示控制">
+<button id="tocBtn" aria-label="打开目录">☰</button>
+<button id="prevBtn" aria-label="上一页">←</button>
+<output id="counter" aria-live="polite">01 / 48</output>
+<button id="nextBtn" aria-label="下一页">→</button>
+</nav>
+<aside id="toc" hidden role="dialog" aria-modal="true" aria-label="报告目录">
+<button id="tocClose" aria-label="关闭目录">关闭</button>
+<h2>目录</h2>
+<div class="tocgrid" id="tocGrid">
+</div>
+</aside>
+
+<section class="slide dark cover" id="cover" data-ch="开场" data-title="封面">
+<div class="frame">
+<header class="top">
+<span>TechShare · AI Infra</span>
+<span class="num">
+</span>
+</header>
+<div class="body">
+<div class="cover-line">
+</div>
+<p class="eyebrow">From workload to bottleneck</p>
+<h1>大模型训练与推理中的 <span style="color:var(--lime)">AI Infra</span> 基础</h1>
+<p class="lede">从计算、显存与通信三本账出发，理解训练配置、并行策略与推理服务为什么这样设计。</p>
+<div class="meta">
+<span class="pill">算法与数据同学</span>
+<span class="pill">30–60 分钟</span>
+<span class="pill">v2 · 设计预览</span>
+</div>
+</div>
+<footer class="foot">
+<span>内容快照 7b1577d</span>
+<span>方向键翻页 · M 打开目录</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="map" data-ch="开场" data-title="全篇地图">
+<div class="frame">
+<header class="top">
+<span>开场 · <b>全篇地图</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>先建立共同语言，再进入两个场景</h2>
+<p class="lede">不要从配置名出发。先固定工作负载和目标，再判断哪一本账进入关键路径。</p>
+<div class="body">
+<div class="flow">
+<div class="step">
+<span class="label">Input</span>
+<h3>模型 · shape · 指标</h3>
+<p>我们到底在执行什么、比较什么？</p>
+</div>
+<span class="arrow">→</span>
+<div class="step">
+<span class="label">01</span>
+<h3>资源直觉</h3>
+<p>计算、显存与数据移动、通信。</p>
+</div>
+<span class="arrow">→</span>
+<div class="step">
+<span class="label">02 / 03</span>
+<h3>训练与推理</h3>
+<p>把同一套账本代入不同工作单元。</p>
+</div>
+<span class="arrow">→</span>
+<div class="step">
+<span class="label">Output</span>
+<h3>验证闭环</h3>
+<p>估算 → 观测 → 杠杆 → 验证。</p>
+</div>
+</div>
+<div class="grid g3">
+<div class="card">
+<span class="label">计算账</span>
+<p>
+<strong>做了多少运算？</strong>
+<br>FLOPs、shape、理论下界。</p>
+</div>
+<div class="card">
+<span class="label">驻留与搬运账</span>
+<p>
+<strong>什么同时存在、搬了几遍？</strong>
+<br>bytes、生命周期、带宽。</p>
+</div>
+<div class="card">
+<span class="label">通信账</span>
+<p>
+<strong>什么张量在哪些设备间交换？</strong>
+<br>payload、频率、路径与等待。</p>
+</div>
+</div>
+</div>
+<footer class="foot">
+<span>主线：工作负载 → 资源约束 → 场景选择</span>
+<span>outline / content</span>
+</footer>
+</div>
+</section>
+
+<section class="slide dark chapter" id="ch1" data-ch="01 资源直觉" data-title="章节开场">
+<div class="frame">
+<header class="top">
+<span>Chapter</span>
+<span class="num">
+</span>
+</header>
+<div class="body">
+<div class="chapter-no">01</div>
+<h2>资源直觉：计算、显存与通信</h2>
+<p class="lede">参数量不是答案。先把现实问题拆成三本账，再用 shape 和生命周期建立数量级。</p>
+</div>
+<footer class="foot">
+<span>通用方法</span>
+<span>content / 01</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="three-ledgers" data-ch="01 资源直觉" data-title="三本账">
+<div class="frame">
+<header class="top">
+<span>01 · <b>1.1 三本账</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>把现实问题拆成可估算的量</h2>
+<div class="body">
+<div class="grid g3">
+<div class="card blue">
+<span class="label">Compute</span>
+<div class="metric" style="color:white">FLOPs</div>
+<h3>最快要算多久？</h3>
+<p>主要 GEMM / Attention 做了多少运算，shape 是否能吃满硬件。</p>
+</div>
+<div class="card">
+<span class="label">Memory</span>
+<div class="metric">bytes</div>
+<h3>单卡放得下吗？</h3>
+<p>长期、阶段性与临时张量何时重叠；执行时又从 HBM 搬了多少。</p>
+</div>
+<div class="card">
+<span class="label">Communication</span>
+<div class="metric">B / call</div>
+<h3>多卡如何协同？</h3>
+<p>谁复制、谁切分；交换什么、多大、多久一次、走哪条物理路径。</p>
+</div>
+</div>
+<div class="quote">真实系统需要反复权衡三本账；估算的价值，是给出一个<strong>可验证的瓶颈假设</strong>，不是承诺耗时。</div>
+</div>
+<footer class="foot">
+<span>先统一单位，再讨论策略</span>
+<span>content/01 · 1.1</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="compute-ops" data-ch="01 资源直觉" data-title="三类计算操作">
+<div class="frame">
+<header class="top"><span>01 · <b>1.2 计算量口径</b></span><span class="num"></span></header>
+<h2>先区分三类操作，再按同一口径统计前向与反向</h2>
+<div class="body">
+<div class="grid g3">
+<div class="card blue"><span class="label">GEMM</span><div class="metric" style="color:white">2mkn</div><p><code>[m,k] × [k,n]</code>。线性层和 Attention 的主要矩阵乘。</p></div>
+<div class="card lime"><span class="label">Elementwise</span><div class="metric">c × n</div><p>激活、bias、残差等逐元素工作；实际代价也受数据搬运影响。</p></div>
+<div class="card soft"><span class="label">Reduction</span><div class="metric">≈ n</div><p>求和、最大值等聚合；充分并行时依赖深度可降到 <code>log n</code>。</p></div>
+</div>
+<div class="flow"><div class="step"><span class="label">Forward</span><h3>C = AW</h3><p>约 2mkn FLOPs</p></div><span class="arrow">→</span><div class="step"><span class="label">Backward 1</span><h3>dW = AᵀdC</h3><p>约 2mkn FLOPs</p></div><span class="arrow">+</span><div class="step"><span class="label">Backward 2</span><h3>dA = dCWᵀ</h3><p>约 2mkn FLOPs</p></div></div>
+<div class="takeaway">一次乘法和一次加法各计 1 FLOP；训练反向不是套常数，而是把实际执行的运算按同一规则计入。</div>
+</div>
+<footer class="foot"><span>FLOP 是一次运算 · FLOPs 是工作量 · FLOP/s 是硬件速率</span><span>content/01 · 1.2 如何评估计算量</span></footer>
+</div>
+</section>
+
+<section class="slide" id="compute" data-ch="01 资源直觉" data-title="计算量近似">
+<div class="frame">
+<header class="top">
+<span>01 · <b>1.2 计算</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>shape 决定工作量；参数量只给一阶近似</h2>
+<div class="body">
+<div class="grid g21">
+<div class="formula">GEMM <code>[m,k] × [k,n]</code>
+<br>≈ <strong>2mkn FLOPs</strong>
+</div>
+<div class="formula">Dense forward<br>≈ <strong>2 × token × P</strong>
+</div>
+</div>
+<div class="grid g2">
+<div class="card soft">
+<span class="label">训练单个 token</span>
+<div class="metric">6P</div>
+<p>forward 加 backward 的常见一阶近似。</p>
+</div>
+<div class="card">
+<span class="label">训练总量</span>
+<div class="metric">6PD</div>
+<p>P 是参与训练的参数量，D 是训练 token 数。</p>
+</div>
+</div>
+<p class="note">标准全局 Attention 中，投影随 token 数线性增长；QKᵀ 与 PV 随 token 数平方增长。局部窗口、稀疏模式或 IO-aware kernel 会改变实际执行方式。</p>
+</div>
+<footer class="foot">
+<span>参数量近似用于数量级核对，不替代按 shape 逐项计算</span>
+<span>content/01 · 1.2</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="attention-breakdown" data-ch="01 资源直觉" data-title="Self-Attention 模块拆解">
+<div class="frame">
+<header class="top"><span>01 · <b>1.2 模块分析</b></span><span class="num"></span></header>
+<h2>一条 Self-Attention 链路里，三类操作同时出现</h2>
+<div class="body">
+<div class="flow"><div class="step"><span class="label">1 · GEMM</span><h3>Q / K / V 投影</h3><p><code>6BTH²</code></p></div><span class="arrow">→</span><div class="step"><span class="label">2 · GEMM</span><h3>QKᵀ</h3><p><code>2BT²H</code></p></div><span class="arrow">→</span><div class="step"><span class="label">3–5</span><h3>Scale · Mask · Softmax</h3><p>Elementwise + Reduction</p></div><span class="arrow">→</span><div class="step"><span class="label">6–7 · GEMM</span><h3>PV · 输出投影</h3><p><code>2BT²H + 2BTH²</code></p></div></div>
+<div class="grid g21">
+<div class="card"><span class="label">标准全局 Attention 的增长关系</span><div class="barset"><div class="bar" style="height:45%">T</div><div class="bar alt" style="height:90%">T²</div></div><p>四次投影随 token 数线性增长；两次 Attention 矩阵乘与 score 上的操作随 token 数平方增长。</p></div>
+<div class="card lime"><span class="label">B=1 · T=2048 · H=4096 · 32 heads</span><div class="metric">0.344 <small>TFLOPs</small></div><p>矩阵乘；其他操作按正文口径约 <strong>9.40 亿次</strong>。</p></div>
+</div>
+<div class="takeaway">操作次数不能直接换成耗时；局部窗口、稀疏模式和 IO-aware kernel 会改变有效工作与数据移动。</div>
+</div>
+<footer class="foot"><span>投影 0.275 TFLOPs · 两次 Attention 矩阵乘 0.0687 TFLOPs</span><span>content/01 · 1.2 模块分析</span></footer>
+</div>
+</section>
+
+<section class="slide" id="compute-example" data-ch="01 资源直觉" data-title="模型计算实例">
+<div class="frame">
+<header class="top">
+<span>01 · <b>1.2 实例</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>代入 2048 token，看参数相关 GEMM 的量级</h2>
+<div class="body">
+<div class="grid g2">
+<div class="card blue">
+<span class="label">Qwen3-32B · 32.8B 全激活</span>
+<div class="metric" style="color:white">134 <small style="color:rgba(255,255,255,.72)">TFLOPs forward</small>
+</div>
+<p>同样 token 数的训练近似约 <strong>403 TFLOPs</strong>。</p>
+</div>
+<div class="card lime">
+<span class="label">H3 · 约 20B 推理激活</span>
+<div class="metric" style="color:var(--ink)">82 <small>TFLOPs forward</small>
+</div>
+<p>33B 全量口径的 forward 约 <strong>135 TFLOPs</strong>。</p>
+</div>
+</div>
+<div class="quote">同一个“参数量”标签不一定等于本次执行实际激活的参数量；必须先写清有效参数口径。</div>
+<p class="note">
+<strong>边界：</strong>
+<code>2P / 6P / 6PD</code> 忽略 Attention 非参数量项、embedding、归一化与重计算，只用于整网数量级核对。</p>
+</div>
+<footer class="foot">
+<span>FACT-002 / FACT-004 / FACT-005</span>
+<span>content/01 · 1.2</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="memory-hierarchy" data-ch="01 资源直觉" data-title="GPU 存储层级">
+<div class="frame">
+<header class="top"><span>01 · <b>1.3 存储层级</b></span><span class="num"></span></header>
+<h2>越靠近执行单元，通常越快，也越小</h2>
+<div class="body">
+<div class="grid g21">
+<div class="visual"><svg class="diagram" viewBox="0 0 760 460" role="img" aria-label="H100 GPU 存储层级从寄存器、shared memory 与 L1、L2 到 HBM，容量逐级增大"><title>H100 GPU 存储层级</title><g text-anchor="middle" font-weight="700"><rect x="275" y="25" width="210" height="72" rx="16" class="blue-box"/><text x="380" y="58" font-size="24" class="white">寄存器</text><text x="380" y="82" font-size="17" class="white">256 KB / SM</text><rect x="220" y="120" width="320" height="78" rx="16" class="lime-box"/><text x="380" y="154" font-size="24">Shared / L1</text><text x="380" y="181" font-size="17">合计 ≤ 256 KB / SM</text><rect x="145" y="222" width="470" height="82" rx="16" class="soft"/><text x="380" y="258" font-size="24">L2</text><text x="380" y="284" font-size="17">50 MB · 全卡共享</text><rect x="55" y="330" width="650" height="92" rx="16" class="coral-box"/><text x="380" y="368" font-size="25" class="coral-text">HBM</text><text x="380" y="397" font-size="18" class="coral-text">80 GB · 3.35 TB/s · 全卡</text></g><text x="725" y="85" font-size="18" class="muted" transform="rotate(90 725 85)">容量通常增大 →</text></svg></div>
+<div class="card"><span class="label">读图边界</span><h3>这些容量不能相加</h3><p>寄存器与 shared memory 是<strong>每个 SM</strong>；L2 与 HBM 是<strong>全卡</strong>。</p><p>L1 与 shared memory 还共享同一片容量，shared memory 最多 228 KB/SM。</p><p>NVIDIA 没有给出一组可直接横比的统一片上峰值带宽；“更快”只表达距离直觉。</p></div>
+</div>
+<div class="takeaway">优化复用，本质是在有限的片上空间里，让最值得复用的数据少往返 HBM。</div>
+</div>
+<footer class="foot"><span>H100 SXM 规格口径 · FACT-005</span><span>content/01 · 1.3 先看数据离计算单元有多远</span></footer>
+</div>
+</section>
+
+<section class="slide" id="roofline" data-ch="01 资源直觉" data-title="Roofline 直觉">
+<div class="frame">
+<header class="top">
+<span>01 · <b>1.3 Roofline</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>一个拐点，把带宽上限和计算上限连起来</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1100 470" role="img" aria-label="经典 Roofline 图：性能随算术强度先按带宽斜线上升，达到拐点后受计算峰值限制">
+<title>简化 Roofline 图</title>
+<defs>
+<marker id="roof-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--ink)"/>
+</marker>
+</defs>
+<line x1="105" y1="400" x2="1020" y2="400" class="line" marker-end="url(#roof-arrow)"/>
+<line x1="105" y1="400" x2="105" y2="55" class="line" marker-end="url(#roof-arrow)"/>
+<text x="1015" y="438" text-anchor="end" font-size="22" class="muted">算术强度 · FLOPs / byte</text>
+<text x="38" y="70" font-size="22" class="muted" transform="rotate(-90 38 70)">可达到的性能</text>
+<path d="M130 375 L565 120 L980 120" class="blue-line"/>
+<line x1="565" y1="120" x2="565" y2="400" class="blue-line dash thin"/>
+<text x="760" y="96" text-anchor="middle" font-size="25" font-weight="700" class="blue-text">计算峰值 · 989 TFLOP/s</text>
+<text x="305" y="225" text-anchor="middle" font-size="25" font-weight="700" class="blue-text" transform="rotate(-30 305 225)">带宽上限 · I × 3.35 TB/s</text>
+<circle cx="565" cy="120" r="10" fill="var(--lime)" stroke="var(--ink)" stroke-width="2"/>
+<text x="565" y="448" text-anchor="middle" font-size="24" font-weight="700">拐点 ≈ 295 FLOPs / byte</text>
+<circle cx="175" cy="350" r="11" fill="var(--coral)"/>
+<text x="195" y="335" font-size="23" font-weight="700">m = 1</text>
+<text x="195" y="365" font-size="20" class="muted">≈ 1 FLOP/B · 更偏带宽</text>
+<circle cx="865" cy="120" r="11" fill="var(--blue)"/>
+<text x="865" y="165" text-anchor="middle" font-size="23" font-weight="700">m = 2048</text>
+<text x="865" y="195" text-anchor="middle" font-size="20" class="muted">1260 FLOP/B · 更偏计算</text>
+</svg>
+</div>
+<div class="takeaway">同一份权重，仅改变 shape，就可能从带宽侧跨到计算侧；图中位置是待实测验证的瓶颈假设。</div>
+</div>
+<footer class="foot">
+<span>图例重绘自 Williams / Waterman / Patterson, Roofline (2009)</span>
+<span>REF-001 · FACT-005</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="time-bound" data-ch="01 资源直觉" data-title="理论时间双下界">
+<div class="frame">
+<header class="top"><span>01 · <b>1.3 时间边界</b></span><span class="num"></span></header>
+<h2>理想时间至少受计算与 HBM 搬运中更慢的一侧限制</h2>
+<div class="body">
+<div class="grid g3"><div class="formula">计算下界<br><strong>FLOPs / 峰值 FLOP/s</strong></div><div class="formula">数据下界<br><strong>bytes / 峰值带宽</strong></div><div class="formula">理想边界<br><strong>≥ max(两者)</strong></div></div>
+<div class="grid g2">
+<div class="card blue"><span class="label">[2048,4096] × [4096,16384]</span><div class="metric" style="color:white">0.278 <small style="color:rgba(255,255,255,.75)">ms</small></div><p>计算下界；带宽下界 0.065 ms。理想上更偏<strong>计算</strong>。</p></div>
+<div class="card coral"><span class="label">[1,4096] × [4096,16384]</span><div class="metric">0.0401 <small>ms</small></div><p>带宽下界；计算下界 0.000136 ms。理想上更偏<strong>带宽</strong>。</p></div>
+</div>
+<div class="takeaway">实际时间通常更长：shape、额外读写、依赖同步、kernel 启动与通信都会增加时间；不存在跨工作负载通用的“利用率常数”。</div>
+</div>
+<footer class="foot"><span>H100 SXM · BF16 稠密峰值 989 TFLOP/s · HBM 3.35 TB/s</span><span>content/01 · 1.3 理论时间边界</span></footer>
+</div>
+</section>
+
+<section class="slide" id="memory-life" data-ch="01 资源直觉" data-title="峰值显存">
+<div class="frame">
+<header class="top">
+<span>01 · <b>1.3 峰值显存</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>峰值发生在张量生命周期重叠最多的时刻</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 440" role="img" aria-label="权重、输入、输出和 workspace 的生命周期时间线，峰值区域由四项重叠形成">
+<title>Y 等于 X 乘 W 的显存生命周期</title>
+<text x="220" y="48" font-size="20" class="muted">时间 →</text>
+<line x1="220" y1="62" x2="1050" y2="62" class="line"/>
+<rect x="220" y="92" width="800" height="55" rx="12" class="blue-box"/>
+<text x="175" y="126" text-anchor="end" font-size="22" font-weight="700">W · 134 MB</text>
+<text x="620" y="126" text-anchor="middle" font-size="20" class="white">长期驻留</text>
+<rect x="220" y="170" width="390" height="55" rx="12" class="lime-box"/>
+<text x="175" y="204" text-anchor="end" font-size="22" font-weight="700">X · 17 MB</text>
+<text x="415" y="204" text-anchor="middle" font-size="20">阶段性状态</text>
+<rect x="500" y="248" width="520" height="55" rx="12" class="soft"/>
+<text x="175" y="282" text-anchor="end" font-size="22" font-weight="700">Y · 67 MB</text>
+<text x="760" y="282" text-anchor="middle" font-size="20">正在生成</text>
+<rect x="500" y="326" width="220" height="55" rx="12" class="coral-box"/>
+<text x="175" y="360" text-anchor="end" font-size="22" font-weight="700">workspace</text>
+<text x="610" y="360" text-anchor="middle" font-size="20">临时空间</text>
+<rect x="490" y="78" width="240" height="318" rx="18" fill="none" stroke="var(--coral)" stroke-width="4" stroke-dasharray="10 8"/>
+<text x="610" y="424" text-anchor="middle" font-size="24" font-weight="700" class="coral-text">局部峰值：W + X + Y + workspace</text>
+</svg>
+</div>
+<div class="takeaway">容量账看“同一时刻还活着什么”；搬运账看“运行期间从 HBM 读写了几遍”。</div>
+</div>
+<footer class="foot">
+<span>Y = XW · BF16 生命周期实例</span>
+<span>content/01 · 1.3</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="communication" data-ch="01 资源直觉" data-title="通信与布局">
+<div class="frame">
+<header class="top">
+<span>01 · <b>1.4 多设备</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>路径、元语、布局：不要把三层问题混在一起</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 450" role="img" aria-label="通信三层图：底层为物理路径，中层为通信元语，上层为复制切分和分阶段布局">
+<title>多设备通信三层模型</title>
+<defs>
+<marker id="comm-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--blue)"/>
+</marker>
+</defs>
+<rect x="55" y="38" width="1010" height="105" rx="18" class="coral-box"/>
+<text x="90" y="78" font-size="19" font-weight="700" class="coral-text">物理路径</text>
+<rect x="265" y="63" width="170" height="55" rx="12" class="box"/>
+<text x="350" y="98" text-anchor="middle" font-size="20">GPU</text>
+<line x1="435" y1="90" x2="560" y2="90" class="blue-line" marker-end="url(#comm-arrow)"/>
+<text x="500" y="77" text-anchor="middle" font-size="17" class="muted">NVLink / PCIe</text>
+<rect x="560" y="63" width="170" height="55" rx="12" class="box"/>
+<text x="645" y="98" text-anchor="middle" font-size="20">GPU / NIC</text>
+<line x1="730" y1="90" x2="855" y2="90" class="blue-line" marker-end="url(#comm-arrow)"/>
+<text x="792" y="77" text-anchor="middle" font-size="17" class="muted">网络</text>
+<rect x="855" y="63" width="155" height="55" rx="12" class="box"/>
+<text x="932" y="98" text-anchor="middle" font-size="20">另一节点</text>
+<rect x="55" y="172" width="1010" height="105" rx="18" class="soft"/>
+<text x="90" y="212" font-size="19" font-weight="700" class="blue-text">通信元语</text>
+<g font-size="20" font-weight="700">
+<rect x="260" y="197" width="170" height="55" rx="12" class="box"/>
+<text x="345" y="232" text-anchor="middle">send / recv</text>
+<rect x="455" y="197" width="170" height="55" rx="12" class="box"/>
+<text x="540" y="232" text-anchor="middle">AllReduce</text>
+<rect x="650" y="197" width="170" height="55" rx="12" class="box"/>
+<text x="735" y="232" text-anchor="middle">AllGather</text>
+<rect x="845" y="197" width="170" height="55" rx="12" class="box"/>
+<text x="930" y="232" text-anchor="middle">ReduceScatter</text>
+</g>
+<rect x="55" y="306" width="1010" height="105" rx="18" class="lime-box"/>
+<text x="90" y="346" font-size="19" font-weight="700">张量布局</text>
+<g font-size="21" font-weight="700">
+<rect x="280" y="331" width="200" height="55" rx="12" class="box"/>
+<text x="380" y="366" text-anchor="middle">复制 · Replicate</text>
+<rect x="515" y="331" width="200" height="55" rx="12" class="box"/>
+<text x="615" y="366" text-anchor="middle">切分 · Shard</text>
+<rect x="750" y="331" width="200" height="55" rx="12" class="box"/>
+<text x="850" y="366" text-anchor="middle">分阶段 · Stage</text>
+</g>
+</svg>
+</div>
+<div class="takeaway">并行方案说明“为什么交换”；元语只说明“交换后每台设备拥有什么”。</div>
+</div>
+<footer class="foot">
+<span>图例依据 NCCL 语义与 Megatron Core 并行模型重绘</span>
+<span>REF-006</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="physical-paths" data-ch="01 资源直觉" data-title="设备间物理路径">
+<div class="frame">
+<header class="top"><span>01 · <b>1.4 物理路径</b></span><span class="num"></span></header>
+<h2>“有几张 GPU”不够，还要知道它们怎样连接</h2>
+<div class="body">
+<div class="grid g2">
+<div class="card lime"><span class="label">节点内</span><h3>GPU ↔ GPU</h3><div class="flow"><div class="step"><strong>GPU 0</strong></div><span class="arrow">⇄</span><div class="step"><strong>NVLink / NVSwitch</strong><br><small>或 PCIe / PCIe Switch</small></div><span class="arrow">⇄</span><div class="step"><strong>GPU 1</strong></div></div><p><strong>先看：</strong>单链路与聚合带宽、互联拓扑、共享链路。</p></div>
+<div class="card soft"><span class="label">跨节点</span><h3>GPU → NIC → 网络 → GPU</h3><div class="flow"><div class="step"><strong>GPU</strong></div><span class="arrow">→</span><div class="step"><strong>NIC</strong></div><span class="arrow">→</span><div class="step"><strong>Switch</strong></div><span class="arrow">→</span><div class="step"><strong>GPU</strong></div></div><p><strong>先看：</strong>NIC/网络带宽与延迟、收敛比、GPU—NIC 连接关系。</p></div>
+</div>
+<div class="takeaway">链路规格只是能力上限；消息大小、通信算法、并发流量和软件栈共同决定持续有效带宽。</div>
+</div>
+<footer class="foot"><span>卡内 HBM 访问属于数据移动；本页从设备间交换开始</span><span>content/01 · 1.4 先看物理路径</span></footer>
+</div>
+</section>
+
+<section class="slide" id="collectives" data-ch="01 资源直觉" data-title="点对点与 Collective">
+<div class="frame">
+<header class="top"><span>01 · <b>1.4 通信元语</b></span><span class="num"></span></header>
+<h2>用“操作前后每台设备拥有什么”理解通信</h2>
+<div class="body">
+<div class="grid g2">
+<div class="card"><span class="label">Point-to-point</span><h3>A: [X] → B: [X]</h3><p><code>send / recv</code> 只指定发送方与接收方，常用于 Pipeline stage 之间传递激活。</p></div>
+<div class="card blue"><span class="label">AllReduce</span><h3 style="color:white">[A] [B] → [A+B] [A+B]</h3><p>每台设备最终都得到归约后的完整结果。</p></div>
+<div class="card lime"><span class="label">AllGather</span><h3>[A] [B] → [A|B] [A|B]</h3><p>把各设备分片收集为完整张量，不做归约。</p></div>
+<div class="card soft"><span class="label">ReduceScatter</span><h3>[A₀|A₁] [B₀|B₁] → [A₀+B₀] [A₁+B₁]</h3><p>先归约，再让每台设备只保留结果的一片。</p></div>
+</div>
+<div class="takeaway">ReduceScatter + AllGather 在张量结果上可组成 AllReduce；实际耗时仍取决于消息大小、算法、拓扑与能否重叠。</div>
+</div>
+<footer class="foot"><span>元语描述“交换后有什么”；并行方案解释“为什么交换”</span><span>content/01 · 1.4 点对点与 Collective</span></footer>
+</div>
+</section>
+
+<section class="slide dark" id="four-questions" data-ch="01 资源直觉" data-title="四问判断卡">
+<div class="frame">
+<header class="top">
+<span>01 · <b>1.5 收束</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>一张四问资源判断卡</h2>
+<p class="lede">先固定工作单元、输入 shape、精度、硬件与目标指标，再回答四问。</p>
+<div class="body">
+<div class="summary">
+<div class="card">
+<span class="label">01</span>
+<h3>算多少、搬多少？</h3>
+<p>主要 shape、FLOPs、容量与累计 bytes。</p>
+</div>
+<div class="card">
+<span class="label">02</span>
+<h3>理论最快多少？</h3>
+<p>计算与带宽下界，形成瓶颈假设。</p>
+</div>
+<div class="card">
+<span class="label">03</span>
+<h3>峰值放得下吗？</h3>
+<p>张量生命周期 + workspace 与余量。</p>
+</div>
+<div class="card">
+<span class="label">04</span>
+<h3>不够怎样扩展？</h3>
+<p>复制、切分、阶段，以及暴露的通信。</p>
+</div>
+</div>
+<div class="grid g2">
+<div class="quote">“按当前 shape，算术强度显著低于硬件拐点；我推测 HBM 带宽更可能限制时间。下一步固定 shape 和精度，测有效带宽与耗时。”</div>
+<div class="quote bad">“GPU 没跑满，所以应该加卡。”</div>
+</div>
+</div>
+<footer class="foot">
+<span>输出：理论边界 · 峰值容量 · 通信 · 下一项实测</span>
+<span>content/01 · 1.5</span>
+</footer>
+</div>
+</section>
+
+<section class="slide dark chapter" id="ch2" data-ch="02 训练" data-title="章节开场">
+<div class="frame">
+<header class="top">
+<span>Chapter</span>
+<span class="num">
+</span>
+</header>
+<div class="body">
+<div class="chapter-no">02</div>
+<h2>训练：从一个 step 到多维并行</h2>
+<p class="lede">训练配置不是缩写清单。先拆开一次参数更新，再看每种并行到底切了什么。</p>
+</div>
+<footer class="foot">
+<span>场景一 · 训练</span>
+<span>content / 02</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="train-step" data-ch="02 训练" data-title="训练工作单元">
+<div class="frame">
+<header class="top">
+<span>02 · <b>2.1 训练 step</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>训练的工作单元，是一次参数更新</h2>
+<div class="body">
+<div class="flow">
+<div class="step">
+<span class="label">Forward</span>
+<h3>读参数与输入</h3>
+<p>产生并保留部分激活。</p>
+</div>
+<span class="arrow">→</span>
+<div class="step">
+<span class="label">Backward</span>
+<h3>读激活与参数</h3>
+<p>产生梯度，逐步释放激活。</p>
+</div>
+<span class="arrow">→</span>
+<div class="step">
+<span class="label">Update</span>
+<h3>读梯度与状态</h3>
+<p>更新参数与优化器状态。</p>
+</div>
+</div>
+<div class="grid g21">
+<div class="timeline">
+<span class="lab">micro-step</span>
+<div class="track">
+<span class="cell a">F/B 1</span>
+<span class="cell a">F/B 2</span>
+<span class="cell a">F/B 3</span>
+<span class="cell a">F/B 4</span>
+<span class="cell b">Update</span>
+</div>
+<span class="lab">梯度</span>
+<div class="track">
+<span class="cell b">累积</span>
+<span class="cell b">累积</span>
+<span class="cell b">累积</span>
+<span class="cell b">累积</span>
+<span class="cell a">清零</span>
+</div>
+</div>
+<div class="formula">global batch = micro-batch <strong>m</strong>
+<br>× accumulation <strong>a</strong>
+<br>× DP replicas <strong>d</strong>
+</div>
+</div>
+<div class="grid g2">
+<div class="card">
+<span class="label">显存账</span>
+<p>参数、梯度、优化器状态、激活、临时空间、通信 buffer。</p>
+</div>
+<div class="card">
+<span class="label">时间账</span>
+<p>多次 F/B、一次更新、通信与等待；谁在关键路径上？</p>
+</div>
+</div>
+</div>
+<footer class="foot">
+<span>改变 m / a / d 时，明确另外两个是否固定</span>
+<span>content/02 · 2.1</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="train-metrics" data-ch="02 训练" data-title="训练速度口径">
+<div class="frame">
+<header class="top"><span>02 · <b>2.1 速度口径</b></span><span class="num"></span></header>
+<h2>“跑不快”必须先说明用什么指标比较</h2>
+<div class="body">
+<div class="grid g2">
+<div class="card blue"><span class="label">Step time</span><div class="metric" style="color:white">s / update</div><p>一次 optimizer update 的墙钟时间。global batch 改变后，不能单独拿它判断吞吐。</p></div>
+<div class="card lime"><span class="label">Effective throughput</span><div class="metric">samples/s</div><p>或有效 <code>tokens/s</code>；回答单位时间完成了多少真实数据。</p></div>
+</div>
+<div class="grid g2"><div class="card"><span class="label">MFU</span><h3>有效模型计算量 / 理论峰值</h3><p>定义依赖模型工作量口径。</p></div><div class="card soft"><span class="label">HFU</span><h3>可能计入重计算等硬件工作</h3><p>定义不统一时，只比较同一实现与同一口径。</p></div></div>
+<div class="takeaway">global batch、有效 token 比例或指标定义不同，数值就不可直接横比；指标名本身不是结论。</div>
+</div>
+<footer class="foot"><span>训练资源问题：容量不足 · 局部粒度/供给不足 · 通信与等待</span><span>content/02 · 2.1</span></footer>
+</div>
+</section>
+
+<section class="slide" id="single-gpu" data-ch="02 训练" data-title="单卡资源交换">
+<div class="frame">
+<header class="top">
+<span>02 · <b>2.2 单卡</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>先用精度和 micro-batch 调整单卡账本</h2>
+<div class="body">
+<div class="grid g2">
+<div class="card blue">
+<span class="label">Mixed precision</span>
+<h3>减少每元素字节数</h3>
+<p>参数、激活或梯度的容量与搬运压力下降；合适硬件路径上计算也可能更快。</p>
+<p>
+<strong>必须验证：</strong>高精度更新状态、归约精度、溢出 / 下溢与收敛。</p>
+</div>
+<div class="card soft">
+<span class="label">Micro-batch + accumulation</span>
+<h3>降低单次激活峰值</h3>
+<p>减小 micro-batch，用更多 micro-step 补回相同 global batch。</p>
+<p>
+<strong>代价：</strong>小 shape 可能降低算子效率，固定开销被重复支付。</p>
+</div>
+</div>
+<div class="formula">global batch 固定：<strong>micro-batch ↓</strong> → activation peak ↓ → <strong>accumulation ↑</strong>
+</div>
+<p class="note">若峰值主要来自参数、梯度或优化器状态，继续减 micro-batch 收益会迅速变小，应转向状态分片。</p>
+</div>
+<footer class="foot">
+<span>比较峰值显存 · step time · 训练质量</span>
+<span>content/02 · 2.2</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="checkpoint" data-ch="02 训练" data-title="Activation Checkpointing">
+<div class="frame">
+<header class="top">
+<span>02 · <b>2.2 Checkpointing</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>只保存检查点；Backward 时重算中间激活</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 460" role="img" aria-label="Activation Checkpointing 对比：普通前向保存所有激活，checkpoint 只保存边界并在反向时重算">
+<title>Activation Checkpointing 执行过程</title>
+<defs>
+<marker id="ckpt-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--blue)"/>
+</marker>
+</defs>
+<text x="70" y="72" font-size="24" font-weight="700">普通训练</text>
+<g>
+<rect x="245" y="35" width="125" height="72" rx="14" class="soft"/>
+<rect x="430" y="35" width="125" height="72" rx="14" class="soft"/>
+<rect x="615" y="35" width="125" height="72" rx="14" class="soft"/>
+<rect x="800" y="35" width="125" height="72" rx="14" class="soft"/>
+<text x="307" y="79" text-anchor="middle" font-size="22" font-weight="700">A1</text>
+<text x="492" y="79" text-anchor="middle" font-size="22" font-weight="700">A2</text>
+<text x="677" y="79" text-anchor="middle" font-size="22" font-weight="700">A3</text>
+<text x="862" y="79" text-anchor="middle" font-size="22" font-weight="700">A4</text>
+<path d="M370 71H430M555 71H615M740 71H800" class="blue-line" marker-end="url(#ckpt-arrow)"/>
+</g>
+<text x="585" y="145" text-anchor="middle" font-size="20" class="muted">Forward 保存全部激活 → Backward 直接读取</text>
+<line x1="55" y1="190" x2="1065" y2="190" class="line dash"/>
+<text x="70" y="245" font-size="24" font-weight="700">Checkpoint</text>
+<g>
+<rect x="245" y="210" width="125" height="72" rx="14" class="blue-box"/>
+<rect x="430" y="210" width="125" height="72" rx="14" class="box" stroke-dasharray="6 5"/>
+<rect x="615" y="210" width="125" height="72" rx="14" class="box" stroke-dasharray="6 5"/>
+<rect x="800" y="210" width="125" height="72" rx="14" class="blue-box"/>
+<text x="307" y="254" text-anchor="middle" font-size="22" font-weight="700" class="white">C1</text>
+<text x="492" y="254" text-anchor="middle" font-size="20" class="muted">不保存</text>
+<text x="677" y="254" text-anchor="middle" font-size="20" class="muted">不保存</text>
+<text x="862" y="254" text-anchor="middle" font-size="22" font-weight="700" class="white">C4</text>
+</g>
+<path d="M862 300 C820 385 350 385 307 300" class="coral-line" marker-end="url(#ckpt-arrow)"/>
+<rect x="400" y="330" width="370" height="78" rx="16" class="coral-box"/>
+<text x="585" y="365" text-anchor="middle" font-size="24" font-weight="700" class="coral-text">Backward 前重算 A2 / A3</text>
+<text x="585" y="394" text-anchor="middle" font-size="19" class="muted">activation memory ↓ · extra FLOPs ↑</text>
+</svg>
+</div>
+<div class="takeaway">它没有删除工作，只改变“保存哪些激活、什么时候重新计算”。</div>
+</div>
+<footer class="foot">
+<span>图例依据 PyTorch torch.utils.checkpoint 执行语义重绘</span>
+<span>REF-003</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="input-utilization" data-ch="02 训练" data-title="输入形状与数据供给">
+<div class="frame">
+<header class="top"><span>02 · <b>2.2 输入检查</b></span><span class="num"></span></header>
+<h2>利用率低，不一定是显存或并行切分问题</h2>
+<div class="body">
+<div class="grid g3">
+<div class="card coral"><span class="label">Padding</span><div class="metric">空 token</div><p>GPU 会对补齐位置做真实计算；看有效 token 比例，而不是只看 batch shape。</p></div>
+<div class="card lime"><span class="label">Packing</span><div class="metric">有效率 ↑</div><p>提高有效 token 比例，但会改变样本边界与实现复杂度，必须验证语义。</p></div>
+<div class="card soft"><span class="label">Data pipeline</span><div class="metric">GPU 等待</div><p>加载、预处理或传输不及时，会在时间线上留下供给空隙。</p></div>
+</div>
+<div class="flow"><div class="step"><span class="label">先看</span><h3>局部 shape</h3><p>小矩阵是否吃不满</p></div><span class="arrow">→</span><div class="step"><span class="label">再看</span><h3>有效 token</h3><p>padding / packing</p></div><span class="arrow">→</span><div class="step"><span class="label">再看</span><h3>输入供给</h3><p>GPU 是否在等数据</p></div><span class="arrow">→</span><div class="step"><span class="label">最后</span><h3>并行等待</h3><p>通信是否暴露</p></div></div>
+<div class="takeaway">这三类问题都可能表现为“GPU 利用率低”，但都不应直接用“加卡”解决。</div>
+</div>
+<footer class="foot"><span>固定 global batch 与质量边界，分别验证峰值、step time、有效吞吐</span><span>content/02 · 2.2 最后检查输入形状</span></footer>
+</div>
+</section>
+
+<section class="slide" id="split-map" data-ch="02 训练" data-title="多卡切分地图">
+<div class="frame">
+<header class="top">
+<span>02 · <b>2.3 多卡</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>理解并行策略，先问“切什么”</h2>
+<div class="body">
+<div class="splitmap">
+<div class="hd">切分对象</div>
+<div class="hd">代表方法</div>
+<div class="hd">优先解决</div>
+<div>
+<strong>Batch</strong>
+</div>
+<div>Data Parallelism</div>
+<div>扩大数据吞吐</div>
+<div>
+<strong>训练状态</strong>
+</div>
+<div>ZeRO / FSDP</div>
+<div>状态主导 OOM</div>
+<div>
+<strong>层内张量</strong>
+</div>
+<div>Tensor Parallelism</div>
+<div>单层放不下 / 过重</div>
+<div>
+<strong>连续层</strong>
+</div>
+<div>Pipeline Parallelism</div>
+<div>总层数跨卡驻留</div>
+<div>
+<strong>序列 / 上下文</strong>
+</div>
+<div>SP / CP</div>
+<div>长序列激活与 Attention</div>
+<div>
+<strong>专家</strong>
+</div>
+<div>Expert Parallelism</div>
+<div>MoE 专家分布</div>
+</div>
+<div class="flow">
+<div class="step">
+<span class="label">1</span>
+<p>每卡少持有什么？</p>
+</div>
+<div class="step">
+<span class="label">2</span>
+<p>每卡少算什么？</p>
+</div>
+<div class="step">
+<span class="label">3</span>
+<p>为恢复布局交换什么？</p>
+</div>
+<div class="step">
+<span class="label">4</span>
+<p>新增什么等待与约束？</p>
+</div>
+</div>
+</div>
+<footer class="foot">
+<span>组合并行不会取消各自代价</span>
+<span>content/02 · 2.3</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="state-sharding" data-ch="02 训练" data-title="DP 与 ZeRO">
+<div class="frame">
+<header class="top">
+<span>02 · <b>2.4 ZeRO</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>ZeRO 逐级把优化器、梯度和参数切成分片</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 455" role="img" aria-label="四行 ZeRO 阶段图，展示每张 GPU 上优化器状态、梯度和参数从复制到分片">
+<title>ZeRO 各阶段的状态分片</title>
+<g font-size="20" font-weight="700">
+<text x="75" y="92">传统 DP</text>
+<text x="75" y="192">ZeRO-1</text>
+<text x="75" y="292">ZeRO-2</text>
+<text x="75" y="392">ZeRO-3</text>
+</g>
+<g font-size="18" class="muted">
+<text x="245" y="35" text-anchor="middle">GPU 0</text>
+<text x="485" y="35" text-anchor="middle">GPU 1</text>
+<text x="725" y="35" text-anchor="middle">GPU 2</text>
+<text x="965" y="35" text-anchor="middle">GPU 3</text>
+</g>
+<g>
+<rect x="150" y="55" width="190" height="62" rx="12" class="box"/>
+<rect x="390" y="55" width="190" height="62" rx="12" class="box"/>
+<rect x="630" y="55" width="190" height="62" rx="12" class="box"/>
+<rect x="870" y="55" width="190" height="62" rx="12" class="box"/>
+<g font-size="17" text-anchor="middle">
+<text x="245" y="83">P · G · O</text>
+<text x="245" y="105" class="muted">全部复制</text>
+<text x="485" y="83">P · G · O</text>
+<text x="485" y="105" class="muted">全部复制</text>
+<text x="725" y="83">P · G · O</text>
+<text x="725" y="105" class="muted">全部复制</text>
+<text x="965" y="83">P · G · O</text>
+<text x="965" y="105" class="muted">全部复制</text>
+</g>
+</g>
+<g font-size="18" text-anchor="middle">
+<rect x="150" y="155" width="190" height="62" rx="12" class="soft"/>
+<rect x="390" y="155" width="190" height="62" rx="12" class="soft"/>
+<rect x="630" y="155" width="190" height="62" rx="12" class="soft"/>
+<rect x="870" y="155" width="190" height="62" rx="12" class="soft"/>
+<text x="245" y="193">P · G · O₀</text>
+<text x="485" y="193">P · G · O₁</text>
+<text x="725" y="193">P · G · O₂</text>
+<text x="965" y="193">P · G · O₃</text>
+<rect x="150" y="255" width="190" height="62" rx="12" class="lime-box"/>
+<rect x="390" y="255" width="190" height="62" rx="12" class="lime-box"/>
+<rect x="630" y="255" width="190" height="62" rx="12" class="lime-box"/>
+<rect x="870" y="255" width="190" height="62" rx="12" class="lime-box"/>
+<text x="245" y="293">P · G₀ · O₀</text>
+<text x="485" y="293">P · G₁ · O₁</text>
+<text x="725" y="293">P · G₂ · O₂</text>
+<text x="965" y="293">P · G₃ · O₃</text>
+<rect x="150" y="355" width="190" height="62" rx="12" class="coral-box"/>
+<rect x="390" y="355" width="190" height="62" rx="12" class="coral-box"/>
+<rect x="630" y="355" width="190" height="62" rx="12" class="coral-box"/>
+<rect x="870" y="355" width="190" height="62" rx="12" class="coral-box"/>
+<text x="245" y="393">P₀ · G₀ · O₀</text>
+<text x="485" y="393">P₁ · G₁ · O₁</text>
+<text x="725" y="393">P₂ · G₂ · O₂</text>
+<text x="965" y="393">P₃ · G₃ · O₃</text>
+</g>
+<text x="1080" y="390" text-anchor="end" font-size="18" class="muted">P 参数 · G 梯度 · O 优化器状态</text>
+</svg>
+</div>
+<div class="takeaway">stage 越高，长期复制越少；计算前后的聚合也越频繁。</div>
+</div>
+<footer class="foot">
+<span>图例依据 ZeRO 论文的三阶段状态分片关系重绘</span>
+<span>Rajbhandari et al., 2020</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="fsdp-life" data-ch="02 训练" data-title="FSDP 参数生命周期">
+<div class="frame">
+<header class="top">
+<span>02 · <b>2.4 FSDP</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>FSDP 的关键不是“分片”，而是完整参数只短暂出现</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 450" role="img" aria-label="FSDP 参数生命周期环：参数分片驻留，AllGather 完整参数，计算，释放，再通过 ReduceScatter 得到梯度分片">
+<title>FSDP 参数生命周期</title>
+<defs>
+<marker id="fsdp-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--blue)"/>
+</marker>
+</defs>
+<circle cx="560" cy="225" r="165" fill="none" stroke="var(--line-strong)" stroke-width="2" stroke-dasharray="8 8"/>
+<g>
+<rect x="80" y="170" width="225" height="110" rx="18" class="blue-box"/>
+<text x="192" y="214" text-anchor="middle" font-size="25" font-weight="700" class="white">参数分片驻留</text>
+<text x="192" y="248" text-anchor="middle" font-size="19" class="white">P₀ · P₁ · P₂ · P₃</text>
+<rect x="448" y="38" width="225" height="110" rx="18" class="soft"/>
+<text x="560" y="82" text-anchor="middle" font-size="25" font-weight="700">AllGather</text>
+<text x="560" y="116" text-anchor="middle" font-size="19">短暂得到完整 P</text>
+<rect x="815" y="170" width="225" height="110" rx="18" class="lime-box"/>
+<text x="927" y="214" text-anchor="middle" font-size="25" font-weight="700">Forward / Backward</text>
+<text x="927" y="248" text-anchor="middle" font-size="19">使用完整参数</text>
+<rect x="448" y="302" width="225" height="110" rx="18" class="coral-box"/>
+<text x="560" y="346" text-anchor="middle" font-size="25" font-weight="700" class="coral-text">ReduceScatter</text>
+<text x="560" y="380" text-anchor="middle" font-size="19">梯度重新成为分片</text>
+</g>
+<path d="M305 190C355 95 400 75 448 75" class="blue-line" marker-end="url(#fsdp-arrow)"/>
+<path d="M673 75C735 95 775 135 815 190" class="blue-line" marker-end="url(#fsdp-arrow)"/>
+<path d="M815 260C775 320 735 350 673 360" class="blue-line" marker-end="url(#fsdp-arrow)"/>
+<path d="M448 360C375 350 330 310 285 270" class="blue-line" marker-end="url(#fsdp-arrow)"/>
+<text x="560" y="218" text-anchor="middle" font-size="24" font-weight="700">完整参数</text>
+<text x="560" y="250" text-anchor="middle" font-size="20" class="muted">只在当前单元计算期内存活</text>
+</svg>
+</div>
+<div class="takeaway">封装粒度、预取和释放时机，共同决定临时峰值与通信能否重叠。</div>
+</div>
+<footer class="foot">
+<span>图例依据 PyTorch FSDP 官方 workflow 重绘</span>
+<span>Zhao et al., 2023</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="tp" data-ch="02 训练" data-title="Tensor Parallelism">
+<div class="frame">
+<header class="top">
+<span>02 · <b>2.5 TP</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>Megatron 式 MLP：先列切分，再行切分</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 450" role="img" aria-label="两卡 Tensor Parallel MLP：输入 X 分别乘 W up 的两半得到 Z0 Z1，再分别乘 W down 的两半，最后 AllReduce 得到 Y">
+<title>两卡 Tensor Parallel MLP</title>
+<defs>
+<marker id="tp-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--blue)"/>
+</marker>
+</defs>
+<rect x="40" y="175" width="150" height="90" rx="18" class="blue-box"/>
+<text x="115" y="212" text-anchor="middle" font-size="26" font-weight="700" class="white">X</text>
+<text x="115" y="242" text-anchor="middle" font-size="18" class="white">hidden H</text>
+<path d="M190 205C235 160 250 130 300 115M190 235C235 280 250 310 300 325" class="blue-line" marker-end="url(#tp-arrow)"/>
+<rect x="300" y="55" width="235" height="125" rx="18" class="soft"/>
+<rect x="300" y="270" width="235" height="125" rx="18" class="lime-box"/>
+<text x="417" y="92" text-anchor="middle" font-size="20" font-weight="700" class="blue-text">GPU 0 · 列切 Wup</text>
+<text x="417" y="132" text-anchor="middle" font-size="25" font-weight="700">X · Wup₀ → Z₀</text>
+<text x="417" y="307" text-anchor="middle" font-size="20" font-weight="700">GPU 1 · 列切 Wup</text>
+<text x="417" y="347" text-anchor="middle" font-size="25" font-weight="700">X · Wup₁ → Z₁</text>
+<path d="M535 115H650M535 330H650" class="blue-line" marker-end="url(#tp-arrow)"/>
+<rect x="650" y="55" width="225" height="125" rx="18" class="soft"/>
+<rect x="650" y="270" width="225" height="125" rx="18" class="lime-box"/>
+<text x="762" y="92" text-anchor="middle" font-size="20" font-weight="700">行切 Wdown</text>
+<text x="762" y="132" text-anchor="middle" font-size="25" font-weight="700">Z₀ · Wdown₀ → Y₀</text>
+<text x="762" y="307" text-anchor="middle" font-size="20" font-weight="700">行切 Wdown</text>
+<text x="762" y="347" text-anchor="middle" font-size="25" font-weight="700">Z₁ · Wdown₁ → Y₁</text>
+<path d="M875 115C930 145 945 170 960 195M875 330C930 300 945 270 960 245" class="blue-line" marker-end="url(#tp-arrow)"/>
+<rect x="960" y="175" width="135" height="90" rx="18" class="coral-box"/>
+<text x="1027" y="210" text-anchor="middle" font-size="21" font-weight="700" class="coral-text">AllReduce</text>
+<text x="1027" y="240" text-anchor="middle" font-size="22" font-weight="700">Y₀ + Y₁</text>
+</svg>
+</div>
+<div class="takeaway">中间特征不必先拼完整，但下一层需要一致布局前必须归并局部贡献。</div>
+</div>
+<footer class="foot">
+<span>图例依据 Megatron-LM intra-layer model parallelism 重绘</span>
+<span>Shoeybi et al., 2019</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="pp" data-ch="02 训练" data-title="Pipeline Parallelism">
+<div class="frame">
+<header class="top">
+<span>02 · <b>2.6 PP</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>把 batch 切成 micro-batch，流水线才有机会填满</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 450" role="img" aria-label="四个 pipeline stage 的时空图，显示预热、稳定执行和排空阶段，以及前向和反向单元">
+<title>1F1B Pipeline Schedule</title>
+<g font-size="19" class="muted">
+<text x="235" y="38">预热</text>
+<text x="570" y="38">稳定 1F1B</text>
+<text x="930" y="38">排空</text>
+</g>
+<g font-size="20" font-weight="700" text-anchor="end">
+<text x="120" y="115">Stage 0</text>
+<text x="120" y="195">Stage 1</text>
+<text x="120" y="275">Stage 2</text>
+<text x="120" y="355">Stage 3</text>
+</g>
+<g>
+<line x1="145" y1="65" x2="1060" y2="65" class="line"/>
+<line x1="145" y1="385" x2="1060" y2="385" class="line"/>
+<line x1="375" y1="65" x2="375" y2="385" class="line dash"/>
+<line x1="830" y1="65" x2="830" y2="385" class="line dash"/>
+</g>
+<g font-size="18" font-weight="700" text-anchor="middle">
+<rect x="160" y="85" width="95" height="48" rx="10" class="blue-box"/>
+<text x="207" y="116" class="white">F1</text>
+<rect x="270" y="85" width="95" height="48" rx="10" class="blue-box"/>
+<text x="317" y="116" class="white">F2</text>
+<rect x="380" y="85" width="95" height="48" rx="10" class="blue-box"/>
+<text x="427" y="116" class="white">F3</text>
+<rect x="490" y="85" width="95" height="48" rx="10" class="coral-box"/>
+<text x="537" y="116" class="coral-text">B1</text>
+<rect x="600" y="85" width="95" height="48" rx="10" class="blue-box"/>
+<text x="647" y="116" class="white">F4</text>
+<rect x="710" y="85" width="95" height="48" rx="10" class="coral-box"/>
+<text x="757" y="116" class="coral-text">B2</text>
+<rect x="820" y="85" width="95" height="48" rx="10" class="coral-box"/>
+<text x="867" y="116" class="coral-text">B3</text>
+<rect x="930" y="85" width="95" height="48" rx="10" class="coral-box"/>
+<text x="977" y="116" class="coral-text">B4</text>
+<rect x="270" y="165" width="95" height="48" rx="10" class="blue-box"/>
+<text x="317" y="196" class="white">F1</text>
+<rect x="380" y="165" width="95" height="48" rx="10" class="blue-box"/>
+<text x="427" y="196" class="white">F2</text>
+<rect x="490" y="165" width="95" height="48" rx="10" class="coral-box"/>
+<text x="537" y="196" class="coral-text">B1</text>
+<rect x="600" y="165" width="95" height="48" rx="10" class="blue-box"/>
+<text x="647" y="196" class="white">F3</text>
+<rect x="710" y="165" width="95" height="48" rx="10" class="coral-box"/>
+<text x="757" y="196" class="coral-text">B2</text>
+<rect x="820" y="165" width="95" height="48" rx="10" class="blue-box"/>
+<text x="867" y="196" class="white">F4</text>
+<rect x="930" y="165" width="95" height="48" rx="10" class="coral-box"/>
+<text x="977" y="196" class="coral-text">B3</text>
+<rect x="380" y="245" width="95" height="48" rx="10" class="blue-box"/>
+<text x="427" y="276" class="white">F1</text>
+<rect x="490" y="245" width="95" height="48" rx="10" class="coral-box"/>
+<text x="537" y="276" class="coral-text">B1</text>
+<rect x="600" y="245" width="95" height="48" rx="10" class="blue-box"/>
+<text x="647" y="276" class="white">F2</text>
+<rect x="710" y="245" width="95" height="48" rx="10" class="coral-box"/>
+<text x="757" y="276" class="coral-text">B2</text>
+<rect x="820" y="245" width="95" height="48" rx="10" class="blue-box"/>
+<text x="867" y="276" class="white">F3</text>
+<rect x="930" y="245" width="95" height="48" rx="10" class="coral-box"/>
+<text x="977" y="276" class="coral-text">B3</text>
+<rect x="490" y="325" width="95" height="48" rx="10" class="blue-box"/>
+<text x="537" y="356" class="white">F1</text>
+<rect x="600" y="325" width="95" height="48" rx="10" class="coral-box"/>
+<text x="647" y="356" class="coral-text">B1</text>
+<rect x="710" y="325" width="95" height="48" rx="10" class="blue-box"/>
+<text x="757" y="356" class="white">F2</text>
+<rect x="820" y="325" width="95" height="48" rx="10" class="coral-box"/>
+<text x="867" y="356" class="coral-text">B2</text>
+</g>
+<rect x="160" y="405" width="26" height="18" rx="4" class="blue-box"/>
+<text x="195" y="420" font-size="17">Forward</text>
+<rect x="300" y="405" width="26" height="18" rx="4" class="coral-box"/>
+<text x="335" y="420" font-size="17">Backward</text>
+</svg>
+</div>
+<div class="takeaway">最慢 stage 决定节拍；调度能减少空泡，但不能消除依赖与 stage 不平衡。</div>
+</div>
+<footer class="foot">
+<span>图例依据 GPipe 与 Megatron 1F1B schedule 重绘</span>
+<span>Huang et al., 2019 · Narayanan et al., 2021</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="sequence-expert" data-ch="02 训练" data-title="序列与上下文切分">
+<div class="frame">
+<header class="top">
+<span>02 · <b>2.7 SP / CP</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>两种经典长序列数据流：转 KV，或换布局</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 460" role="img" aria-label="左侧 Ring Attention 展示 KV 分块在四卡环上轮转；右侧 Ulysses 展示局部序列全 heads 通过 All-to-All 变为完整序列局部 heads">
+<title>Ring Attention 与 Ulysses 数据流</title>
+<defs>
+<marker id="seq-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--blue)"/>
+</marker>
+</defs>
+<text x="280" y="42" text-anchor="middle" font-size="25" font-weight="700" class="blue-text">Ring Attention</text>
+<circle cx="280" cy="235" r="145" fill="none" stroke="var(--blue)" stroke-width="4"/>
+<g font-size="19" font-weight="700" text-anchor="middle">
+<rect x="225" y="67" width="110" height="65" rx="13" class="soft"/>
+<text x="280" y="96">GPU 0</text>
+<text x="280" y="120" class="muted">Q₀ · KV₀</text>
+<rect x="383" y="202" width="110" height="65" rx="13" class="soft"/>
+<text x="438" y="231">GPU 1</text>
+<text x="438" y="255" class="muted">Q₁ · KV₁</text>
+<rect x="225" y="337" width="110" height="65" rx="13" class="soft"/>
+<text x="280" y="366">GPU 2</text>
+<text x="280" y="390" class="muted">Q₂ · KV₂</text>
+<rect x="67" y="202" width="110" height="65" rx="13" class="soft"/>
+<text x="122" y="231">GPU 3</text>
+<text x="122" y="255" class="muted">Q₃ · KV₃</text>
+</g>
+<path d="M335 100C390 120 425 155 438 202M438 267C420 320 375 360 335 370M225 370C170 350 135 310 122 267M122 202C140 150 180 115 225 100" class="blue-line" marker-end="url(#seq-arrow)"/>
+<text x="280" y="226" text-anchor="middle" font-size="22" font-weight="700">Q 固定</text>
+<text x="280" y="256" text-anchor="middle" font-size="20" class="muted">KV 沿环轮转</text>
+<line x1="545" y1="55" x2="545" y2="415" class="line dash"/>
+<text x="830" y="42" text-anchor="middle" font-size="25" font-weight="700" class="coral-text">DeepSpeed Ulysses</text>
+<rect x="625" y="95" width="410" height="90" rx="18" class="soft"/>
+<text x="830" y="132" text-anchor="middle" font-size="23" font-weight="700">局部序列 × 全部 heads</text>
+<text x="830" y="163" text-anchor="middle" font-size="19" class="muted">[S / P, H]</text>
+<path d="M830 185V260" class="coral-line" marker-end="url(#seq-arrow)"/>
+<text x="855" y="230" font-size="20" font-weight="700" class="coral-text">All-to-All</text>
+<rect x="625" y="270" width="410" height="90" rx="18" class="coral-box"/>
+<text x="830" y="307" text-anchor="middle" font-size="23" font-weight="700">完整序列 × 局部 heads</text>
+<text x="830" y="338" text-anchor="middle" font-size="19" class="muted">[S, H / P] · 本地 Attention</text>
+<path d="M650 380C715 430 945 430 1010 380" class="coral-line dash"/>
+<text x="830" y="430" text-anchor="middle" font-size="20" class="muted">再一次 All-to-All 恢复序列切分</text>
+</svg>
+</div>
+<div class="takeaway">共同目标是分摊长序列状态；差别是 KV 如何移动、布局如何恢复。</div>
+</div>
+<footer class="foot">
+<span>图例依据 Ring Attention 与 DeepSpeed-Ulysses 论文重绘</span>
+<span>Liu et al., 2023 · Jacobs et al., 2023</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="expert-parallel" data-ch="02 训练" data-title="Expert Parallelism">
+<div class="frame">
+<header class="top">
+<span>02 · <b>2.8 EP</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>Router 决定 token 去哪里；All-to-All 完成搬运</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 450" role="img" aria-label="Switch Transformer 风格的专家路由图，六个 token 经 router 分发到四个专家，再合并回原顺序，其中专家 0 负载更高">
+<title>Expert Parallelism token routing</title>
+<defs>
+<marker id="ep-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--blue)"/>
+</marker>
+</defs>
+<text x="95" y="48" text-anchor="middle" font-size="21" font-weight="700">输入 token</text>
+<g font-size="18" font-weight="700" text-anchor="middle">
+<circle cx="95" cy="100" r="27" fill="var(--blue)"/>
+<text x="95" y="107" class="white">t₀</text>
+<circle cx="95" cy="155" r="27" fill="var(--blue)"/>
+<text x="95" y="162" class="white">t₁</text>
+<circle cx="95" cy="210" r="27" fill="var(--blue)"/>
+<text x="95" y="217" class="white">t₂</text>
+<circle cx="95" cy="265" r="27" fill="var(--blue)"/>
+<text x="95" y="272" class="white">t₃</text>
+<circle cx="95" cy="320" r="27" fill="var(--blue)"/>
+<text x="95" y="327" class="white">t₄</text>
+<circle cx="95" cy="375" r="27" fill="var(--blue)"/>
+<text x="95" y="382" class="white">t₅</text>
+</g>
+<rect x="240" y="145" width="180" height="180" rx="24" class="soft"/>
+<text x="330" y="215" text-anchor="middle" font-size="26" font-weight="700" class="blue-text">Router</text>
+<text x="330" y="250" text-anchor="middle" font-size="19" class="muted">Top-k gate</text>
+<text x="330" y="282" text-anchor="middle" font-size="19" class="muted">决定专家</text>
+<g class="blue-line thin">
+<path d="M122 100L240 180"/>
+<path d="M122 155L240 200"/>
+<path d="M122 210L240 220"/>
+<path d="M122 265L240 250"/>
+<path d="M122 320L240 270"/>
+<path d="M122 375L240 290"/>
+</g>
+<text x="530" y="48" text-anchor="middle" font-size="21" font-weight="700">All-to-All dispatch</text>
+<g font-size="22" font-weight="700" text-anchor="middle">
+<rect x="500" y="75" width="190" height="70" rx="16" class="coral-box"/>
+<text x="595" y="118" class="coral-text">Expert 0 · 3</text>
+<rect x="500" y="165" width="190" height="70" rx="16" class="lime-box"/>
+<text x="595" y="208">Expert 1 · 1</text>
+<rect x="500" y="255" width="190" height="70" rx="16" class="soft"/>
+<text x="595" y="298">Expert 2 · 1</text>
+<rect x="500" y="345" width="190" height="70" rx="16" class="box"/>
+<text x="595" y="388">Expert 3 · 1</text>
+</g>
+<path d="M420 185L500 110M420 215L500 200M420 255L500 290M420 285L500 380" class="blue-line" marker-end="url(#ep-arrow)"/>
+<rect x="805" y="145" width="235" height="180" rx="24" class="blue-box"/>
+<text x="922" y="205" text-anchor="middle" font-size="25" font-weight="700" class="white">All-to-All</text>
+<text x="922" y="242" text-anchor="middle" font-size="25" font-weight="700" class="white">combine</text>
+<text x="922" y="282" text-anchor="middle" font-size="19" class="white">恢复原 token 布局</text>
+<path d="M690 110C755 120 770 170 805 190M690 200H805M690 290C755 285 770 270 805 255M690 380C755 360 780 325 820 305" class="blue-line" marker-end="url(#ep-arrow)"/>
+<text x="595" y="440" text-anchor="middle" font-size="21" font-weight="700" class="coral-text">Expert 0 最慢 → 其他设备等待</text>
+</svg>
+</div>
+<div class="takeaway">稀疏激活不等于通信少；每专家 token 数决定负载是否均匀。</div>
+</div>
+<footer class="foot">
+<span>图例依据 Switch Transformer Figure 2 的 token-to-expert routing 重绘</span>
+<span>Fedus et al., 2022</span>
+</footer>
+</div>
+</section>
+
+<section class="slide dark" id="train-choice" data-ch="02 训练" data-title="训练选择与验证">
+<div class="frame">
+<header class="top">
+<span>02 · <b>2.9 选择</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>先定位峰值或等待，再只改变一个杠杆</h2>
+<div class="body">
+<div class="grid g3">
+<div class="card">
+<span class="label">OOM</span>
+<h3>看峰值时间线</h3>
+<p>激活主导：micro-batch、重计算、序列切分。<br>状态主导：ZeRO / FSDP。<br>单层峰值：再考虑 TP。</p>
+</div>
+<div class="card">
+<span class="label">低利用率</span>
+<h3>先查单卡粒度</h3>
+<p>局部 shape、padding、数据供给和固定开销，不要直接加卡。</p>
+</div>
+<div class="card">
+<span class="label">扩展差</span>
+<h3>找暴露的等待</h3>
+<p>collective、PP 空泡、专家不均和不能重叠的依赖。</p>
+</div>
+</div>
+<div class="quote">“峰值随 micro-batch 增长；先把 micro-batch 减半、累积翻倍，保持 global batch，验证峰值下降与吞吐损失。”</div>
+</div>
+<footer class="foot">
+<span>固定模型 / 数据 / global batch / 精度 · 记录 peak / step time / tokens/s</span>
+<span>content/02 · 2.9</span>
+</footer>
+</div>
+</section>
+
+<section class="slide dark chapter" id="ch3" data-ch="03 推理" data-title="章节开场">
+<div class="frame">
+<header class="top">
+<span>Chapter</span>
+<span class="num">
+</span>
+</header>
+<div class="body">
+<div class="chapter-no">03</div>
+<h2>推理：从单次执行到并发服务</h2>
+<p class="lede">“更快”有不同含义。先拆开 prefill 与 decode，再把单请求关键路径放进持续服务。</p>
+</div>
+<footer class="foot">
+<span>场景二 · 推理</span>
+<span>content / 03</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="metrics" data-ch="03 推理" data-title="先定义快">
+<div class="frame">
+<header class="top">
+<span>03 · <b>3.1 目标</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>先定义服务形态，再谈“更快”</h2>
+<div class="body">
+<div class="grid g3">
+<div class="card blue">
+<span class="label">在线流式</span>
+<h3>首 token 快，后续稳定</h3>
+<p>关注 TTFT、ITL / TPOT、端到端时延、P95/P99 与稳定并发。</p>
+</div>
+<div class="card">
+<span class="label">在线非流式</span>
+<h3>在截止时间内完成</h3>
+<p>关注端到端时延、尾延迟、吞吐与超时率。</p>
+</div>
+<div class="card">
+<span class="label">离线生成</span>
+<h3>尽快、尽便宜完成</h3>
+<p>关注总完成时间、总吞吐、设备时与单位输出成本。</p>
+</div>
+</div>
+<div class="quote">同一个 token/s，可能在回答用户体验、整机产能或离线任务成本三个不同问题。</div>
+</div>
+<footer class="foot">
+<span>固定模型 · 长度分布 · 精度 · 并发 · 硬件</span>
+<span>content/03 · 3.1</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="metric-definitions" data-ch="03 推理" data-title="推理指标口径">
+<div class="frame">
+<header class="top">
+<span>03 · <b>3.1 指标</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>指标名相同，计时边界也要写清</h2>
+<div class="body">
+<div class="grid g2">
+<div class="card soft">
+<span class="label">TTFT</span>
+<h3>请求到首个输出 token</h3>
+<p>这里包含网络、排队、prefill 与产生首 token 的执行时间。</p>
+</div>
+<div class="card soft">
+<span class="label">TPOT</span>
+<h3>首 token 后的平均输出间隔</h3>
+<p>平均值会掩盖抖动，在线流式还要看 ITL 分布。</p>
+</div>
+<div class="card">
+<span class="label">吞吐</span>
+<h3>明确分子与聚合范围</h3>
+<p>output / total tokens/s 或 requests/s；单卡、单副本还是整个服务。</p>
+</div>
+<div class="card">
+<span class="label">稳定并发</span>
+<h3>不是“显存能塞多少”</h3>
+<p>是在给定到达分布与 SLO 下可以持续服务的并发。</p>
+</div>
+</div>
+<div class="formula">可比较的结果 = <strong>相同 workload + 相同统计口径 + 相同质量边界</strong>
+</div>
+</div>
+<footer class="foot">
+<span>只测服务端或模型阶段时必须另行标明</span>
+<span>content/03 · 3.1</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="prefill-decode" data-ch="03 推理" data-title="一次请求的流程">
+<div class="frame">
+<header class="top">
+<span>03 · <b>3.2 请求流程</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>一次 Prefill 建立状态，多次 Decode 串行推进</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 450" role="img" aria-label="LLM 请求时间线：排队后用一大块 prefill 处理所有输入 token，然后依次进行多个串行 decode step 并增长 KV cache">
+<title>LLM Prefill 与 Decode 请求流程</title>
+<defs>
+<marker id="pd-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--blue)"/>
+</marker>
+</defs>
+<line x1="70" y1="225" x2="1050" y2="225" class="line" marker-end="url(#pd-arrow)"/>
+<rect x="80" y="175" width="145" height="100" rx="18" class="box"/>
+<text x="152" y="215" text-anchor="middle" font-size="23" font-weight="700">Queue</text>
+<text x="152" y="247" text-anchor="middle" font-size="18" class="muted">排队 / 调度</text>
+<rect x="270" y="130" width="280" height="190" rx="22" class="blue-box"/>
+<text x="410" y="190" text-anchor="middle" font-size="28" font-weight="700" class="white">Prefill</text>
+<text x="410" y="230" text-anchor="middle" font-size="21" class="white">全部输入 token 一次处理</text>
+<text x="410" y="270" text-anchor="middle" font-size="19" class="white">建立初始 KV · 产生首 token</text>
+<g font-size="20" font-weight="700" text-anchor="middle">
+<rect x="600" y="175" width="105" height="100" rx="16" class="lime-box"/>
+<text x="652" y="215">Decode 1</text>
+<text x="652" y="247" class="muted">+ KV</text>
+<rect x="725" y="175" width="105" height="100" rx="16" class="lime-box"/>
+<text x="777" y="215">Decode 2</text>
+<text x="777" y="247" class="muted">+ KV</text>
+<rect x="850" y="175" width="105" height="100" rx="16" class="lime-box"/>
+<text x="902" y="215">Decode 3</text>
+<text x="902" y="247" class="muted">+ KV</text>
+<text x="995" y="232" font-size="28">…</text>
+</g>
+<path d="M705 140C725 95 810 95 830 140" class="coral-line dash"/>
+<text x="767" y="84" text-anchor="middle" font-size="20" font-weight="700" class="coral-text">下一步依赖上一步 token</text>
+<path d="M410 340V390M652 300V390M777 300V390M902 300V390" class="blue-line thin"/>
+<path d="M410 390H902" class="blue-line" marker-end="url(#pd-arrow)"/>
+<text x="655" y="425" text-anchor="middle" font-size="20" class="muted">KV cache 随上下文持续增长</text>
+</svg>
+</div>
+<div class="takeaway">输入长度主要影响 Prefill；输出长度增加串行 Decode 步数。</div>
+</div>
+<footer class="foot">
+<span>图例依据主流 decoder-only LLM 请求执行流程重绘</span>
+<span>REF-007 · FACT-008</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="prefill-compare" data-ch="03 推理" data-title="Prefill / Decode 对比">
+<div class="frame">
+<header class="top">
+<span>03 · <b>3.2 阶段特点</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>两段执行的粒度、依赖与瓶颈都不同</h2>
+<div class="body">
+<table class="table">
+<thead>
+<tr>
+<th>维度</th>
+<th>Prefill</th>
+<th>Decode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="k">每次处理</td>
+<td>一段输入 token</td>
+<td>每个活动请求的一个新 token</td>
+</tr>
+<tr>
+<td class="k">依赖关系</td>
+<td>输入位置可在一次前向中并行处理</td>
+<td>下一个 token 依赖上一个 token，步骤间串行</td>
+</tr>
+<tr>
+<td class="k">KV cache</td>
+<td>为输入建立初始状态</td>
+<td>每步读取已有 KV，并追加新的 KV</td>
+</tr>
+<tr>
+<td class="k">常见特征</td>
+<td>工作规模较大，更容易形成较大矩阵计算</td>
+<td>低 batch 时更易受权重 / KV 搬运与运行时开销影响</td>
+</tr>
+</tbody>
+</table>
+<div class="grid g2">
+<div class="card soft">
+<span class="label">Prefill 重点</span>
+<p>缩短长输入处理，避免干扰已有 decode。</p>
+</div>
+<div class="card coral">
+<span class="label">Decode 重点</span>
+<p>减少逐步开销，或让多个请求更高效共享执行。</p>
+</div>
+</div>
+<p class="note">短输入、大 decode batch、超长上下文、量化和多卡通信都可能改变实际瓶颈。</p>
+</div>
+<footer class="foot">
+<span>阶段标签只是常见特征，不是固定结论</span>
+<span>content/03 · 3.2</span>
+</footer>
+</div>
+</section>
+
+<section class="slide dark" id="optimization-four-questions" data-ch="03 推理" data-title="单请求优化四问">
+<div class="frame">
+<header class="top"><span>03 · <b>3.3 单请求优化</b></span><span class="num"></span></header>
+<h2>每项优化都必须回答同样四个问题</h2>
+<div class="body">
+<div class="summary">
+<div class="card"><span class="label">01 · Bottleneck</span><h3>解决什么瓶颈？</h3><p>容量、HBM 搬运、启动开销，还是串行等待？</p></div>
+<div class="card"><span class="label">02 · Ledger</span><h3>哪本账改变？</h3><p>bytes、FLOPs、调用次数或每次推进 token 数？</p></div>
+<div class="card"><span class="label">03 · Trade-off</span><h3>代价与副作用？</h3><p>质量、额外工作、回退路径、状态与调度复杂度。</p></div>
+<div class="card"><span class="label">04 · Workload</span><h3>适用于什么负载？</h3><p>真实 shape、并发、硬件与 kernel 是否匹配？</p></div>
+</div>
+<div class="grid g3"><div class="card blue"><span class="label">Quantization</span><h3>少存、少搬</h3><p>容量 / 低 batch decode 带宽。</p></div><div class="card lime"><span class="label">Kernel · Fusion · Compile</span><h3>提高复用、少启动</h3><p>数学 FLOPs 可能不变。</p></div><div class="card coral"><span class="label">Speculative</span><h3>一次确认多个 token</h3><p>换来 drafter 与拒绝开销。</p></div></div>
+</div>
+<footer class="foot"><span>位宽不能直接推出加速倍数 · 单个 kernel 加速不能消除 Decode 串行依赖</span><span>content/03 · 3.3</span></footer>
+</div>
+</section>
+
+<section class="slide" id="single-request" data-ch="03 推理" data-title="量化与内核优化">
+<div class="frame">
+<header class="top">
+<span>03 · <b>3.3 单请求</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>量化减少每次搬运；融合减少往返次数</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 455" role="img" aria-label="左侧量化把 FP16 权重压成 INT8 或 INT4，减少从 HBM 到计算单元的字节数；右侧融合把 kernel A 和 B 合并，使中间张量停留在片上而不写回 HBM">
+<title>Quantization and kernel fusion</title>
+<defs>
+<marker id="opt-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--blue)"/>
+</marker>
+</defs>
+<text x="280" y="42" text-anchor="middle" font-size="26" font-weight="700" class="blue-text">Quantization · 每元素 bytes ↓</text>
+<rect x="75" y="85" width="205" height="260" rx="22" class="box"/>
+<text x="177" y="125" text-anchor="middle" font-size="22" font-weight="700">同一组权重</text>
+<g>
+<rect x="110" y="155" width="135" height="46" rx="10" class="coral-box"/>
+<rect x="110" y="210" width="135" height="46" rx="10" class="coral-box"/>
+<rect x="110" y="265" width="135" height="46" rx="10" class="coral-box"/>
+</g>
+<text x="177" y="184" text-anchor="middle" font-size="18" class="coral-text">FP16 · 2 bytes</text>
+<text x="177" y="239" text-anchor="middle" font-size="18" class="coral-text">FP16 · 2 bytes</text>
+<text x="177" y="294" text-anchor="middle" font-size="18" class="coral-text">FP16 · 2 bytes</text>
+<path d="M280 215H365" class="blue-line" marker-end="url(#opt-arrow)"/>
+<rect x="365" y="115" width="145" height="200" rx="22" class="soft"/>
+<text x="437" y="155" text-anchor="middle" font-size="22" font-weight="700">更少 HBM</text>
+<rect x="400" y="180" width="75" height="42" rx="9" class="blue-box"/>
+<text x="437" y="207" text-anchor="middle" font-size="17" class="white">INT8</text>
+<rect x="400" y="235" width="48" height="42" rx="9" class="lime-box"/>
+<text x="424" y="262" text-anchor="middle" font-size="16">INT4</text>
+<text x="437" y="350" text-anchor="middle" font-size="19" class="muted">质量 / kernel 需验证</text>
+<line x1="560" y1="55" x2="560" y2="405" class="line dash"/>
+<text x="840" y="42" text-anchor="middle" font-size="26" font-weight="700" class="coral-text">Fusion · HBM 往返 ↓</text>
+<text x="650" y="95" font-size="19" font-weight="700">优化前</text>
+<rect x="650" y="120" width="120" height="70" rx="14" class="blue-box"/>
+<text x="710" y="163" text-anchor="middle" font-size="20" class="white">Kernel A</text>
+<rect x="805" y="120" width="120" height="70" rx="14" class="coral-box"/>
+<text x="865" y="163" text-anchor="middle" font-size="20" class="coral-text">HBM 中间</text>
+<rect x="960" y="120" width="120" height="70" rx="14" class="blue-box"/>
+<text x="1020" y="163" text-anchor="middle" font-size="20" class="white">Kernel B</text>
+<path d="M770 155H805M925 155H960" class="coral-line" marker-end="url(#opt-arrow)"/>
+<text x="650" y="265" font-size="19" font-weight="700">优化后</text>
+<rect x="700" y="285" width="330" height="95" rx="18" class="lime-box"/>
+<text x="865" y="325" text-anchor="middle" font-size="24" font-weight="700">Fused A + B</text>
+<text x="865" y="355" text-anchor="middle" font-size="19" class="muted">中间结果留在片上</text>
+<text x="865" y="420" text-anchor="middle" font-size="19" class="muted">数学 FLOPs 可能不变</text>
+</svg>
+</div>
+<div class="takeaway">位宽不能直接推出加速倍数；融合也不能消除 Decode 的串行依赖。</div>
+</div>
+<footer class="foot">
+<span>IO 图例依据 FlashAttention 的 HBM–SRAM 设计原则重绘</span>
+<span>REF-005 · FACT-009</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="speculative" data-ch="03 推理" data-title="Speculative Decoding">
+<div class="frame">
+<header class="top">
+<span>03 · <b>3.3 Speculative</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>小模型先猜一段，大模型并行验证一段</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 450" role="img" aria-label="Speculative decoding：drafter 串行提出四个候选 token，target 一次验证，接受前两个并在第三个处拒绝">
+<title>Speculative Decoding draft and verify</title>
+<defs>
+<marker id="spec-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--blue)"/>
+</marker>
+</defs>
+<text x="85" y="100" font-size="23" font-weight="700">Drafter</text>
+<g font-size="22" font-weight="700" text-anchor="middle">
+<rect x="250" y="55" width="130" height="80" rx="16" class="lime-box"/>
+<text x="315" y="104">t₁</text>
+<rect x="420" y="55" width="130" height="80" rx="16" class="lime-box"/>
+<text x="485" y="104">t₂</text>
+<rect x="590" y="55" width="130" height="80" rx="16" class="lime-box"/>
+<text x="655" y="104">t₃</text>
+<rect x="760" y="55" width="130" height="80" rx="16" class="lime-box"/>
+<text x="825" y="104">t₄</text>
+</g>
+<path d="M380 95H420M550 95H590M720 95H760" class="blue-line" marker-end="url(#spec-arrow)"/>
+<text x="85" y="240" font-size="23" font-weight="700">Target</text>
+<rect x="250" y="185" width="640" height="100" rx="20" class="blue-box"/>
+<text x="570" y="230" text-anchor="middle" font-size="27" font-weight="700" class="white">一次并行验证候选区间</text>
+<text x="570" y="260" text-anchor="middle" font-size="19" class="white">不是 4 次大模型串行调用</text>
+<path d="M315 135V185M485 135V185M655 135V185M825 135V185" class="blue-line thin"/>
+<text x="85" y="390" font-size="23" font-weight="700">Accept</text>
+<g font-size="22" font-weight="700" text-anchor="middle">
+<rect x="250" y="340" width="130" height="72" rx="16" class="blue-box"/>
+<text x="315" y="385" class="white">✓ t₁</text>
+<rect x="420" y="340" width="130" height="72" rx="16" class="blue-box"/>
+<text x="485" y="385" class="white">✓ t₂</text>
+<rect x="590" y="340" width="130" height="72" rx="16" class="coral-box"/>
+<text x="655" y="385" class="coral-text">× t₃</text>
+<rect x="760" y="340" width="130" height="72" rx="16" class="box" stroke-dasharray="6 5"/>
+<text x="825" y="385" class="muted">discard</text>
+</g>
+<path d="M315 285V340M485 285V340M655 285V340M825 285V340" class="blue-line thin"/>
+</svg>
+</div>
+<div class="takeaway">收益取决于平均接受长度；成本来自 drafter、被拒候选与额外调度。</div>
+</div>
+<footer class="foot">
+<span>图例依据 Leviathan / Kalman / Matias speculative decoding 重绘</span>
+<span>FACT-010</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="continuous" data-ch="03 推理" data-title="Continuous Batching">
+<div class="frame">
+<header class="top">
+<span>03 · <b>3.4 持续服务</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>静态 Batch 留空槽；Continuous Batching 每轮补位</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 450" role="img" aria-label="上方静态 batch 随请求完成产生空槽，下方 continuous batching 在每次迭代边界用 D 的分块 prefill 和 E 的 decode 补入空槽">
+<title>Static batching 与 continuous batching</title>
+<g font-size="21" font-weight="700">
+<text x="75" y="105">静态 Batch</text>
+<text x="75" y="315">Continuous</text>
+</g>
+<g font-size="18" class="muted" text-anchor="middle">
+<text x="305" y="45">step 1</text>
+<text x="515" y="45">step 2</text>
+<text x="725" y="45">step 3</text>
+<text x="935" y="45">step 4</text>
+</g>
+<g font-size="20" font-weight="700" text-anchor="middle">
+<rect x="210" y="68" width="190" height="80" rx="15" class="blue-box"/>
+<text x="305" y="115" class="white">A · B · C</text>
+<rect x="420" y="68" width="190" height="80" rx="15" class="soft"/>
+<text x="515" y="115">A · — · C</text>
+<rect x="630" y="68" width="190" height="80" rx="15" class="soft"/>
+<text x="725" y="115">A · — · C</text>
+<rect x="840" y="68" width="190" height="80" rx="15" class="coral-box"/>
+<text x="935" y="115" class="coral-text">A · — · —</text>
+</g>
+<path d="M400 108H420M610 108H630M820 108H840" class="line"/>
+<text x="620" y="190" text-anchor="middle" font-size="21" class="coral-text">B / C 完成后，空槽一直保留到整批结束</text>
+<line x1="55" y1="225" x2="1065" y2="225" class="line dash"/>
+<g font-size="20" font-weight="700" text-anchor="middle">
+<rect x="210" y="275" width="190" height="80" rx="15" class="blue-box"/>
+<text x="305" y="322" class="white">A · B · C</text>
+<rect x="420" y="275" width="190" height="80" rx="15" class="lime-box"/>
+<text x="515" y="322">A · C · D₁</text>
+<rect x="630" y="275" width="190" height="80" rx="15" class="lime-box"/>
+<text x="725" y="322">A · C · D₂</text>
+<rect x="840" y="275" width="190" height="80" rx="15" class="blue-box"/>
+<text x="935" y="322" class="white">A · D · E</text>
+</g>
+<path d="M400 315H420M610 315H630M820 315H840" class="blue-line"/>
+<text x="620" y="400" text-anchor="middle" font-size="21" font-weight="700" class="blue-text">迭代边界：移除完成请求，补入 decode 或 chunked prefill</text>
+</svg>
+</div>
+<div class="takeaway">更满的 batch 提升共享执行机会，但也可能拉长单步和尾延迟。</div>
+</div>
+<footer class="foot">
+<span>图例依据 Orca iteration-level scheduling 与主流 continuous batching 重绘</span>
+<span>FACT-011 · FACT-013</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="kv-pool" data-ch="03 推理" data-title="KV 状态池">
+<div class="frame">
+<header class="top">
+<span>03 · <b>3.4 Paged KV</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>逻辑连续，物理可以分散：KV 像虚拟内存一样分页</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 460" role="img" aria-label="PagedAttention 风格示意：请求 A 和 C 的逻辑 KV block 通过 block table 映射到分散的物理 block，并共享前缀 P">
+<title>Paged KV block table 与 prefix sharing</title>
+<defs>
+<marker id="kv-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--blue)"/>
+</marker>
+</defs>
+<text x="190" y="45" text-anchor="middle" font-size="23" font-weight="700">请求的逻辑 KV</text>
+<text x="570" y="45" text-anchor="middle" font-size="23" font-weight="700">Block table</text>
+<text x="910" y="45" text-anchor="middle" font-size="23" font-weight="700">HBM 物理 block pool</text>
+<g font-size="19" font-weight="700" text-anchor="middle">
+<text x="55" y="123">A</text>
+<rect x="90" y="85" width="80" height="70" rx="12" class="lime-box"/>
+<text x="130" y="127">P₀</text>
+<rect x="180" y="85" width="80" height="70" rx="12" class="lime-box"/>
+<text x="220" y="127">P₁</text>
+<rect x="270" y="85" width="80" height="70" rx="12" class="blue-box"/>
+<text x="310" y="127" class="white">A₂</text>
+<text x="55" y="243">C</text>
+<rect x="90" y="205" width="80" height="70" rx="12" class="lime-box"/>
+<text x="130" y="247">P₀</text>
+<rect x="180" y="205" width="80" height="70" rx="12" class="lime-box"/>
+<text x="220" y="247">P₁</text>
+<rect x="270" y="205" width="80" height="70" rx="12" class="coral-box"/>
+<text x="310" y="247" class="coral-text">C₂</text>
+<text x="55" y="363">D</text>
+<rect x="90" y="325" width="80" height="70" rx="12" class="soft"/>
+<text x="130" y="367">D₀</text>
+<rect x="180" y="325" width="80" height="70" rx="12" class="soft"/>
+<text x="220" y="367">D₁</text>
+</g>
+<g>
+<rect x="480" y="80" width="180" height="80" rx="16" class="box"/>
+<text x="570" y="115" text-anchor="middle" font-size="19" font-weight="700">A → [1, 6, 3]</text>
+<text x="570" y="142" text-anchor="middle" font-size="17" class="muted">逻辑 → 物理</text>
+<rect x="480" y="200" width="180" height="80" rx="16" class="box"/>
+<text x="570" y="235" text-anchor="middle" font-size="19" font-weight="700">C → [1, 6, 8]</text>
+<text x="570" y="262" text-anchor="middle" font-size="17" class="muted">共享前缀</text>
+<rect x="480" y="320" width="180" height="80" rx="16" class="box"/>
+<text x="570" y="355" text-anchor="middle" font-size="19" font-weight="700">D → [4, 0]</text>
+<text x="570" y="382" text-anchor="middle" font-size="17" class="muted">无需连续</text>
+</g>
+<g font-size="18" font-weight="700" text-anchor="middle">
+<rect x="760" y="80" width="90" height="70" rx="12" class="soft"/>
+<text x="805" y="122">0 · D₁</text>
+<rect x="870" y="80" width="90" height="70" rx="12" class="lime-box"/>
+<text x="915" y="122">1 · P₀</text>
+<rect x="980" y="80" width="90" height="70" rx="12" class="box"/>
+<text x="1025" y="122" class="muted">2 · free</text>
+<rect x="760" y="180" width="90" height="70" rx="12" class="blue-box"/>
+<text x="805" y="222" class="white">3 · A₂</text>
+<rect x="870" y="180" width="90" height="70" rx="12" class="soft"/>
+<text x="915" y="222">4 · D₀</text>
+<rect x="980" y="180" width="90" height="70" rx="12" class="box"/>
+<text x="1025" y="222" class="muted">5 · free</text>
+<rect x="760" y="280" width="90" height="70" rx="12" class="lime-box"/>
+<text x="805" y="322">6 · P₁</text>
+<rect x="870" y="280" width="90" height="70" rx="12" class="box"/>
+<text x="915" y="322" class="muted">7 · free</text>
+<rect x="980" y="280" width="90" height="70" rx="12" class="coral-box"/>
+<text x="1025" y="322" class="coral-text">8 · C₂</text>
+</g>
+<path d="M350 120H480M350 240H480M260 360H480M660 120H760M660 240H760M660 360H760" class="blue-line" marker-end="url(#kv-arrow)"/>
+<text x="915" y="410" text-anchor="middle" font-size="21" class="muted">按需增长 · 完成回收 · 前缀可共享</text>
+</svg>
+</div>
+<div class="takeaway">Paged KV 不减少有效 token 的逻辑状态；它减少预留浪费、碎片和重复前缀。</div>
+</div>
+<footer class="foot">
+<span>图例依据 vLLM / PagedAttention 的 block table 与 copy-on-write 设计重绘</span>
+<span>FACT-012</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="prefix-reuse" data-ch="03 推理" data-title="Prefix Reuse">
+<div class="frame">
+<header class="top"><span>03 · <b>3.4 Prefix reuse</b></span><span class="num"></span></header>
+<h2>A / C 共享同一段 1024-token system prompt</h2>
+<div class="body">
+<div class="visual"><svg class="diagram" viewBox="0 0 1120 420" role="img" aria-label="请求 A 和 C 共享一段 1024 token 的 system prompt，A 先计算并缓存前缀 KV，C 命中后只处理自己的后缀"><title>Prefix reuse 用容量换掉重复 prefill</title><defs><marker id="prefix-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="var(--blue)"/></marker></defs><text x="70" y="102" font-size="24" font-weight="700">A</text><rect x="125" y="55" width="515" height="85" rx="18" class="lime-box"/><text x="382" y="92" text-anchor="middle" font-size="24" font-weight="700">共享 system prompt · 1024 tokens</text><text x="382" y="120" text-anchor="middle" font-size="18">首次 prefill，生成并缓存 prefix KV</text><rect x="660" y="55" width="270" height="85" rx="18" class="blue-box"/><text x="795" y="105" text-anchor="middle" font-size="22" font-weight="700" class="white">A suffix</text><text x="70" y="265" font-size="24" font-weight="700">C</text><rect x="125" y="218" width="515" height="85" rx="18" class="soft" stroke-dasharray="8 6"/><text x="382" y="255" text-anchor="middle" font-size="24" font-weight="700" class="blue-text">命中：复用 prefix KV</text><text x="382" y="283" text-anchor="middle" font-size="18">跳过这段重复 prefill</text><rect x="660" y="218" width="270" height="85" rx="18" class="coral-box"/><text x="795" y="268" text-anchor="middle" font-size="22" font-weight="700" class="coral-text">只计算 C suffix</text><path d="M382 140V218M640 98H660M640 260H660" class="blue-line" marker-end="url(#prefix-arrow)"/><rect x="950" y="95" width="130" height="170" rx="20" class="lime-box"/><text x="1015" y="150" text-anchor="middle" font-size="19" font-weight="700">BF16 示例</text><text x="1015" y="200" text-anchor="middle" font-size="31" font-weight="750">≈256</text><text x="1015" y="232" text-anchor="middle" font-size="20">MiB KV</text><text x="560" y="385" text-anchor="middle" font-size="21" font-weight="700">收益 = 前缀长度 × 命中率 × 驻留可用性；不是“开启即免费”</text></svg></div>
+<div class="takeaway">要求模型执行上下文与 token 序列兼容；低命中率时，冷前缀会挤占活动 KV，必须观察驻留与淘汰。</div>
+</div>
+<footer class="foot"><span>复用只减少命中的 prefill，不减少后缀或 decode 工作</span><span>content/03 · 3.4 Prefix reuse</span></footer>
+</div>
+</section>
+
+<section class="slide" id="chunked-prefill" data-ch="03 推理" data-title="Chunked Prefill">
+<div class="frame">
+<header class="top"><span>03 · <b>3.4 Chunked prefill</b></span><span class="num"></span></header>
+<h2>把 D 的长 Prefill 拆成 D₁ / D₂，让 Decode 继续推进</h2>
+<div class="body">
+<div class="timeline"><span class="lab">step 1</span><div class="track"><span class="cell a">decode A</span><span class="cell a">decode B</span><span class="cell a">decode C</span></div><span class="lab">step 2</span><div class="track"><span class="cell a">decode A</span><span class="cell a">decode C</span><span class="cell b">prefill D₁</span></div><span class="lab">step 3</span><div class="track"><span class="cell a">decode A</span><span class="cell a">decode C</span><span class="cell b">prefill D₂</span></div><span class="lab">step 4</span><div class="track"><span class="cell a">decode A</span><span class="cell b">decode D</span><span class="cell b">decode E</span></div></div>
+<div class="grid g3"><div class="card lime"><span class="label">换来的</span><h3>缩小长工作块</h3><p>A/C 不必等 D 整段 Prefill 完成，ITL 更容易受控。</p></div><div class="card coral"><span class="label">没有消失的</span><h3>D 的总工作量</h3><p>分块不删除 FLOPs 或有效 KV；只是改变调度粒度。</p></div><div class="card soft"><span class="label">块过小时</span><h3>额外开销上升</h3><p>调度、kernel 启动、历史 KV 读取增加，也可能延后 D 的 TTFT。</p></div></div>
+<div class="takeaway">Prefill–Decode 解耦可进一步隔离资源，但会新增 KV 传输与路由；正文只把它列为进阶方向。</div>
+</div>
+<footer class="foot"><span>同一请求组：A/C 共享前缀 · A/B/C decode · D 长 prompt · E 等待 decode</span><span>content/03 · 3.4 长 prefill 干扰</span></footer>
+</div>
+</section>
+
+<section class="slide" id="serving-scale" data-ch="03 推理" data-title="增加推理副本">
+<div class="frame">
+<header class="top">
+<span>03 · <b>3.5 Replicas</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>副本扩的是请求吞吐，不是单请求算力</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 450" role="img" aria-label="请求路由器把 A B C 三个请求分别分配到三个拥有完整模型与独立 KV cache 的副本">
+<title>Request-level replicas</title>
+<defs>
+<marker id="rep-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--blue)"/>
+</marker>
+</defs>
+<g font-size="21" font-weight="700" text-anchor="middle">
+<circle cx="90" cy="120" r="38" fill="var(--blue)"/>
+<text x="90" y="127" class="white">A</text>
+<circle cx="90" cy="225" r="38" fill="var(--blue)"/>
+<text x="90" y="232" class="white">B</text>
+<circle cx="90" cy="330" r="38" fill="var(--blue)"/>
+<text x="90" y="337" class="white">C</text>
+</g>
+<rect x="245" y="135" width="210" height="180" rx="24" class="soft"/>
+<text x="350" y="205" text-anchor="middle" font-size="27" font-weight="700" class="blue-text">Request Router</text>
+<text x="350" y="242" text-anchor="middle" font-size="19" class="muted">按负载 / 健康状态分流</text>
+<path d="M128 120L245 180M128 225H245M128 330L245 270" class="blue-line" marker-end="url(#rep-arrow)"/>
+<g>
+<rect x="610" y="40" width="410" height="110" rx="20" class="blue-box"/>
+<rect x="610" y="170" width="410" height="110" rx="20" class="blue-box"/>
+<rect x="610" y="300" width="410" height="110" rx="20" class="blue-box"/>
+<g font-size="24" font-weight="700" class="white">
+<text x="645" y="85" class="white">Replica 0</text>
+<text x="645" y="215" class="white">Replica 1</text>
+<text x="645" y="345" class="white">Replica 2</text>
+</g>
+<g font-size="19" class="white">
+<text x="645" y="120" class="white">完整模型权重 · 独立 KV · Request A</text>
+<text x="645" y="250" class="white">完整模型权重 · 独立 KV · Request B</text>
+<text x="645" y="380" class="white">完整模型权重 · 独立 KV · Request C</text>
+</g>
+</g>
+<path d="M455 180L610 95M455 225H610M455 270L610 355" class="blue-line" marker-end="url(#rep-arrow)"/>
+<text x="530" y="430" text-anchor="middle" font-size="21" font-weight="700" class="coral-text">单个请求仍只在一个完整副本上执行</text>
+</svg>
+</div>
+<div class="takeaway">模型能单卡放下且单请求已达标时，replicas 通常先解决排队与聚合吞吐。</div>
+</div>
+<footer class="foot">
+<span>图例依据 vLLM data-parallel deployment 语义重绘</span>
+<span>FACT-014</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="serving-sharding" data-ch="03 推理" data-title="推理模型切分">
+<div class="frame">
+<header class="top">
+<span>03 · <b>3.5 模型切分</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>TP 切每一层；PP 切连续层段</h2>
+<div class="body">
+<div class="visual">
+<svg class="diagram" viewBox="0 0 1120 455" role="img" aria-label="左侧 Tensor Parallel 把每层横向切到四卡并在层间 collective；右侧 Pipeline Parallel 把连续层段放到四个 stage，单请求依次通过">
+<title>推理 Tensor Parallel 与 Pipeline Parallel 对比</title>
+<defs>
+<marker id="serve-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0L10 5L0 10Z" fill="var(--blue)"/>
+</marker>
+</defs>
+<text x="280" y="42" text-anchor="middle" font-size="26" font-weight="700" class="blue-text">Tensor Parallel</text>
+<text x="835" y="42" text-anchor="middle" font-size="26" font-weight="700" class="coral-text">Pipeline Parallel</text>
+<g font-size="18" text-anchor="middle">
+<text x="75" y="92" class="muted">Layer 1</text>
+<text x="75" y="192" class="muted">Layer 2</text>
+<text x="75" y="292" class="muted">Layer 3</text>
+</g>
+<g font-size="17" font-weight="700" text-anchor="middle">
+<rect x="125" y="60" width="95" height="55" rx="10" class="soft"/>
+<text x="172" y="94">GPU 0</text>
+<rect x="225" y="60" width="95" height="55" rx="10" class="soft"/>
+<text x="272" y="94">GPU 1</text>
+<rect x="325" y="60" width="95" height="55" rx="10" class="soft"/>
+<text x="372" y="94">GPU 2</text>
+<rect x="425" y="60" width="95" height="55" rx="10" class="soft"/>
+<text x="472" y="94">GPU 3</text>
+<rect x="125" y="160" width="95" height="55" rx="10" class="lime-box"/>
+<text x="172" y="194">GPU 0</text>
+<rect x="225" y="160" width="95" height="55" rx="10" class="lime-box"/>
+<text x="272" y="194">GPU 1</text>
+<rect x="325" y="160" width="95" height="55" rx="10" class="lime-box"/>
+<text x="372" y="194">GPU 2</text>
+<rect x="425" y="160" width="95" height="55" rx="10" class="lime-box"/>
+<text x="472" y="194">GPU 3</text>
+<rect x="125" y="260" width="95" height="55" rx="10" class="coral-box"/>
+<text x="172" y="294">GPU 0</text>
+<rect x="225" y="260" width="95" height="55" rx="10" class="coral-box"/>
+<text x="272" y="294">GPU 1</text>
+<rect x="325" y="260" width="95" height="55" rx="10" class="coral-box"/>
+<text x="372" y="294">GPU 2</text>
+<rect x="425" y="260" width="95" height="55" rx="10" class="coral-box"/>
+<text x="472" y="294">GPU 3</text>
+</g>
+<path d="M125 133H520M125 233H520" class="blue-line dash"/>
+<text x="322" y="145" text-anchor="middle" font-size="17" class="blue-text">collective</text>
+<text x="322" y="245" text-anchor="middle" font-size="17" class="blue-text">collective</text>
+<rect x="120" y="350" width="405" height="65" rx="14" class="box"/>
+<text x="322" y="378" text-anchor="middle" font-size="19" font-weight="700">每卡：每一层的一部分</text>
+<text x="322" y="402" text-anchor="middle" font-size="17" class="muted">聚合 HBM / 计算 · 高频同步</text>
+<line x1="560" y1="55" x2="560" y2="415" class="line dash"/>
+<g font-size="20" font-weight="700" text-anchor="middle">
+<rect x="635" y="80" width="170" height="95" rx="18" class="blue-box"/>
+<text x="720" y="120" class="white">Stage 0</text>
+<text x="720" y="150" class="white">Layers 0–7</text>
+<rect x="865" y="80" width="170" height="95" rx="18" class="soft"/>
+<text x="950" y="120">Stage 1</text>
+<text x="950" y="150">Layers 8–15</text>
+<rect x="635" y="245" width="170" height="95" rx="18" class="lime-box"/>
+<text x="720" y="285">Stage 2</text>
+<text x="720" y="315">Layers 16–23</text>
+<rect x="865" y="245" width="170" height="95" rx="18" class="coral-box"/>
+<text x="950" y="285" class="coral-text">Stage 3</text>
+<text x="950" y="315" class="coral-text">Layers 24–31</text>
+</g>
+<path d="M805 127H865M950 175C950 215 850 215 720 245M805 292H865" class="blue-line" marker-end="url(#serve-arrow)"/>
+<text x="835" y="390" text-anchor="middle" font-size="19" font-weight="700">单请求依次经过所有 stage</text>
+<text x="835" y="420" text-anchor="middle" font-size="17" class="muted">减少驻留层数 · 引入 stage 等待</text>
+</svg>
+</div>
+<div class="takeaway">先用量化解决容量；仍放不下时，再权衡节省的 bytes 与新增通信。</div>
+</div>
+<footer class="foot">
+<span>图例依据 Megatron / TensorRT-LLM 的 TP 与 PP 数据布局重绘</span>
+<span>FACT-014</span>
+</footer>
+</div>
+</section>
+
+<section class="slide dark" id="inference-validate" data-ch="03 推理" data-title="推理验证卡">
+<div class="frame">
+<header class="top">
+<span>03 · <b>3.6 验证</b>
+</span>
+<span class="num">
+</span>
+</header>
+<h2>同时报告速度、容量、质量与成本</h2>
+<div class="body">
+<div class="summary">
+<div class="card">
+<span class="label">Speed</span>
+<h3>目标指标改善了吗？</h3>
+<p>TTFT、TPOT / ITL、端到端、P95/P99、吞吐。</p>
+</div>
+<div class="card">
+<span class="label">Capacity</span>
+<h3>省下的显存可用吗？</h3>
+<p>batch、活动 token、稳定并发、KV block 占用。</p>
+</div>
+<div class="card">
+<span class="label">Quality</span>
+<h3>数学问题变了吗？</h3>
+<p>量化、采样、步数、窗口、输出上限与测试集。</p>
+</div>
+<div class="card">
+<span class="label">Cost</span>
+<h3>达标请求更便宜吗？</h3>
+<p>GPU-hours、失败率、每百万输出 token / 请求成本。</p>
+</div>
+</div>
+<div class="quote">“低并发 decode 的单步时间接近搬运下界；只改变权重格式，验证 bytes、峰值显存、TPOT 与质量。”</div>
+</div>
+<footer class="foot">
+<span>固定长度分布 / 到达过程 / SLO / warmup · 吞吐提高但 P99 超标不算成功</span>
+<span>content/03 · 3.6</span>
+</footer>
+</div>
+</section>
+
+<section class="slide" id="benchmark-design" data-ch="03 推理" data-title="推理基准设计">
+<div class="frame">
+<header class="top"><span>03 · <b>3.6 固定条件</b></span><span class="num"></span></header>
+<h2>单请求基准与服务基准回答不同问题</h2>
+<div class="body">
+<div class="grid g2">
+<div class="card blue"><span class="label">Single request</span><h3 style="color:white">这条关键路径是否更短？</h3><p><strong>固定：</strong>模型、采样、输入/输出长度、精度、硬件、卡数、并行度、质量集、warmup 与计时边界。</p><p><strong>报告：</strong>TTFT、TPOT、ITL 分布、端到端 P50/P95/P99、峰值显存与质量。</p></div>
+<div class="card lime"><span class="label">Service</span><h3>在 SLO 下能稳定服务多少？</h3><p><strong>固定：</strong>到达过程、长度联合分布、请求率/并发、SLO、调度、KV pool、副本与每副本卡数。</p><p><strong>报告：</strong>queue time、尾延迟、tokens/s、requests/s、稳定并发、KV 占用、失败率与 GPU-hours。</p></div>
+</div>
+<div class="quote">实验假设示例：BF16 低并发 Decode 的单步时间接近权重与 KV 搬运下界；只改变权重格式，验证 bytes、峰值显存、TPOT 与质量。</div>
+<div class="takeaway">是否包含排队、编译、网络，必须明确写出；否则 TTFT 与端到端时延不可比较。</div>
+</div>
+<footer class="foot"><span>一次只改变一个主要杠杆</span><span>content/03 · 3.6 单请求基准 / 服务基准</span></footer>
+</div>
+</section>
+
+<section class="slide dark" id="validation-order" data-ch="03 推理" data-title="读结果与停止条件">
+<div class="frame">
+<header class="top"><span>03 · <b>3.6 读结果</b></span><span class="num"></span></header>
+<h2>按五步读结果，并在实验前写下停止条件</h2>
+<div class="body">
+<div class="flow"><div class="step"><span class="label">01</span><h3>速度</h3><p>目标指标是否改善</p></div><span class="arrow">→</span><div class="step"><span class="label">02</span><h3>容量</h3><p>能否转成 batch / 并发</p></div><span class="arrow">→</span><div class="step"><span class="label">03</span><h3>质量</h3><p>数学问题是否保持</p></div><span class="arrow">→</span><div class="step"><span class="label">04</span><h3>复杂度与稳定性</h3><p>回退、抖动与恢复</p></div><span class="arrow">→</span><div class="step"><span class="label">05</span><h3>成本</h3><p>达标请求是否更便宜</p></div></div>
+<div class="grid g3"><div class="card"><span class="label">Stop 1</span><h3>SLO 已满足</h3><p>继续优化不再降低单位成本。</p></div><div class="card"><span class="label">Stop 2</span><h3>容量有安全余量</h3><p>再节省 bytes 不转化为业务能力。</p></div><div class="card"><span class="label">Stop 3</span><h3>收益不抵风险</h3><p>质量风险或系统复杂度超过预期收益。</p></div></div>
+<div class="takeaway">吞吐提高但 P99 超出 SLO，不是在线目标下的成功；“继续榨利用率”可能只是在用用户延迟换无效吞吐。</div>
+</div>
+<footer class="foot"><span>平均吞吐高但尾延迟差：拆开 queue / prefill / decode 再定位</span><span>content/03 · 3.6 验证顺序与停止条件</span></footer>
+</div>
+</section>
+
+<section class="slide dark cover" id="close" data-ch="结尾" data-title="方法收束">
+<div class="frame">
+<header class="top">
+<span>Closing</span>
+<span class="num">
+</span>
+</header>
+<div class="body">
+<p class="eyebrow">The reusable loop</p>
+<p class="display">先把问题变成一份<em>资源账本</em>，再把判断变成一次<em>可验证实验</em>。</p>
+<div class="flow" style="max-width:64em">
+<div class="step">
+<span class="label">01</span>
+<h3>固定 workload</h3>
+<p>模型、shape、精度、硬件、目标指标。</p>
+</div>
+<span class="arrow">→</span>
+<div class="step">
+<span class="label">02</span>
+<h3>估算边界</h3>
+<p>FLOPs、bytes、峰值生命周期、通信。</p>
+</div>
+<span class="arrow">→</span>
+<div class="step">
+<span class="label">03</span>
+<h3>提出假设</h3>
+<p>谁更可能在关键路径上？</p>
+</div>
+<span class="arrow">→</span>
+<div class="step">
+<span class="label">04</span>
+<h3>单变量验证</h3>
+<p>速度、容量、质量、成本一起看。</p>
+</div>
+</div>
+</div>
+<footer class="foot">
+<span>TechShare · AI Infra</span>
+<span>谢谢</span>
+</footer>
+</div>
+</section>
+
+<script>
+(() => {
+  const slides=[...document.querySelectorAll('.slide')];
+  const counter=document.querySelector('#counter');
+  const progress=document.querySelector('.progress');
+  const toc=document.querySelector('#toc');
+  const tocGrid=document.querySelector('#tocGrid');
+  let current=0;
+  slides.forEach((slide,i)=>{slide.querySelectorAll('.num').forEach(n=>n.textContent=String(i+1).padStart(2,'0'));});
+  const groups=new Map();
+  slides.forEach((s,i)=>{const ch=s.dataset.ch||'其他';if(!groups.has(ch))groups.set(ch,[]);groups.get(ch).push({s,i});});
+  groups.forEach((items,ch)=>{const block=document.createElement('section');const h=document.createElement('h3');h.textContent=ch;const ol=document.createElement('ol');items.forEach(({s,i})=>{const li=document.createElement('li');const a=document.createElement('a');a.href='#'+s.id;a.innerHTML=`<span class="ix">${String(i+1).padStart(2,'0')}</span>
+<span>${s.dataset.title}</span>`;a.addEventListener('click',()=>{toc.hidden=true;});li.append(a);ol.append(li);});block.append(h,ol);tocGrid.append(block);});
+  const setCurrent=i=>{current=Math.max(0,Math.min(i,slides.length-1));counter.textContent=`${String(current+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}`;progress.style.width=`${((current+1)/slides.length)*100}%`;};
+  const go=i=>{setCurrent(i);slides[current].scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});};
+  const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting&&e.intersectionRatio>.55)setCurrent(slides.indexOf(e.target));});},{threshold:[.55]});slides.forEach(s=>observer.observe(s));
+  document.querySelector('#prevBtn').addEventListener('click',()=>go(current-1));document.querySelector('#nextBtn').addEventListener('click',()=>go(current+1));document.querySelector('#tocBtn').addEventListener('click',()=>{toc.hidden=false;document.querySelector('#tocClose').focus();});document.querySelector('#tocClose').addEventListener('click',()=>{toc.hidden=true;document.querySelector('#tocBtn').focus();});
+  addEventListener('keydown',e=>{if(!toc.hidden){if(e.key==='Escape'){toc.hidden=true;document.querySelector('#tocBtn').focus();}return;}if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();go(current+1);}else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();go(current-1);}else if(e.key==='Home'){e.preventDefault();go(0);}else if(e.key==='End'){e.preventDefault();go(slides.length-1);}else if(e.key.toLowerCase()==='m'){toc.hidden=false;document.querySelector('#tocClose').focus();}});setCurrent(0);
+})();
+</script>
+</body>
+</html>
