@@ -80,7 +80,7 @@ h3{font-size:1.16em;line-height:1.23;letter-spacing:-.015em} h4{font-size:1.04em
 <nav class="controls" aria-label="演示控制">
 <button id="tocBtn" aria-label="打开目录">☰</button>
 <button id="prevBtn" aria-label="上一页">←</button>
-<output id="counter" aria-live="polite">01 / 48</output>
+<output id="counter" aria-live="polite">01 / 49</output>
 <button id="nextBtn" aria-label="下一页">→</button>
 </nav>
 <aside id="toc" hidden role="dialog" aria-modal="true" aria-label="报告目录">
@@ -195,32 +195,53 @@ h3{font-size:1.16em;line-height:1.23;letter-spacing:-.015em} h4{font-size:1.04em
 <span class="num">
 </span>
 </header>
-<h2>把现实问题拆成可估算的量</h2>
+<h2>把现实问题拆成三本账</h2>
 <div class="body">
-<div class="grid g3">
-<div class="card blue">
-<span class="label">Compute</span>
-<div class="metric" style="color:white">FLOPs</div>
-<h3>最快要算多久？</h3>
-<p>主要 GEMM / Attention 做了多少运算，shape 是否能吃满硬件。</p>
-</div>
-<div class="card">
-<span class="label">Memory</span>
-<div class="metric">bytes</div>
-<h3>单卡放得下吗？</h3>
-<p>长期、阶段性与临时张量何时重叠；执行时又从 HBM 搬了多少。</p>
-</div>
-<div class="card">
-<span class="label">Communication</span>
-<div class="metric">B / call</div>
-<h3>多卡如何协同？</h3>
-<p>谁复制、谁切分；交换什么、多大、多久一次、走哪条物理路径。</p>
-</div>
-</div>
-<div class="quote">真实系统需要反复权衡三本账；估算的价值，是给出一个<strong>可验证的瓶颈假设</strong>，不是承诺耗时。</div>
+<figure class="visual">
+<svg class="diagram" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="three-ledgers-title three-ledgers-desc">
+<title id="three-ledgers-title">Kernel、Block、Layer 或 Model 都可以拆成计算、驻留与搬运、通信三本账</title>
+<desc id="three-ledgers-desc">固定形状、精度与硬件后，分别估算 FLOPs、bytes 与 bytes per call。</desc>
+
+<path d="M600 86V116 M204 116H996" class="line"/>
+<path d="M204 116V150" fill="none" stroke="var(--blue)" stroke-width="3"/>
+<path d="M600 116V150" fill="none" stroke="#9eaa2d" stroke-width="3"/>
+<path d="M996 116V150" fill="none" stroke="var(--coral)" stroke-width="3"/>
+<path d="M196 142l8 14 8-14z" fill="var(--blue)"/>
+<path d="M592 142l8 14 8-14z" fill="#9eaa2d"/>
+<path d="M988 142l8 14 8-14z" fill="var(--coral)"/>
+
+<rect x="385" y="10" width="430" height="76" rx="16" class="box"/>
+<text x="600" y="42" text-anchor="middle" font-size="22" font-weight="740" class="mono">Kernel / Block / Layer / Model</text>
+<text x="600" y="69" text-anchor="middle" font-size="17" class="muted">形状 · 精度 · 硬件已固定</text>
+
+<rect x="12" y="156" width="384" height="248" rx="18" fill="var(--blue-soft)" stroke="#8394e8" stroke-width="1.5"/>
+<text x="42" y="194" font-size="17" font-weight="740" class="blue-text mono">计算账 · COMPUTE</text>
+<text x="42" y="238" font-size="23" font-weight="740">需要多大算力？最快多久？</text>
+<text x="42" y="276" font-size="18" class="muted">做了多少乘法、加法</text>
+<text x="42" y="304" font-size="18" class="muted">和其他运算？</text>
+<rect x="42" y="336" width="136" height="42" rx="21" fill="var(--blue)"/>
+<text x="110" y="364" text-anchor="middle" font-size="19" font-weight="750" class="white mono">FLOPS</text>
+
+<rect x="408" y="156" width="384" height="248" rx="18" fill="#f2f4d8" stroke="#bdc653" stroke-width="1.5"/>
+<text x="438" y="194" font-size="17" font-weight="740" style="fill:#78830f" class="mono">驻留与搬运账 · MEMORY</text>
+<text x="438" y="238" font-size="23" font-weight="740">要多少显存？放不放得下？</text>
+<text x="438" y="276" font-size="18" class="muted">哪些张量要同时驻留？</text>
+<text x="438" y="304" font-size="18" class="muted">执行时实际读写多少？</text>
+<rect x="438" y="336" width="126" height="42" rx="21" fill="var(--lime)"/>
+<text x="501" y="364" text-anchor="middle" font-size="19" font-weight="750" class="mono">BYTES</text>
+
+<rect x="804" y="156" width="384" height="248" rx="18" fill="#fbe9e5" stroke="#ee8b7e" stroke-width="1.5"/>
+<text x="834" y="194" font-size="17" font-weight="740" class="coral-text mono">通信账 · COMMUNICATION</text>
+<text x="834" y="238" font-size="23" font-weight="740">单设备不够时如何部署？</text>
+<text x="834" y="276" font-size="18" class="muted">哪个张量在多少设备之间、</text>
+<text x="834" y="304" font-size="18" class="muted">以什么频率交换？</text>
+<rect x="834" y="336" width="186" height="42" rx="21" fill="var(--coral)"/>
+<text x="927" y="364" text-anchor="middle" font-size="19" font-weight="750" class="white mono">BYTES / CALL</text>
+</svg>
+</figure>
 </div>
 <footer class="foot">
-<span>先统一单位，再讨论策略</span>
+<span>真实系统要在三本账之间反复权衡</span>
 <span>content/01 · 1.1</span>
 </footer>
 </div>
@@ -228,72 +249,244 @@ h3{font-size:1.16em;line-height:1.23;letter-spacing:-.015em} h4{font-size:1.04em
 
 <section class="slide" id="compute-ops" data-ch="01 资源直觉" data-title="三类计算操作">
 <div class="frame">
-<header class="top"><span>01 · <b>1.2 计算量口径</b></span><span class="num"></span></header>
-<h2>先区分三类操作，再按同一口径统计前向与反向</h2>
+<header class="top"><span>01 · <b>1.2 计算口径</b></span><span class="num"></span></header>
+<h2>统一工作量口径：三类操作</h2>
 <div class="body">
-<div class="grid g3">
-<div class="card blue"><span class="label">GEMM</span><div class="metric" style="color:white">2mkn</div><p><code>[m,k] × [k,n]</code>。线性层和 Attention 的主要矩阵乘。</p></div>
-<div class="card lime"><span class="label">Elementwise</span><div class="metric">c × n</div><p>激活、bias、残差等逐元素工作；实际代价也受数据搬运影响。</p></div>
-<div class="card soft"><span class="label">Reduction</span><div class="metric">≈ n</div><p>求和、最大值等聚合；充分并行时依赖深度可降到 <code>log n</code>。</p></div>
+<figure class="visual">
+<svg class="diagram" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="compute-ops-title compute-ops-desc">
+<title id="compute-ops-title">GEMM、Elementwise 和 Reduction 的形状与工作量</title>
+<desc id="compute-ops-desc">GEMM 的 m 乘 k 矩阵与 k 乘 n 矩阵相乘，得到 m 乘 n 矩阵，约为 2mkn FLOPs；Elementwise 输入与输出形状相同，约为 c 乘 n FLOPs；Reduction 把 n 个元素归约为一个结果，总工作量约为 n FLOPs，充分并行时依赖深度可降至 log n。底部统一给出三类操作的前向加反向合计。</desc>
+
+<line x1="400" y1="18" x2="400" y2="326" class="line dash thin"/>
+<line x1="800" y1="18" x2="800" y2="326" class="line dash thin"/>
+
+<text x="28" y="34" font-size="18" font-weight="750" class="blue-text mono">GEMM</text>
+<rect x="28" y="70" width="72" height="108" rx="8" class="soft"/>
+<text x="64" y="199" text-anchor="middle" font-size="16" class="muted mono">m × k</text>
+<text x="116" y="130" text-anchor="middle" font-size="27" font-weight="750" class="blue-text">×</text>
+<rect x="136" y="70" width="108" height="72" rx="8" class="soft"/>
+<text x="190" y="163" text-anchor="middle" font-size="16" class="muted mono">k × n</text>
+<text x="261" y="130" text-anchor="middle" font-size="27" font-weight="750" class="blue-text">=</text>
+<rect x="278" y="70" width="108" height="108" rx="8" class="blue-box"/>
+<text x="332" y="199" text-anchor="middle" font-size="16" class="muted mono">m × n</text>
+<rect x="28" y="222" width="344" height="48" rx="24" fill="var(--blue)"/>
+<text x="200" y="253" text-anchor="middle" font-size="22" font-weight="750" class="white mono">≈ 2mkn FLOPs</text>
+<text x="28" y="298" font-size="17" class="muted">线性层与 Attention 的主要矩阵乘</text>
+
+<text x="428" y="34" font-size="18" font-weight="750" style="fill:#78830f" class="mono">ELEMENTWISE</text>
+<g fill="#eef2b9" stroke="#bdc653" stroke-width="1.2">
+<rect x="428" y="70" width="30" height="30" rx="5"/><rect x="466" y="70" width="30" height="30" rx="5"/><rect x="504" y="70" width="30" height="30" rx="5"/><rect x="542" y="70" width="30" height="30" rx="5"/>
+<rect x="428" y="108" width="30" height="30" rx="5"/><rect x="466" y="108" width="30" height="30" rx="5"/><rect x="504" y="108" width="30" height="30" rx="5"/><rect x="542" y="108" width="30" height="30" rx="5"/>
+<rect x="428" y="146" width="30" height="30" rx="5"/><rect x="466" y="146" width="30" height="30" rx="5"/><rect x="504" y="146" width="30" height="30" rx="5"/><rect x="542" y="146" width="30" height="30" rx="5"/>
+</g>
+<path d="M590 123H622" fill="none" stroke="#9eaa2d" stroke-width="3"/>
+<path d="M614 115l14 8-14 8z" fill="#9eaa2d"/>
+<g fill="var(--lime)" stroke="#aab72b" stroke-width="1.2">
+<rect x="636" y="70" width="30" height="30" rx="5"/><rect x="674" y="70" width="30" height="30" rx="5"/><rect x="712" y="70" width="30" height="30" rx="5"/><rect x="750" y="70" width="30" height="30" rx="5"/>
+<rect x="636" y="108" width="30" height="30" rx="5"/><rect x="674" y="108" width="30" height="30" rx="5"/><rect x="712" y="108" width="30" height="30" rx="5"/><rect x="750" y="108" width="30" height="30" rx="5"/>
+<rect x="636" y="146" width="30" height="30" rx="5"/><rect x="674" y="146" width="30" height="30" rx="5"/><rect x="712" y="146" width="30" height="30" rx="5"/><rect x="750" y="146" width="30" height="30" rx="5"/>
+</g>
+<rect x="428" y="222" width="344" height="48" rx="24" fill="var(--lime)"/>
+<text x="600" y="253" text-anchor="middle" font-size="22" font-weight="750" class="mono">≈ c × n FLOPs</text>
+<text x="428" y="298" font-size="17" class="muted">激活、bias、残差：工作量正比于元素数</text>
+
+<text x="828" y="34" font-size="18" font-weight="750" class="coral-text mono">REDUCTION</text>
+<g fill="#fbe8e4" stroke="#ee8b7e" stroke-width="1.2">
+<rect x="828" y="62" width="28" height="22" rx="4"/><rect x="868" y="62" width="28" height="22" rx="4"/><rect x="908" y="62" width="28" height="22" rx="4"/><rect x="948" y="62" width="28" height="22" rx="4"/><rect x="988" y="62" width="28" height="22" rx="4"/><rect x="1028" y="62" width="28" height="22" rx="4"/><rect x="1068" y="62" width="28" height="22" rx="4"/><rect x="1108" y="62" width="28" height="22" rx="4"/>
+<rect x="848" y="112" width="28" height="22" rx="4"/><rect x="928" y="112" width="28" height="22" rx="4"/><rect x="1008" y="112" width="28" height="22" rx="4"/><rect x="1088" y="112" width="28" height="22" rx="4"/>
+<rect x="888" y="162" width="28" height="22" rx="4"/><rect x="1048" y="162" width="28" height="22" rx="4"/>
+</g>
+<path d="M842 86L862 110 M882 86L862 110 M922 86L942 110 M962 86L942 110 M1002 86L1022 110 M1042 86L1022 110 M1082 86L1102 110 M1122 86L1102 110 M862 136L902 160 M942 136L902 160 M1022 136L1062 160 M1102 136L1062 160 M902 186L982 194 M1062 186L982 194" class="coral-line thin"/>
+<rect x="968" y="196" width="28" height="22" rx="4" fill="var(--coral)"/>
+<rect x="828" y="222" width="344" height="48" rx="24" fill="var(--coral)"/>
+<text x="1000" y="253" text-anchor="middle" font-size="22" font-weight="750" class="white mono">≈ n FLOPs · depth ≈ log n</text>
+<text x="828" y="298" font-size="17" class="muted">求和、最大值；softmax 同时含两类操作</text>
+
+<rect x="28" y="350" width="1144" height="66" rx="15" class="box"/>
+<line x1="400" y1="360" x2="400" y2="406" class="line thin"/>
+<line x1="800" y1="360" x2="800" y2="406" class="line thin"/>
+
+<text x="48" y="377" font-size="15" font-weight="750" class="blue-text mono">FWD + BWD 合计</text>
+<text x="48" y="402" font-size="17" font-weight="750" class="mono">2mkn + 4mkn = 6mkn</text>
+
+<text x="428" y="377" font-size="15" font-weight="750" style="fill:#78830f" class="mono">FWD + BWD 合计</text>
+<text x="428" y="402" font-size="17" font-weight="750" class="mono">c<tspan baseline-shift="sub" font-size="12">f</tspan>n + c<tspan baseline-shift="sub" font-size="12">b</tspan>n = (c<tspan baseline-shift="sub" font-size="12">f</tspan> + c<tspan baseline-shift="sub" font-size="12">b</tspan>)n</text>
+
+<text x="828" y="377" font-size="15" font-weight="750" class="coral-text mono">FWD + BWD 合计</text>
+<text x="828" y="402" font-size="17" font-weight="750" class="mono">O(n) + O(n) = O(n)</text>
+<text x="1152" y="402" text-anchor="end" font-size="15" class="muted">常数依算子而异</text>
+</svg>
+</figure>
 </div>
-<div class="flow"><div class="step"><span class="label">Forward</span><h3>C = AW</h3><p>约 2mkn FLOPs</p></div><span class="arrow">→</span><div class="step"><span class="label">Backward 1</span><h3>dW = AᵀdC</h3><p>约 2mkn FLOPs</p></div><span class="arrow">+</span><div class="step"><span class="label">Backward 2</span><h3>dA = dCWᵀ</h3><p>约 2mkn FLOPs</p></div></div>
-<div class="takeaway">一次乘法和一次加法各计 1 FLOP；训练反向不是套常数，而是把实际执行的运算按同一规则计入。</div>
-</div>
-<footer class="foot"><span>FLOP 是一次运算 · FLOPs 是工作量 · FLOP/s 是硬件速率</span><span>content/01 · 1.2 如何评估计算量</span></footer>
+<footer class="foot"><span>FLOP · 一次运算　FLOPs · 总工作量　FLOP/s · 硬件速率</span><span>content/01 · 1.2　REF-001</span></footer>
 </div>
 </section>
 
-<section class="slide" id="compute" data-ch="01 资源直觉" data-title="计算量近似">
-<div class="frame">
-<header class="top">
-<span>01 · <b>1.2 计算</b>
-</span>
-<span class="num">
-</span>
-</header>
-<h2>shape 决定工作量；参数量只给一阶近似</h2>
-<div class="body">
-<div class="grid g21">
-<div class="formula">GEMM <code>[m,k] × [k,n]</code>
-<br>≈ <strong>2mkn FLOPs</strong>
-</div>
-<div class="formula">Dense forward<br>≈ <strong>2 × token × P</strong>
-</div>
-</div>
-<div class="grid g2">
-<div class="card soft">
-<span class="label">训练单个 token</span>
-<div class="metric">6P</div>
-<p>forward 加 backward 的常见一阶近似。</p>
-</div>
-<div class="card">
-<span class="label">训练总量</span>
-<div class="metric">6PD</div>
-<p>P 是参与训练的参数量，D 是训练 token 数。</p>
-</div>
-</div>
-<p class="note">标准全局 Attention 中，投影随 token 数线性增长；QKᵀ 与 PV 随 token 数平方增长。局部窗口、稀疏模式或 IO-aware kernel 会改变实际执行方式。</p>
-</div>
-<footer class="foot">
-<span>参数量近似用于数量级核对，不替代按 shape 逐项计算</span>
-<span>content/01 · 1.2</span>
-</footer>
-</div>
-</section>
-
-<section class="slide" id="attention-breakdown" data-ch="01 资源直觉" data-title="Self-Attention 模块拆解">
+<section class="slide" id="attention-breakdown" data-ch="01 资源直觉" data-title="Self-Attention 数据流">
 <div class="frame">
 <header class="top"><span>01 · <b>1.2 模块分析</b></span><span class="num"></span></header>
-<h2>一条 Self-Attention 链路里，三类操作同时出现</h2>
+<h2>Self-Attention 的三类计算沿同一条数据流发生</h2>
 <div class="body">
-<div class="flow"><div class="step"><span class="label">1 · GEMM</span><h3>Q / K / V 投影</h3><p><code>6BTH²</code></p></div><span class="arrow">→</span><div class="step"><span class="label">2 · GEMM</span><h3>QKᵀ</h3><p><code>2BT²H</code></p></div><span class="arrow">→</span><div class="step"><span class="label">3–5</span><h3>Scale · Mask · Softmax</h3><p>Elementwise + Reduction</p></div><span class="arrow">→</span><div class="step"><span class="label">6–7 · GEMM</span><h3>PV · 输出投影</h3><p><code>2BT²H + 2BTH²</code></p></div></div>
-<div class="grid g21">
-<div class="card"><span class="label">标准全局 Attention 的增长关系</span><div class="barset"><div class="bar" style="height:45%">T</div><div class="bar alt" style="height:90%">T²</div></div><p>四次投影随 token 数线性增长；两次 Attention 矩阵乘与 score 上的操作随 token 数平方增长。</p></div>
-<div class="card lime"><span class="label">B=1 · T=2048 · H=4096 · 32 heads</span><div class="metric">0.344 <small>TFLOPs</small></div><p>矩阵乘；其他操作按正文口径约 <strong>9.40 亿次</strong>。</p></div>
+<figure class="visual">
+<svg class="diagram" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="attention-work-title attention-work-desc">
+<title id="attention-work-title">一次 Self-Attention forward 的完整数据流与各步骤工作量</title>
+<desc id="attention-work-desc">输入经过 Query、Key、Value 三次投影，再完成 QK 转置矩阵乘、缩放、mask、softmax、probability 乘 Value、合并 heads 和输出投影。公式中 B、T、H、h 分别表示 batch、token、hidden 与 heads。</desc>
+
+<path d="M130 174H145V61H154 M145 174V161H154 M145 174V261H154 M288 61L335 108 M288 161L335 132 M495 119H529 M680 119H714 M787 158V208 M288 261H694 M860 254H889 M1055 254H1079" class="blue-line thin"/>
+<path d="M152 53l14 8-14 8z M152 153l14 8-14 8z M152 253l14 8-14 8z M521 111l14 8-14 8z M706 111l14 8-14 8z M779 200l8 14 8-14z M686 253l14 8-14 8z M881 246l14 8-14 8z M1071 246l14 8-14 8z" fill="var(--blue)"/>
+
+<rect x="18" y="136" width="112" height="76" rx="14" class="box"/>
+<text x="74" y="166" text-anchor="middle" font-size="18" font-weight="750">输入 X</text>
+<text x="74" y="193" text-anchor="middle" font-size="15" class="muted mono">BTH</text>
+
+<rect x="160" y="34" width="128" height="54" rx="13" class="soft"/>
+<text x="224" y="67" text-anchor="middle" font-size="18" font-weight="750">Query</text>
+<rect x="160" y="134" width="128" height="54" rx="13" class="soft"/>
+<text x="224" y="167" text-anchor="middle" font-size="18" font-weight="750">Key</text>
+<rect x="160" y="234" width="128" height="54" rx="13" class="soft"/>
+<text x="224" y="267" text-anchor="middle" font-size="18" font-weight="750">Value</text>
+<text x="224" y="322" text-anchor="middle" font-size="15" font-weight="750" class="blue-text mono">三次投影：6BTH²</text>
+
+<text x="415" y="58" text-anchor="middle" font-size="15" font-weight="750" class="blue-text mono">2BT²H</text>
+<rect x="335" y="80" width="160" height="78" rx="14" class="soft"/>
+<text x="415" y="112" text-anchor="middle" font-size="18" font-weight="750">Q × Kᵀ</text>
+<text x="415" y="139" text-anchor="middle" font-size="14" class="muted mono">score：BhT²</text>
+
+<rect x="535" y="80" width="145" height="78" rx="14" class="lime-box"/>
+<text x="607.5" y="112" text-anchor="middle" font-size="17" font-weight="750">缩放 · mask</text>
+<text x="607.5" y="140" text-anchor="middle" font-size="15" style="fill:#78830f" class="mono">各 ≈ BhT²</text>
+
+<rect x="720" y="80" width="135" height="78" rx="14" class="coral-box"/>
+<text x="787.5" y="112" text-anchor="middle" font-size="17" font-weight="750">softmax</text>
+<text x="787.5" y="140" text-anchor="middle" font-size="15" class="coral-text mono">≈ 5BhT²</text>
+
+<rect x="700" y="214" width="160" height="80" rx="14" class="soft"/>
+<text x="780" y="246" text-anchor="middle" font-size="17" font-weight="750">prob × Value</text>
+<text x="780" y="274" text-anchor="middle" font-size="16" class="blue-text mono">2BT²H</text>
+
+<rect x="895" y="214" width="160" height="80" rx="14" class="soft"/>
+<text x="975" y="244" text-anchor="middle" font-size="17" font-weight="750">合并 heads</text>
+<text x="975" y="266" text-anchor="middle" font-size="17" font-weight="750">＋ 输出投影</text>
+<text x="975" y="322" text-anchor="middle" font-size="15" font-weight="750" class="blue-text mono">2BTH²</text>
+
+<rect x="1085" y="220" width="100" height="68" rx="14" class="box"/>
+<text x="1135" y="249" text-anchor="middle" font-size="18" font-weight="750">输出</text>
+<text x="1135" y="274" text-anchor="middle" font-size="14" class="muted mono">BTH</text>
+
+<rect x="18" y="350" width="1164" height="54" rx="14" class="box"/>
+<line x1="378" y1="358" x2="378" y2="396" class="line thin"/>
+<line x1="820" y1="358" x2="820" y2="396" class="line thin"/>
+<text x="198" y="382" text-anchor="middle" font-size="17" font-weight="750" class="blue-text mono">投影：8BTH²</text>
+<text x="599" y="382" text-anchor="middle" font-size="17" font-weight="750" class="blue-text mono">Attention 矩阵乘：4BT²H</text>
+<text x="1001" y="382" text-anchor="middle" font-size="17" font-weight="750" class="coral-text mono">其他：≈ 7BhT²</text>
+</svg>
+</figure>
 </div>
-<div class="takeaway">操作次数不能直接换成耗时；局部窗口、稀疏模式和 IO-aware kernel 会改变有效工作与数据移动。</div>
+<footer class="foot"><span>B=batch · T=token · H=hidden · h=heads</span><span>softmax 系数仅比较数量级 · content/01 · 1.2</span></footer>
 </div>
-<footer class="foot"><span>投影 0.275 TFLOPs · 两次 Attention 矩阵乘 0.0687 TFLOPs</span><span>content/01 · 1.2 模块分析</span></footer>
+</section>
+
+<section class="slide" id="attention-growth" data-ch="01 资源直觉" data-title="Attention 形状关系">
+<div class="frame">
+<header class="top"><span>01 · <b>1.2 形状关系</b></span><span class="num"></span></header>
+<h2>token 越长，Attention 的二次项占比越高</h2>
+<div class="body">
+<figure class="visual">
+<svg class="diagram" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="attention-growth-title attention-growth-desc">
+<title id="attention-growth-title">投影与 Attention 矩阵乘随 token 长度增长的趋势和一个数值示例</title>
+<desc id="attention-growth-desc">在相同 hidden 下，投影工作量与 token 线性增长，Attention 两次矩阵乘与 token 的平方增长。示例使用 B 等于 1、T 等于 2048、H 等于 4096、h 等于 32。</desc>
+
+<text x="34" y="32" font-size="17" font-weight="750" class="blue-text mono">STANDARD GLOBAL ATTENTION</text>
+<line x1="72" y1="332" x2="710" y2="332" class="line"/>
+<line x1="72" y1="56" x2="72" y2="332" class="line"/>
+<text x="56" y="62" text-anchor="end" font-size="14" class="muted mono">FLOPs</text>
+<text x="710" y="359" text-anchor="end" font-size="14" class="muted mono">T →</text>
+<path d="M72 332L686 196" class="blue-line"/>
+<text x="512" y="235" font-size="18" font-weight="750" class="blue-text">投影 ∝ T</text>
+<path d="M72 332Q430 328 686 72" class="coral-line"/>
+<text x="460" y="94" font-size="18" font-weight="750" class="coral-text">Attention 矩阵乘 ∝ T²</text>
+<line x1="324" y1="68" x2="324" y2="332" class="line dash thin"/>
+<circle cx="324" cy="276" r="7" fill="var(--blue)"/>
+<text x="340" y="299" font-size="14" class="muted mono">T = 2048</text>
+<text x="340" y="72" font-size="15" class="muted">H 固定时，二次项会逐步抬升</text>
+
+<line x1="754" y1="24" x2="754" y2="396" class="line dash thin"/>
+<text x="792" y="48" font-size="17" font-weight="750" class="blue-text mono">EXAMPLE SHAPE</text>
+<text x="792" y="82" font-size="15" class="muted mono">B = 1</text>
+<text x="936" y="82" font-size="15" class="muted mono">T = 2048</text>
+<text x="792" y="108" font-size="15" class="muted mono">H = 4096</text>
+<text x="936" y="108" font-size="15" class="muted mono">h = 32</text>
+
+<rect x="792" y="138" width="372" height="200" rx="16" class="box"/>
+<line x1="810" y1="186" x2="1146" y2="186" class="line thin"/>
+<line x1="810" y1="232" x2="1146" y2="232" class="line thin"/>
+<line x1="810" y1="278" x2="1146" y2="278" class="line thin"/>
+<text x="816" y="169" font-size="16">投影（4 次）</text>
+<text x="1140" y="169" text-anchor="end" font-size="16" font-weight="750" class="blue-text mono">0.275 TFLOPs</text>
+<text x="816" y="215" font-size="16">Attention 两次矩阵乘</text>
+<text x="1140" y="215" text-anchor="end" font-size="16" font-weight="750" class="blue-text mono">0.0687 TFLOPs</text>
+<text x="816" y="261" font-size="16" font-weight="750">矩阵乘合计</text>
+<text x="1140" y="261" text-anchor="end" font-size="17" font-weight="750" class="blue-text mono">0.344 TFLOPs</text>
+<text x="816" y="307" font-size="16">缩放 / mask / softmax</text>
+<text x="1140" y="307" text-anchor="end" font-size="15" class="coral-text mono">约 9.40 亿次操作</text>
+
+<rect x="792" y="358" width="372" height="42" rx="12" fill="var(--blue-soft)"/>
+<text x="978" y="384" text-anchor="middle" font-size="15" font-weight="750">该形状下，矩阵乘仍贡献主要工作量</text>
+</svg>
+</figure>
+</div>
+<footer class="foot"><span>B=batch · T=token · H=hidden · h=heads</span><span>局部窗口、稀疏模式与 IO-aware kernel 会改变有效工作量 · content/01 · 1.2</span></footer>
+</div>
+</section>
+
+<section class="slide" id="compute" data-ch="01 资源直觉" data-title="参数量近似">
+<div class="frame">
+<header class="top"><span>01 · <b>1.2 参数量近似</b></span><span class="num"></span></header>
+<h2>用参数量反推计算量：2P → 6P → 6PD</h2>
+<div class="body">
+<figure class="visual">
+<svg class="diagram" viewBox="0 0 1200 390" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="param-approx-title param-approx-desc">
+<title id="param-approx-title">每个 token 前向约 2P，反向的权重梯度和输入梯度各约 2P，训练合计约 6P</title>
+<desc id="param-approx-desc">当全部参数参与训练时，将每 token 的 6P 累加到 D 个训练 token，得到 C 约等于 6PD。</desc>
+
+<text x="30" y="34" font-size="17" font-weight="750" class="muted mono">PER TOKEN</text>
+<rect x="30" y="58" width="250" height="118" rx="18" fill="var(--blue-soft)" stroke="#8394e8" stroke-width="1.5"/>
+<text x="155" y="94" text-anchor="middle" font-size="17" font-weight="750" class="blue-text mono">FORWARD</text>
+<text x="155" y="140" text-anchor="middle" font-size="38" font-weight="760" class="blue-text mono">2P</text>
+<text x="155" y="163" text-anchor="middle" font-size="15" class="muted">每个有效参数约做一次乘加</text>
+
+<rect x="298" y="58" width="250" height="118" rx="18" fill="#f2f4d8" stroke="#bdc653" stroke-width="1.5"/>
+<text x="423" y="94" text-anchor="middle" font-size="17" font-weight="750" style="fill:#78830f" class="mono">BACKWARD · dW</text>
+<text x="423" y="140" text-anchor="middle" font-size="38" font-weight="760" style="fill:#78830f" class="mono">2P</text>
+<text x="423" y="163" text-anchor="middle" font-size="15" class="muted">权重梯度</text>
+
+<rect x="566" y="58" width="250" height="118" rx="18" fill="#fbe9e5" stroke="#ee8b7e" stroke-width="1.5"/>
+<text x="691" y="94" text-anchor="middle" font-size="17" font-weight="750" class="coral-text mono">BACKWARD · dA</text>
+<text x="691" y="140" text-anchor="middle" font-size="38" font-weight="760" class="coral-text mono">2P</text>
+<text x="691" y="163" text-anchor="middle" font-size="15" class="muted">输入梯度</text>
+
+<path d="M30 200V214H816V200" class="blue-line thin"/>
+<text x="423" y="252" text-anchor="middle" font-size="27" font-weight="760">训练一个 token ≈ <tspan class="blue-text mono">6P</tspan></text>
+<rect x="30" y="278" width="786" height="74" rx="16" class="box"/>
+<text x="54" y="307" font-size="16" font-weight="750" class="muted mono">INFERENCE FORWARD</text>
+<text x="54" y="336" font-size="23" font-weight="760" class="blue-text mono">≈ 2P / token</text>
+<text x="215" y="336" font-size="15" class="muted">P = 本次实际使用的有效参数量</text>
+
+<line x1="852" y1="24" x2="852" y2="366" class="line dash thin"/>
+<text x="884" y="34" font-size="17" font-weight="750" class="muted mono">WHOLE DATASET</text>
+<rect x="884" y="58" width="286" height="150" rx="18" class="soft"/>
+<text x="1027" y="113" text-anchor="middle" font-size="42" font-weight="760" class="blue-text mono">C ≈ 6PD</text>
+<text x="1027" y="150" text-anchor="middle" font-size="17">P · 参数量　D · 训练 token 数</text>
+<text x="1027" y="180" text-anchor="middle" font-size="15" class="muted">全部参数参与训练</text>
+<text x="884" y="246" font-size="16" class="muted">主动忽略：Attention 非参数量项、</text>
+<text x="884" y="273" font-size="16" class="muted">embedding、归一化、重计算与重复前向。</text>
+<rect x="884" y="300" width="286" height="52" rx="14" fill="#fbe9e5" stroke="#ee8b7e" stroke-width="1.5"/>
+<text x="1027" y="332" text-anchor="middle" font-size="16" font-weight="750" class="coral-text">数量级核对 ≠ 按 shape 逐项计算</text>
+</svg>
+</figure>
+<p class="note">优化器更新的 FLOPs 通常是低阶项，但它的显存访问和耗时不能据此忽略。</p>
+</div>
+<footer class="foot"><span>有效参数口径必须先于公式</span><span>content/01 · 1.2　REF-001 / REF-003</span></footer>
 </div>
 </section>
 
@@ -305,26 +498,58 @@ h3{font-size:1.16em;line-height:1.23;letter-spacing:-.015em} h4{font-size:1.04em
 <span class="num">
 </span>
 </header>
-<h2>代入 2048 token，看参数相关 GEMM 的量级</h2>
+<h2>代入 2048 token，把工作量换成理论吞吐上限</h2>
 <div class="body">
-<div class="grid g2">
-<div class="card blue">
-<span class="label">Qwen3-32B · 32.8B 全激活</span>
-<div class="metric" style="color:white">134 <small style="color:rgba(255,255,255,.72)">TFLOPs forward</small>
-</div>
-<p>同样 token 数的训练近似约 <strong>403 TFLOPs</strong>。</p>
-</div>
-<div class="card lime">
-<span class="label">H3 · 约 20B 推理激活</span>
-<div class="metric" style="color:var(--ink)">82 <small>TFLOPs forward</small>
-</div>
-<p>33B 全量口径的 forward 约 <strong>135 TFLOPs</strong>。</p>
-</div>
-</div>
-<div class="quote">同一个“参数量”标签不一定等于本次执行实际激活的参数量；必须先写清有效参数口径。</div>
-<p class="note">
-<strong>边界：</strong>
-<code>2P / 6P / 6PD</code> 忽略 Attention 非参数量项、embedding、归一化与重计算，只用于整网数量级核对。</p>
+<figure class="visual">
+<svg class="diagram" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="compute-example-title compute-example-desc">
+<title id="compute-example-title">Qwen3-32B 与 H3-Omni-Transformer 处理 2048 token 时的参数相关矩阵乘工作量</title>
+<desc id="compute-example-desc">Qwen3-32B 前向约 134 TFLOPs，训练约 403 TFLOPs。H3 全量前向约 135 TFLOPs，训练约 406 TFLOPs，推理有效参数约 20B 时前向约 82 TFLOPs。</desc>
+
+<line x1="760" y1="18" x2="760" y2="402" class="line dash thin"/>
+
+<text x="24" y="34" font-size="17" font-weight="750" class="blue-text mono">2048 TOKEN · FORWARD 2P</text>
+<text x="24" y="82" font-size="17" font-weight="750">Qwen3-32B · 32.8B 全激活</text>
+<rect x="300" y="62" width="330" height="28" rx="7" fill="var(--blue)"/>
+<text x="648" y="83" font-size="17" font-weight="750" class="blue-text mono">134 TFLOPs</text>
+
+<text x="24" y="130" font-size="17" font-weight="750">H3-Omni · 33B 全量</text>
+<rect x="300" y="110" width="333" height="28" rx="7" fill="var(--blue)"/>
+<text x="651" y="131" font-size="17" font-weight="750" class="blue-text mono">135 TFLOPs</text>
+
+<text x="24" y="178" font-size="17" font-weight="750">H3-Omni · 约 20B 推理激活</text>
+<rect x="300" y="158" width="202" height="28" rx="7" fill="var(--lime)"/>
+<text x="520" y="179" font-size="17" font-weight="750" style="fill:#78830f" class="mono">82 TFLOPs</text>
+
+<text x="24" y="238" font-size="17" font-weight="750" class="coral-text mono">2048 TOKEN · TRAINING 6P</text>
+<text x="24" y="286" font-size="17" font-weight="750">Qwen3-32B · 32.8B</text>
+<rect x="300" y="266" width="330" height="24" rx="6" fill="#8394e8"/>
+<text x="648" y="285" font-size="17" font-weight="750" class="blue-text mono">403 TFLOPs</text>
+
+<text x="24" y="334" font-size="17" font-weight="750">H3-Omni · 33B</text>
+<rect x="300" y="314" width="333" height="24" rx="6" fill="#8394e8"/>
+<text x="651" y="333" font-size="17" font-weight="750" class="blue-text mono">406 TFLOPs</text>
+
+<text x="24" y="382" font-size="15" class="muted">H3 约 13B AdaLN 分支在推理时可预计算缓存；训练更新全部权重时仍按 33B 估算。</text>
+
+<text x="792" y="34" font-size="17" font-weight="750" class="blue-text mono">THEORETICAL COMPUTE CEILING</text>
+<text x="792" y="72" font-size="16" class="muted mono">工作单元/s ≈ 峰值 FLOP/s ÷ 每单元 FLOPs</text>
+<text x="792" y="102" font-size="15" class="muted">H100 SXM · BF16 稠密峰值 989 TFLOP/s</text>
+
+<rect x="792" y="126" width="378" height="82" rx="18" fill="var(--blue-soft)" stroke="#8394e8" stroke-width="1.5"/>
+<text x="816" y="157" font-size="17" font-weight="750">Qwen3-32B</text>
+<text x="1146" y="158" text-anchor="end" font-size="25" font-weight="760" class="blue-text mono">15,100</text>
+<text x="1146" y="184" text-anchor="end" font-size="15" class="muted mono">model-token/s</text>
+
+<rect x="792" y="224" width="378" height="82" rx="18" fill="#f2f4d8" stroke="#bdc653" stroke-width="1.5"/>
+<text x="816" y="255" font-size="17" font-weight="750">H3 · 20B 激活</text>
+<text x="1146" y="256" text-anchor="end" font-size="25" font-weight="760" style="fill:#78830f" class="mono">24,700</text>
+<text x="1146" y="282" text-anchor="end" font-size="15" class="muted mono">visual-token/s</text>
+
+<rect x="792" y="322" width="378" height="72" rx="18" fill="#fbe9e5" stroke="#ee8b7e" stroke-width="1.5"/>
+<text x="816" y="350" font-size="15" class="muted">1344 × 768 · 24 FPS · 6048 visual token/s</text>
+<text x="816" y="378" font-size="20" font-weight="760" class="coral-text">≈ 4.1 路实时视频　·　约 98 输出帧/s</text>
+</svg>
+</figure>
 </div>
 <footer class="foot">
 <span>FACT-002 / FACT-004 / FACT-005</span>
