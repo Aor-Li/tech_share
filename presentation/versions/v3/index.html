@@ -65,11 +65,12 @@ h3{font-size:1.16em;line-height:1.23;letter-spacing:-.015em} h4{font-size:1.04em
 .dark{background:var(--ink)!important;color:var(--paper)}.dark .frame{color:var(--paper)}.dark .top,.dark .foot,.dark .lede,.dark .card p,.dark .card li,.dark .note{color:#aeb9c2}.dark .top,.dark .foot,.dark .card,.dark .step{border-color:rgba(247,245,239,.18)}.dark .top b,.dark .label,.dark .eyebrow{color:var(--lime)}.dark .card strong,.dark .bullets strong{color:var(--paper)}.dark code{background:rgba(255,255,255,.1)}
 .cover .body{justify-content:center;gap:1.4em}.cover .lede{font-size:1.18em;max-width:44em}.cover-line{width:6.5em;height:.55em;background:var(--lime);border-radius:1em}.meta{display:flex;flex-wrap:wrap;gap:.5em}.pill{font:650 .78em/1 var(--mono);letter-spacing:.04em;border:1px solid currentColor;border-radius:2em;padding:.48em .8em;color:var(--muted)}.dark .pill{color:#b8c2ca}.chapter .body{justify-content:center}.chapter-no{font:750 8em/.8 var(--mono);letter-spacing:-.08em;color:var(--lime)}.chapter h2{font-size:3.25em;max-width:16em;margin:.3em 0}.chapter .lede{font-size:1.15em;max-width:48em}
 .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:.62em}.summary .card{min-height:8.4em}.summary .label{font-size:.82em}.summary h3{font-size:1.1em}
+.chapter-map{flex:1;min-height:0;display:grid;place-items:center;padding:.5em 0}.chapter-map svg{display:block;width:100%;height:100%;max-height:34em;overflow:visible}.chapter-map text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;fill:var(--ink)}.chapter-map .white{fill:white}.chapter-map .coral-text{fill:var(--coral)}.chapter-map .route-glow{fill:none;stroke:var(--blue-soft);stroke-width:34;stroke-linecap:round}.chapter-map .route{fill:none;stroke:var(--blue);stroke-width:4;stroke-linecap:round;stroke-dasharray:2 15}.chapter-map .route-arrow{fill:var(--blue)}.chapter-map a{cursor:pointer;transform-box:fill-box;transform-origin:center;transition:transform .22s ease,filter .22s ease}.chapter-map a:hover,.chapter-map a:focus-visible{transform:translateY(-9px);filter:drop-shadow(0 16px 16px rgba(20,32,43,.18));outline:none}.chapter-map a:focus-visible .map-ring{stroke:var(--ink);stroke-width:6}.chapter-map .map-ring{stroke-width:2;transition:stroke-width .18s ease}.chapter-map .map-kicker{font:700 17px var(--mono);letter-spacing:3px}.chapter-map .map-title{font-size:34px;font-weight:760;letter-spacing:-1px}.chapter-map .map-note{font-size:18px;font-weight:600}.chapter-map .map-hint{font:650 16px var(--mono);letter-spacing:1.5px;fill:var(--muted)}
 .progress{position:fixed;z-index:30;inset:0 auto auto 0;width:0;height:3px;background:var(--lime);transition:width .18s ease}
 .controls{position:fixed;z-index:30;right:1rem;bottom:1rem;display:flex;align-items:center;gap:.25rem;background:rgba(13,21,29,.92);color:white;border:1px solid rgba(255,255,255,.18);border-radius:2rem;padding:.28rem;box-shadow:0 12px 35px rgba(0,0,0,.28);backdrop-filter:blur(14px)}.controls button{width:2.05rem;height:2.05rem;border:0;border-radius:50%;background:transparent;color:inherit}.controls button:hover,.controls button:focus-visible{background:var(--lime);color:var(--ink);outline:none}.controls output{min-width:3.6rem;text-align:center;font:650 .7rem var(--mono)}
 #toc{position:fixed;z-index:50;inset:0;background:rgba(13,21,29,.98);color:white;padding:clamp(1.3rem,4vw,3.5rem);overflow:auto}#toc[hidden]{display:none}#toc h2{margin:0 0 1rem;font-size:2rem}#toc .tocgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:1.4rem 2rem;max-width:86rem}#toc h3{font:700 .75rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--lime);margin-bottom:.5rem}#toc ol{list-style:none;padding:0;margin:0}#toc a{display:flex;gap:.7rem;text-decoration:none;padding:.32rem .45rem;border-radius:.35rem;color:#c0c9d0;font-size:.88rem}#toc a:hover,#toc a:focus-visible{background:rgba(219,232,90,.13);color:white;outline:none}#toc .ix{color:var(--lime);font:700 .75rem/1.55 var(--mono);min-width:1.7rem}#tocClose{position:absolute;right:1rem;top:1rem;color:white;border:1px solid rgba(255,255,255,.28);border-radius:2rem;padding:.45rem .9rem;background:transparent}
 @media(max-width:840px){html{scroll-snap-type:none}.slide{min-height:auto;padding:1rem}.frame{width:100%;height:auto;min-height:calc(100svh - 2rem);font-size:16px;overflow:visible}.g2,.g3,.g4,.g21,.g12,.summary{grid-template-columns:1fr}.flow{flex-direction:column}.arrow{transform:rotate(90deg)}.splitmap{grid-template-columns:1fr}.splitmap .hd{display:none}.timeline{grid-template-columns:5.5em 1fr}.controls{right:.6rem;bottom:.6rem}h1{font-size:3em}.chapter-no{font-size:6em}.body{justify-content:flex-start}.card{min-height:auto!important}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.progress{transition:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.progress,.chapter-map a{transition:none}}
 @media print{@page{size:landscape;margin:0}html{scroll-snap-type:none}body{background:white}.slide{page-break-after:always;break-after:page;min-height:100vh;padding:1.5cm}.slide:last-of-type{page-break-after:auto}.frame{width:100%;height:calc(100vh - 3cm);font-size:10.5pt}.controls,.progress,#toc{display:none!important}.dark{background:var(--ink)!important}.card{break-inside:avoid}}
 </style>
 </head>
@@ -102,11 +103,6 @@ h3{font-size:1.16em;line-height:1.23;letter-spacing:-.015em} h4{font-size:1.04em
 <p class="eyebrow">From workload to bottleneck</p>
 <h1>大模型训练与推理中的 <span style="color:var(--lime)">AI Infra</span> 基础</h1>
 <p class="lede">从计算、显存与通信三本账出发，理解训练配置、并行策略与推理服务为什么这样设计。</p>
-<div class="meta">
-<span class="pill">算法与数据同学</span>
-<span class="pill">30–60 分钟</span>
-<span class="pill">v3 · 整合预览</span>
-</div>
 </div>
 <footer class="foot">
 <span>内容快照 7b1577d</span>
@@ -115,66 +111,60 @@ h3{font-size:1.16em;line-height:1.23;letter-spacing:-.015em} h4{font-size:1.04em
 </div>
 </section>
 
-<section class="slide" id="map" data-ch="开场" data-title="全篇地图">
+<section class="slide" id="map" data-ch="开场" data-title="章节导览">
 <div class="frame">
 <header class="top">
-<span>开场 · <b>全篇地图</b>
+<span>开场 · <b>章节导览</b>
 </span>
 <span class="num">
 </span>
 </header>
-<h2>先建立共同语言，再进入两个场景</h2>
-<p class="lede">不要从配置名出发。先固定工作负载和目标，再判断哪一本账进入关键路径。</p>
 <div class="body">
-<div class="flow">
-<div class="step">
-<span class="label">Input</span>
-<h3>模型 · shape · 指标</h3>
-<p>我们到底在执行什么、比较什么？</p>
-</div>
-<span class="arrow">→</span>
-<div class="step">
-<span class="label">01</span>
-<h3>资源直觉</h3>
-<p>计算、显存与数据移动、通信。</p>
-</div>
-<span class="arrow">→</span>
-<div class="step">
-<span class="label">02 / 03</span>
-<h3>训练与推理</h3>
-<p>把同一套账本代入不同工作单元。</p>
-</div>
-<span class="arrow">→</span>
-<div class="step">
-<span class="label">Output</span>
-<h3>验证闭环</h3>
-<p>估算 → 观测 → 杠杆 → 验证。</p>
-</div>
-</div>
-<div class="grid g3">
-<div class="card">
-<span class="label">计算账</span>
-<p>
-<strong>做了多少运算？</strong>
-<br>FLOPs、shape、理论下界。</p>
-</div>
-<div class="card">
-<span class="label">驻留与搬运账</span>
-<p>
-<strong>什么同时存在、搬了几遍？</strong>
-<br>bytes、生命周期、带宽。</p>
-</div>
-<div class="card">
-<span class="label">通信账</span>
-<p>
-<strong>什么张量在哪些设备间交换？</strong>
-<br>payload、频率、路径与等待。</p>
-</div>
-</div>
+<nav class="chapter-map" aria-label="点击章节节点跳转">
+<svg viewBox="0 0 1200 500" role="img" aria-labelledby="chapter-map-title chapter-map-desc">
+<title id="chapter-map-title">全篇三章交互导览</title>
+<desc id="chapter-map-desc">依次为资源直觉、训练和推理三个可点击章节节点。</desc>
+<path class="route-glow" d="M210 250H990"/>
+<path class="route" d="M210 250H990"/>
+<path class="route-arrow" d="M430 240l18 10-18 10z"/>
+<path class="route-arrow" d="M810 240l18 10-18 10z"/>
+<a href="#ch1" aria-label="跳转到第 1 章：资源直觉">
+<title>跳转到第 1 章：资源直觉</title>
+<g class="map-node">
+<circle class="map-ring" cx="210" cy="250" r="116" fill="var(--blue)" stroke="var(--blue)"/>
+<circle cx="210" cy="250" r="97" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/>
+<text x="210" y="204" text-anchor="middle" class="map-kicker white">CHAPTER 01</text>
+<text x="210" y="263" text-anchor="middle" class="map-title white">资源直觉</text>
+<text x="210" y="303" text-anchor="middle" class="map-note white">计算 · 显存 · 通信</text>
+</g>
+</a>
+<a href="#ch2" aria-label="跳转到第 2 章：训练">
+<title>跳转到第 2 章：训练</title>
+<g class="map-node">
+<circle class="map-ring" cx="600" cy="250" r="116" fill="var(--lime)" stroke="#aab72b"/>
+<circle cx="600" cy="250" r="97" fill="none" stroke="rgba(20,32,43,.18)" stroke-width="1.5"/>
+<text x="600" y="204" text-anchor="middle" class="map-kicker">CHAPTER 02</text>
+<text x="600" y="263" text-anchor="middle" class="map-title">训练</text>
+<text x="600" y="303" text-anchor="middle" class="map-note">从一个 step 到并行</text>
+</g>
+</a>
+<a href="#ch3" aria-label="跳转到第 3 章：推理">
+<title>跳转到第 3 章：推理</title>
+<g class="map-node">
+<circle class="map-ring" cx="990" cy="250" r="116" fill="#fbe8e4" stroke="var(--coral)"/>
+<circle cx="990" cy="250" r="97" fill="none" stroke="rgba(239,107,90,.28)" stroke-width="1.5"/>
+<text x="990" y="204" text-anchor="middle" class="map-kicker coral-text">CHAPTER 03</text>
+<text x="990" y="263" text-anchor="middle" class="map-title">推理</text>
+<text x="990" y="303" text-anchor="middle" class="map-note">从一次请求到服务</text>
+</g>
+</a>
+<text x="600" y="438" text-anchor="middle" class="map-hint">CLICK OR TAB + ENTER TO JUMP</text>
+</svg>
+</nav>
 </div>
 <footer class="foot">
-<span>主线：工作负载 → 资源约束 → 场景选择</span>
-<span>outline / content</span>
+<span>点击章节节点跳转</span>
+<span>01 → 02 → 03</span>
 </footer>
 </div>
 </section>
@@ -189,7 +179,6 @@ h3{font-size:1.16em;line-height:1.23;letter-spacing:-.015em} h4{font-size:1.04em
 <div class="body">
 <div class="chapter-no">01</div>
 <h2>资源直觉：计算、显存与通信</h2>
-<p class="lede">参数量不是答案。先把现实问题拆成三本账，再用 shape 和生命周期建立数量级。</p>
 </div>
 <footer class="foot">
 <span>通用方法</span>
