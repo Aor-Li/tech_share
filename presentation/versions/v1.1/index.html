@@ -191,6 +191,7 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
 .ch-agenda ol{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.42em;}
 .ch-agenda li{display:flex;gap:.9em;align-items:baseline;font-size:.9em;color:var(--muted);}
 .ch-agenda li .i{font:600 .8em/1.4 var(--mono);color:var(--accent);min-width:2.1em;flex:none;}
+.ch-agenda li .sub{display:block;font-style:normal;font-size:.86em;color:var(--faint);margin-top:.22em;}
 .cover h1{font-size:3.05em;line-height:1.1;letter-spacing:-.03em;font-weight:650;max-width:17em;}
 .cover .sub{font-size:1.1em;color:var(--muted);max-width:38em;}
 .cover .rule{width:3.4em;height:3px;background:var(--accent);border-radius:2px;}
@@ -294,7 +295,7 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
         <span class="tag">← → 翻页 · M 目录</span>
       </div>
     </div>
-    <footer class="foot"><span>面向算法与数据同事 · 不要求系统或 CUDA 背景</span><span>60 min</span></footer>
+    <footer class="foot"><span>面向算法与数据同事 · 不要求系统或 CUDA 背景 · 硬件数值统一为 H100 SXM BF16 稠密口径</span><span>60 min</span></footer>
   </div>
 </section>
 
@@ -314,8 +315,7 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
             <li><span class="i">1.1</span><span>三本账：把问题拆成可估算的量</span></li>
             <li><span class="i">1.2</span><span>计算账：FLOPs 与形状关系</span></li>
             <li><span class="i">1.3</span><span>显存账：存储层级、Roofline 与峰值</span></li>
-            <li><span class="i">1.4</span><span>通信账：物理路径与集合元语</span></li>
-            <li><span class="i">1.5</span><span>四问判断卡：收束成可验证的假设</span></li>
+            <li><span class="i">1.4</span><span>通信账：物理路径、通信元语与张量布局</span></li>
           </ol>
         </nav>
     </div>
@@ -560,35 +560,50 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
 <section class="slide" id="s-param-approx" data-ch="01 资源直觉" data-title="1.2 参数量近似">
   <div class="frame">
     <header class="head"><span class="kicker">01 · <b>1.2 参数量近似</b></span><span class="num"></span></header>
-    <h2>用参数量反推计算量：2P → 6P → 6PD</h2>
+    <h2>用参数量反推计算量：<em class="hl">2P → 6P → 6PD</em></h2>
     <p class="lede">起点仍是 GEMM：一次前向中，每个 token 对本次执行所用的矩阵权重<b>大约做一次乘加</b>。把实际参与计算的权重记为「有效参数量 P」。</p>
     <div class="body">
       <figure class="viz">
-        <svg viewBox="0 0 1000 250" preserveAspectRatio="xMidYMid meet" role="img" aria-label="每 token 前向约 2P，反向的权重梯度与输入梯度各约 2P，合计训练约 6P，累加到 D 个 token 得到 C 约等于 6PD">
-          <text x="20" y="30" class="m mut xs b">每个 token 的成本</text>
-          <rect x="20" y="46" width="188" height="52" rx="6" class="fa"/>
-          <text x="114" y="70" text-anchor="middle" class="inv b">forward</text>
-          <text x="114" y="90" text-anchor="middle" class="inv m sm">2P</text>
-          <rect x="212" y="46" width="188" height="52" rx="6" class="fm"/>
-          <text x="306" y="70" text-anchor="middle" class="b">backward · dW</text>
-          <text x="306" y="90" text-anchor="middle" class="m sm">2P</text>
-          <rect x="404" y="46" width="188" height="52" rx="6" class="fm"/>
-          <text x="498" y="70" text-anchor="middle" class="b">backward · dA</text>
-          <text x="498" y="90" text-anchor="middle" class="m sm">2P</text>
-          <path d="M20 112 L592 112" class="ln"/>
-          <path d="M20 112 L20 122 M592 112 L592 122" class="ln"/>
-          <text x="306" y="142" text-anchor="middle" class="acc b">训练一个 token ≈ 6P</text>
-          <text x="114" y="176" text-anchor="middle" class="sm mut">推理前向同口径</text>
-          <text x="114" y="196" text-anchor="middle" class="sm mut m acc">≈ 2P / token</text>
+        <svg viewBox="0 0 1000 232" preserveAspectRatio="xMidYMid meet" role="img" aria-label="每 token 前向约 2P，反向的权重梯度与输入梯度各约 2P，合计训练约 6P，累加到 D 个 token 得到 C 约等于 6PD">
+          <!-- ① 单 token 成本 -->
+          <text x="20" y="22" class="m mut xs b">① 每个 TOKEN 的成本</text>
+          <rect x="20" y="40" width="178" height="56" rx="6" class="fa"/>
+          <text x="109" y="64" text-anchor="middle" class="inv b">forward</text>
+          <text x="109" y="86" text-anchor="middle" class="inv m sm">2P</text>
+          <text x="207" y="74" text-anchor="middle" class="mut b">+</text>
+          <rect x="216" y="40" width="178" height="56" rx="6" class="fm"/>
+          <text x="305" y="64" text-anchor="middle" class="b">backward · dW</text>
+          <text x="305" y="86" text-anchor="middle" class="m sm">2P</text>
+          <text x="403" y="74" text-anchor="middle" class="mut b">+</text>
+          <rect x="412" y="40" width="178" height="56" rx="6" class="fm"/>
+          <text x="501" y="64" text-anchor="middle" class="b">backward · dA</text>
+          <text x="501" y="86" text-anchor="middle" class="m sm">2P</text>
 
-          <line x1="628" y1="20" x2="628" y2="230" class="ln dash"/>
-          <text x="656" y="30" class="m mut xs b">累加到整个数据集</text>
-          <rect x="656" y="46" width="322" height="76" rx="8" class="fs"/>
-          <text x="817" y="82" text-anchor="middle" class="lg acc m">C ≈ 6 · P · D</text>
-          <text x="817" y="106" text-anchor="middle" class="xs mut">全部参数参与训练时，D 为训练 token 数</text>
-          <text x="656" y="152" class="sm mut">主动忽略：Attention 两次矩阵乘、embedding、</text>
-          <text x="656" y="174" class="sm mut">归一化、重计算与一个工作单元内的重复前向。</text>
-          <text x="656" y="204" class="sm wrn b">适合整网数量级核对，不能替代按 shape 逐项计算。</text>
+          <path d="M20 108 L590 108" class="ln"/>
+          <path d="M20 108 L20 100 M590 108 L590 100 M305 108 L305 118" class="ln"/>
+
+          <rect x="175" y="120" width="260" height="40" rx="8" class="boxa"/>
+          <text x="305" y="146" text-anchor="middle" class="lg acc m">训练 1 token ≈ 6P</text>
+
+          <rect x="175" y="176" width="260" height="44" rx="6" class="box"/>
+          <text x="305" y="194" text-anchor="middle" class="sm mut">推理只做前向，同口径</text>
+          <text x="305" y="212" text-anchor="middle" class="m sm acc b">≈ 2P / token</text>
+
+          <line x1="628" y1="14" x2="628" y2="222" class="ln dash"/>
+
+          <!-- ② 累加到数据集 -->
+          <text x="656" y="22" class="m mut xs b">② 累加到整个数据集</text>
+          <rect x="656" y="40" width="324" height="56" rx="8" class="boxa"/>
+          <text x="818" y="76" text-anchor="middle" class="lg acc m">C ≈ 6 · P · D</text>
+          <text x="656" y="114" class="xs mut">全部参数参与训练时，D 为训练 token 数。</text>
+
+          <text x="656" y="140" class="xs mut b">主动忽略</text>
+          <text x="724" y="140" class="xs mut">Attention 两次矩阵乘、embedding、归一化、</text>
+          <text x="724" y="158" class="xs mut">重计算与一个工作单元内的重复前向。</text>
+
+          <rect x="656" y="176" width="324" height="44" rx="6" class="boxw"/>
+          <text x="818" y="194" text-anchor="middle" class="sm wrn b">适合整网数量级核对</text>
+          <text x="818" y="212" text-anchor="middle" class="xs mut">不能替代按 shape 逐项计算</text>
         </svg>
       </figure>
       <p class="note">优化器更新的 FLOPs 相对大规模前向和反向通常是<b>低阶项</b>，但它的<b>显存访问和耗时不能据此一并忽略</b>。</p>
@@ -604,37 +619,56 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
     <p class="lede">只比较「处理 2048 个 token 时，参数相关 GEMM 的量级」。这是本节的一次具体代入，<b>不是贯穿全篇的对照案例</b>。</p>
     <div class="body">
       <figure class="viz">
-        <svg viewBox="0 0 1000 250" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Qwen3-32B 与 H3-Omni-Transformer 在 2048 token 下的前向 2P 与训练 6P 计算量对比条形图">
-          <text x="20" y="24" class="m mut xs b">2048 TOKEN · 前向 2P</text>
-          <text x="20" y="58" class="sm b">Qwen3-32B · 32.8B 全激活</text>
-          <rect x="248" y="42" width="298" height="24" rx="4" class="fa"/>
-          <text x="558" y="60" class="m sm acc b">134 TFLOPs</text>
-          <text x="20" y="98" class="sm b">H3-Omni · 33B 全量</text>
-          <rect x="248" y="82" width="300" height="24" rx="4" class="fa"/>
-          <text x="560" y="100" class="m sm acc b">135 TFLOPs</text>
-          <text x="20" y="138" class="sm b">H3-Omni · 约 20B 推理激活</text>
-          <rect x="248" y="122" width="182" height="24" rx="4" class="fm"/>
-          <text x="442" y="140" class="m sm b">82 TFLOPs</text>
-          <text x="20" y="184" class="m mut xs b">同 token 训练 6P</text>
-          <rect x="248" y="170" width="298" height="18" rx="4" class="fm"/>
-          <text x="258" y="184" class="m xs b">Qwen3-32B</text>
-          <text x="558" y="185" class="m sm">403 TFLOPs</text>
-          <rect x="248" y="198" width="300" height="18" rx="4" class="fm"/>
-          <text x="258" y="212" class="m xs b">H3 全量</text>
-          <text x="560" y="213" class="m sm">406 TFLOPs</text>
+        <svg viewBox="0 0 1000 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Qwen3-32B 与 H3-Omni-Transformer 在 2048 token 下的前向 2P 与训练 6P 计算量对比条形图，以及除以硬件峰值得到的理论吞吐上限">
+          <!-- ① 计算量条形图：同一横轴，数值右对齐成列 -->
+          <text x="20" y="20" class="m mut xs b">① 2048 TOKEN · 前向 2P</text>
+          <line x1="236" y1="28" x2="236" y2="192" class="ln"/>
 
-          <line x1="684" y1="10" x2="684" y2="240" class="ln dash"/>
-          <text x="712" y="24" class="m acc xs b">除以硬件峰值 = 理论吞吐上限</text>
-          <text x="712" y="54" class="sm m">工作单元/s ≈ 峰值 FLOP/s ÷ 每单元 FLOPs</text>
-          <text x="712" y="82" class="xs mut">H100 SXM · BF16 稠密峰值 989 TFLOP/s</text>
-          <rect x="712" y="98" width="264" height="46" rx="6" class="fs"/>
-          <text x="726" y="118" class="sm b">Qwen3-32B</text>
-          <text x="966" y="118" text-anchor="end" class="m sm acc b">15,100 model-token/s</text>
-          <text x="726" y="138" class="sm b">H3 · 20B</text>
-          <text x="966" y="138" text-anchor="end" class="m sm acc b">24,700 visual-token/s</text>
-          <text x="712" y="176" class="xs mut">1344×768 · 24 FPS 的 1 秒新画面含 6048 视觉 token，</text>
-          <text x="712" y="196" class="xs mut">只做一次完整前向时：</text>
-          <text x="712" y="224" class="acc b">≈ 4.1 路 24 FPS 实时视频（约 98 输出帧/s）</text>
+          <text x="20" y="45" class="sm b">Qwen3-32B · 32.8B 全激活</text>
+          <rect x="236" y="30" width="87" height="22" rx="3" class="fa"/>
+          <text x="596" y="45" text-anchor="end" class="m sm b">134 TFLOPs</text>
+
+          <text x="20" y="73" class="sm b">H3-Omni · 33B 全量</text>
+          <rect x="236" y="58" width="88" height="22" rx="3" class="fa"/>
+          <text x="596" y="73" text-anchor="end" class="m sm b">135 TFLOPs</text>
+
+          <text x="20" y="101" class="sm b">H3-Omni · 约 20B 推理激活</text>
+          <rect x="236" y="86" width="53" height="22" rx="3" class="fa"/>
+          <text x="596" y="101" text-anchor="end" class="m sm acc b">82 TFLOPs</text>
+
+          <text x="20" y="128" class="m mut xs b">同批 TOKEN · 训练 6P</text>
+
+          <text x="20" y="153" class="sm b">Qwen3-32B</text>
+          <rect x="236" y="138" width="262" height="22" rx="3" class="fm"/>
+          <text x="596" y="153" text-anchor="end" class="m sm b">403 TFLOPs</text>
+
+          <text x="20" y="181" class="sm b">H3-Omni · 33B 全量</text>
+          <rect x="236" y="166" width="264" height="22" rx="3" class="fm"/>
+          <text x="596" y="181" text-anchor="end" class="m sm b">406 TFLOPs</text>
+
+          <rect x="20" y="196" width="576" height="42" rx="6" class="box"/>
+          <text x="34" y="214" class="sm acc b">训练一批 token ≈ 同批推理的 3 倍</text>
+          <text x="34" y="232" class="xs mut">有效参数 33B → 20B，前向成本按比例降到 0.61×</text>
+
+          <line x1="628" y1="14" x2="628" y2="238" class="ln dash"/>
+
+          <!-- ② 除以峰值得到吞吐上限 -->
+          <text x="656" y="20" class="m acc xs b">② 除以硬件峰值 = 理论吞吐上限</text>
+          <text x="656" y="42" class="sm m mut">工作单元/s ≈ 峰值 FLOP/s ÷ 每单元 FLOPs</text>
+          <text x="656" y="62" class="xs mut">H100 SXM · BF16 稠密峰值 989 TFLOP/s</text>
+
+          <rect x="656" y="76" width="324" height="56" rx="6" class="fs"/>
+          <text x="672" y="100" class="sm b">Qwen3-32B</text>
+          <text x="964" y="100" text-anchor="end" class="m sm acc b">15,100 model-token/s</text>
+          <text x="672" y="122" class="sm b">H3-Omni · 20B</text>
+          <text x="964" y="122" text-anchor="end" class="m sm acc b">24,700 visual-token/s</text>
+
+          <text x="656" y="154" class="xs mut">1344×768 · 24 FPS 的 1 秒新画面含 6048 视觉 token，</text>
+          <text x="656" y="172" class="xs mut">只做一次完整前向时：</text>
+
+          <rect x="656" y="196" width="324" height="42" rx="6" class="boxa"/>
+          <text x="818" y="214" text-anchor="middle" class="acc b">≈ 4.1 路 24 FPS 实时视频</text>
+          <text x="818" y="232" text-anchor="middle" class="xs mut">约 98 输出帧/s</text>
         </svg>
       </figure>
       <p class="note">Qwen3-32B 为 dense 模型，总参数 32.8B（只取 31.2B 非 embedding 参数结果会略低）。H3 约 33B 中，约 13B 位于推理时可预计算并缓存的 AdaLN 相关分支，因此推理有效参数约 20B；<b>训练更新全部权重时仍按 33B 估</b>。</p>
@@ -647,57 +681,118 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   <div class="frame">
     <header class="head"><span class="kicker">01 · <b>1.3 存储</b></span><span class="num"></span></header>
     <h2>先看数据离计算单元有多远</h2>
-    <p class="lede">GPU 计算不是直接在一整块「显存」上完成的。数据从 HBM 进入片上缓存或 shared memory，再进入寄存器供指令使用。</p>
+    <p class="lede">GPU 计算不是直接在一整块「显存」上完成的。数据从 HBM 进入 L2、再进入 shared memory 或 L1，最后到寄存器供指令使用。<b>越靠近执行单元，容量越小、通常越快</b>。</p>
     <div class="body">
       <figure class="viz">
-        <svg viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="H100 SXM 存储层级：寄存器、shared memory 与 L1、L2、HBM 由近到远，容量递增速度递减">
-          <rect x="30" y="24" width="152" height="252" rx="8" class="boxa"/>
-          <text x="106" y="52" text-anchor="middle" class="m acc xs b">SM 内</text>
-          <rect x="48" y="66" width="116" height="58" rx="5" class="fa"/>
-          <text x="106" y="90" text-anchor="middle" class="inv sm b">寄存器</text>
-          <text x="106" y="110" text-anchor="middle" class="inv xs m">256 KB / SM</text>
-          <rect x="48" y="140" width="116" height="66" rx="5" class="fm"/>
-          <text x="106" y="164" text-anchor="middle" class="sm b">shared / L1</text>
-          <text x="106" y="182" text-anchor="middle" class="xs m">≤ 256 KB / SM</text>
-          <text x="106" y="198" text-anchor="middle" class="xs m mut">shared ≤ 228 KB</text>
-          <text x="106" y="240" text-anchor="middle" class="xs mut">最靠近执行单元</text>
-          <text x="106" y="258" text-anchor="middle" class="xs mut">通常最快、容量最小</text>
+        <svg viewBox="0 0 1000 344" preserveAspectRatio="xMidYMid meet" role="img" aria-label="左侧为 H100 存储层级：寄存器、shared memory 与 L1、L2、HBM 由近到远逐层变大；右侧为 GH100 完整 GPU 与单个 SM 的结构示意，颜色与左侧层级一一对应">
 
-          <path d="M188 150 L246 150" class="lna"/><path d="M254 150 l-11 -6 l0 12 z" class="fa"/>
-          <rect x="258" y="70" width="152" height="160" rx="8" class="box"/>
-          <text x="334" y="98" text-anchor="middle" class="m acc xs b">全卡共享</text>
-          <rect x="276" y="112" width="116" height="66" rx="5" class="fm"/>
-          <text x="334" y="140" text-anchor="middle" class="sm b">L2</text>
-          <text x="334" y="160" text-anchor="middle" class="xs m">50 MB</text>
-          <text x="334" y="204" text-anchor="middle" class="xs mut">在 SM 与 HBM 之间缓存</text>
+          <!-- ① 层级 -->
+          <text x="20" y="26" class="m mut xs b">① 由近到远的四个层级</text>
 
-          <path d="M416 150 L474 150" class="lna"/><path d="M482 150 l-11 -6 l0 12 z" class="fa"/>
-          <rect x="486" y="46" width="182" height="208" rx="8" class="box"/>
-          <text x="577" y="76" text-anchor="middle" class="m acc xs b">板载</text>
-          <rect x="506" y="92" width="142" height="94" rx="5" class="fl"/>
-          <text x="577" y="126" text-anchor="middle" class="sm b">HBM</text>
-          <text x="577" y="148" text-anchor="middle" class="m sm">80 GB</text>
-          <text x="577" y="170" text-anchor="middle" class="m sm acc">3.35 TB/s</text>
-          <text x="577" y="214" text-anchor="middle" class="xs mut">长期保存权重与激活</text>
-          <text x="577" y="232" text-anchor="middle" class="xs mut">最容易成为数据供给瓶颈</text>
+          <rect x="115" y="56" width="170" height="56" rx="6" class="fa"/>
+          <text x="200" y="80" text-anchor="middle" class="inv b">寄存器</text>
+          <text x="200" y="100" text-anchor="middle" class="inv m xs">256 KB / SM</text>
 
-          <path d="M30 288 L668 288" class="ln"/>
-          <text x="40" y="282" class="xs acc m b">容量更小 · 通常更快</text>
-          <text x="658" y="282" text-anchor="end" class="xs mut m b">容量更大 · 通常更慢</text>
+          <rect x="90" y="122" width="220" height="56" rx="6" class="fm"/>
+          <text x="200" y="146" text-anchor="middle" class="b">shared memory / L1</text>
+          <text x="200" y="166" text-anchor="middle" class="m xs">≤ 256 KB / SM · shared ≤ 228 KB</text>
 
-          <rect x="700" y="46" width="286" height="208" rx="8" class="fw"/>
-          <text x="720" y="76" class="m wrn xs b">两个不能忽略的口径问题</text>
-          <text x="720" y="106" class="sm">容量<tspan class="b"> 不能直接相加</tspan>：</text>
-          <text x="720" y="128" class="sm mut">寄存器 / shared 是「每个 SM」的资源，</text>
-          <text x="720" y="148" class="sm mut">L2 / HBM 是「全卡」的资源；</text>
-          <text x="720" y="168" class="sm mut">L1 与 shared 还共享同一片容量。</text>
-          <text x="720" y="200" class="sm">NVIDIA <tspan class="b">未给出</tspan> 可横向比较的</text>
-          <text x="720" y="220" class="sm mut">片上峰值带宽，所以「快慢」只用于</text>
-          <text x="720" y="240" class="sm mut">建立距离与数量级直觉。</text>
+          <rect x="65" y="188" width="270" height="56" rx="6" class="boxa"/>
+          <text x="200" y="212" text-anchor="middle" class="acc b">L2</text>
+          <text x="200" y="232" text-anchor="middle" class="m xs">50 MB · 全卡共享</text>
+
+          <rect x="40" y="254" width="320" height="56" rx="6" class="box"/>
+          <text x="200" y="278" text-anchor="middle" class="b">HBM</text>
+          <text x="200" y="298" text-anchor="middle" class="m xs">80 GB · 3.35 TB/s · 全卡共享</text>
+
+          <path d="M382 60 L382 300" class="lna"/><path d="M382 308 l-6 -11 l12 0 z" class="fa"/>
+          <text x="370" y="180" text-anchor="middle" class="xs mut" transform="rotate(-90 370 180)">容量更大 · 通常更慢</text>
+
+          <text x="20" y="330" class="xs mut">寄存器 / shared 是<tspan class="b">每个 SM 一份</tspan>，L2 / HBM 是<tspan class="b">全卡一份</tspan>，容量不能直接相加。</text>
+
+          <line x1="402" y1="16" x2="402" y2="334" class="ln dash"/>
+
+          <!-- ② 物理参考 -->
+          <text x="424" y="26" class="m mut xs b">② 物理参考 · NVIDIA GH100（结构示意，非版图比例；存储部件配色与左列一致）</text>
+
+          <!-- 完整 GPU -->
+          <text x="424" y="48" class="xs acc b">完整 GPU</text>
+          <rect x="424" y="56" width="266" height="228" rx="8" class="box"/>
+
+          <rect x="432" y="76" width="26" height="60" rx="3" class="box"/>
+          <rect x="432" y="144" width="26" height="60" rx="3" class="box"/>
+          <rect x="432" y="212" width="26" height="60" rx="3" class="box"/>
+          <rect x="656" y="76" width="26" height="60" rx="3" class="box"/>
+          <rect x="656" y="144" width="26" height="60" rx="3" class="box"/>
+          <rect x="656" y="212" width="26" height="60" rx="3" class="box"/>
+          <text x="445" y="174" text-anchor="middle" class="xs mut" transform="rotate(-90 445 174)">HBM3</text>
+          <text x="669" y="174" text-anchor="middle" class="xs mut" transform="rotate(-90 669 174)">HBM3</text>
+
+          <rect x="466" y="76" width="41" height="66" rx="3" class="fl"/>
+          <rect x="513" y="76" width="41" height="66" rx="3" class="fl"/>
+          <rect x="560" y="76" width="41" height="66" rx="3" class="fl"/>
+          <rect x="607" y="76" width="41" height="66" rx="3" class="fl"/>
+          <text x="486" y="113" text-anchor="middle" class="xs">GPC</text>
+          <text x="533" y="113" text-anchor="middle" class="xs">GPC</text>
+          <text x="580" y="113" text-anchor="middle" class="xs">GPC</text>
+          <text x="627" y="113" text-anchor="middle" class="xs">GPC</text>
+
+          <rect x="466" y="150" width="182" height="34" rx="4" class="boxa"/>
+          <text x="557" y="172" text-anchor="middle" class="xs acc m b">L2 · 50 MB</text>
+
+          <rect x="466" y="192" width="41" height="66" rx="3" class="fl"/>
+          <rect x="513" y="192" width="41" height="66" rx="3" class="fl"/>
+          <rect x="560" y="192" width="41" height="66" rx="3" class="fl"/>
+          <rect x="607" y="192" width="41" height="66" rx="3" class="fl"/>
+          <text x="486" y="229" text-anchor="middle" class="xs">GPC</text>
+          <text x="533" y="229" text-anchor="middle" class="xs">GPC</text>
+          <text x="580" y="229" text-anchor="middle" class="xs">GPC</text>
+          <text x="627" y="229" text-anchor="middle" class="xs">GPC</text>
+
+          <text x="557" y="274" text-anchor="middle" class="xs mut">每个 GPC 内是多个 SM</text>
+          <text x="424" y="302" class="xs mut">8 个 GPC 共 132 个 SM（H100 SXM），</text>
+          <text x="424" y="320" class="xs mut">L2 居中全卡共享，6 个 HBM3 站点启用 5 个 = 80 GB。</text>
+
+          <!-- 单个 SM -->
+          <text x="714" y="48" class="xs acc b">单个 SM</text>
+          <rect x="714" y="56" width="266" height="228" rx="8" class="box"/>
+
+          <rect x="724" y="68" width="246" height="24" rx="3" class="fl"/>
+          <text x="847" y="84" text-anchor="middle" class="xs mut">L1 指令缓存 · warp 调度</text>
+
+          <rect x="724" y="100" width="119" height="70" rx="4" class="fl"/>
+          <rect x="732" y="108" width="103" height="20" rx="3" class="fa"/>
+          <text x="783" y="122" text-anchor="middle" class="inv xs b">寄存器 64 KB</text>
+          <text x="783" y="142" text-anchor="middle" class="xs mut">32 FP32 · 16 INT32</text>
+          <text x="783" y="158" text-anchor="middle" class="xs">1 Tensor Core</text>
+
+          <rect x="851" y="100" width="119" height="70" rx="4" class="fl"/>
+          <rect x="859" y="108" width="103" height="20" rx="3" class="fa"/>
+          <text x="910" y="122" text-anchor="middle" class="inv xs b">寄存器 64 KB</text>
+          <text x="910" y="142" text-anchor="middle" class="xs mut">32 FP32 · 16 INT32</text>
+          <text x="910" y="158" text-anchor="middle" class="xs">1 Tensor Core</text>
+
+          <rect x="724" y="176" width="119" height="70" rx="4" class="fl"/>
+          <rect x="732" y="184" width="103" height="20" rx="3" class="fa"/>
+          <text x="783" y="198" text-anchor="middle" class="inv xs b">寄存器 64 KB</text>
+          <text x="783" y="218" text-anchor="middle" class="xs mut">32 FP32 · 16 INT32</text>
+          <text x="783" y="234" text-anchor="middle" class="xs">1 Tensor Core</text>
+
+          <rect x="851" y="176" width="119" height="70" rx="4" class="fl"/>
+          <rect x="859" y="184" width="103" height="20" rx="3" class="fa"/>
+          <text x="910" y="198" text-anchor="middle" class="inv xs b">寄存器 64 KB</text>
+          <text x="910" y="218" text-anchor="middle" class="xs mut">32 FP32 · 16 INT32</text>
+          <text x="910" y="234" text-anchor="middle" class="xs">1 Tensor Core</text>
+
+          <rect x="724" y="252" width="246" height="26" rx="3" class="fm"/>
+          <text x="847" y="270" text-anchor="middle" class="xs b">L1 / shared memory · 256 KB</text>
+
+          <text x="714" y="302" class="xs mut">4 个处理块各带一份寄存器堆，</text>
+          <text x="714" y="320" class="xs mut">L1 与 shared memory 共用同一片 256 KB。</text>
         </svg>
       </figure>
     </div>
-    <footer class="foot"><span>FACT-005 · H100 SXM 口径</span><span>content/01 · 1.3</span></footer>
+    <footer class="foot"><span>FACT-005 · H100 SXM 口径 · 右侧为 GH100 结构示意</span><span>content/01 · 1.3</span></footer>
   </div>
 </section>
 
@@ -740,60 +835,8 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
           </table>
         </div>
       </div>
-      <div class="grid g2">
-        <div class="card fill"><span class="tag-sm">核心结论</span><p><b>shape 决定可复用多少，复用决定计算账和搬运账谁更可能成为上限。</b>BF16、输入权重各读一次、输出写回一次的最小逻辑口径。</p></div>
-        <div class="card warn"><span class="tag-sm">这只是假设</span><p>高于拐点更偏 compute-bound，低于更偏 bandwidth-bound —— 这里的「偏向」是<b>待验证的瓶颈假设，不是测量结论</b>。Attention 的 T² 关系也不等于实现一定把完整 score 矩阵写进 HBM，这正是 IO-aware attention 的出发点。</p></div>
-      </div>
     </div>
     <footer class="foot"><span>FACT-005 · H100 SXM BF16 稠密口径</span><span>content/01 · 1.3</span></footer>
-  </div>
-</section>
-
-<section class="slide" id="s-bound" data-ch="01 资源直觉" data-title="1.3 理论时间下界">
-  <div class="frame">
-    <header class="head"><span class="kicker">01 · <b>1.3 时间边界</b></span><span class="num"></span></header>
-    <h2>两个下界，取较慢的一侧</h2>
-    <div class="body">
-      <figure class="viz">
-        <svg viewBox="0 0 1000 250" preserveAspectRatio="xMidYMid meet" role="img" aria-label="两个 GEMM 形状的计算下界与带宽下界对比：大 m 由计算主导，m 等于 1 由带宽主导">
-          <text x="20" y="26" class="m mut xs b">[2048,4096] × [4096,16384]</text>
-          <text x="20" y="60" class="sm">计算下界</text>
-          <rect x="132" y="44" width="360" height="22" rx="4" class="fa"/>
-          <text x="502" y="61" class="m sm acc b">0.278 ms</text>
-          <text x="20" y="96" class="sm">带宽下界</text>
-          <rect x="132" y="80" width="84" height="22" rx="4" class="fm"/>
-          <text x="226" y="97" class="m sm">0.065 ms</text>
-          <text x="596" y="76" class="sm acc b">→ max() = 计算主导</text>
-
-          <line x1="20" y1="124" x2="980" y2="124" class="ln dash"/>
-
-          <text x="20" y="152" class="m mut xs b">[1,4096] × [4096,16384]</text>
-          <text x="20" y="186" class="sm">计算下界</text>
-          <rect x="132" y="170" width="4" height="22" rx="2" class="fm"/>
-          <text x="146" y="187" class="m sm">0.000136 ms</text>
-          <text x="20" y="222" class="sm">带宽下界</text>
-          <rect x="132" y="206" width="52" height="22" rx="4" class="fwm"/>
-          <text x="194" y="223" class="m sm wrn b">0.0401 ms</text>
-          <text x="596" y="202" class="sm wrn b">→ max() = 带宽主导</text>
-        </svg>
-      </figure>
-      <div class="grid g21">
-        <div class="card warn">
-          <span class="tag-sm">实际时间通常更长</span>
-          <ul class="bul">
-            <li>shape 太小或维度不友好，无法充分使用计算单元</li>
-            <li>实际 HBM 读写多于「一次读、一次写」的最小逻辑量</li>
-            <li>算子之间存在依赖、同步和空隙；kernel 启动、框架调度与数据准备有固定开销</li>
-            <li>多设备时通信暴露在关键路径上</li>
-          </ul>
-        </div>
-        <div class="card fill">
-          <span class="tag-sm">经验修正的边界</span>
-          <p><code>粗略时间 ≈ 理论下界 / 实测利用系数</code>。但「相似」至少要包含硬件、精度、shape、kernel 路径和并行布局 —— <b>不存在可跨工作负载套用的通用利用率常数</b>。</p>
-        </div>
-      </div>
-    </div>
-    <footer class="foot"><span>计算下界 = FLOPs / 峰值 FLOP/s；数据移动下界 = bytes / 带宽</span><span>content/01 · 1.3</span></footer>
   </div>
 </section>
 
@@ -850,44 +893,51 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
-<section class="slide" id="s-topology" data-ch="01 资源直觉" data-title="1.4 物理路径">
+<section class="slide" id="s-scaleout" data-ch="01 资源直觉" data-title="1.4 为什么会有通信">
   <div class="frame">
     <header class="head"><span class="kicker">01 · <b>1.4 多设备</b></span><span class="num"></span></header>
-    <h2>先分清三个层次：路径、元语、方案</h2>
+    <h2>计算和带宽都受限时怎么办？</h2>
+    <p class="lede">1.2 与 1.3 算出来的都是<b>单台设备</b>的上限：算力峰值、HBM 带宽、显存容量。任何一条到顶，能做的只有一件事 —— <em class="hl">增加计算设备</em>。而设备一多，就多出一项此前不存在的开销。</p>
     <div class="body">
       <figure class="viz">
-        <svg viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="节点内 GPU 通过 NVLink 或 NVSwitch 互联，跨节点经 GPU 到 NIC 再到交换网络，路径越远通常越慢">
-          <rect x="20" y="40" width="404" height="212" rx="10" class="box"/>
-          <text x="40" y="68" class="m acc xs b">节点 A · 节点内 GPU 间</text>
+        <svg viewBox="0 0 1000 236" preserveAspectRatio="xMidYMid meet" role="img" aria-label="单设备三条上限到顶后增加设备，总算力总带宽总容量随设备数增加，但一份工作被拆到多台设备上后，中间结果必须在设备之间搬运，产生通信开销">
+          <text x="20" y="26" class="m acc xs b">单设备 · 三条上限</text>
+          <rect x="20" y="36" width="272" height="146" rx="8" class="box"/>
+          <rect x="36" y="52" width="240" height="26" rx="4" class="fm"/>
+          <text x="48" y="70" class="xs m">算力峰值 FLOP/s</text><text x="264" y="70" text-anchor="end" class="xs m b">已用满</text>
+          <rect x="36" y="88" width="240" height="26" rx="4" class="fm"/>
+          <text x="48" y="106" class="xs m">HBM 带宽 B/s</text><text x="264" y="106" text-anchor="end" class="xs m b">已用满</text>
+          <rect x="36" y="124" width="240" height="26" rx="4" class="fm"/>
+          <text x="48" y="142" class="xs m">显存容量 GB</text><text x="264" y="142" text-anchor="end" class="xs m b">放不下</text>
+          <text x="36" y="170" class="xs mut">任一条到顶：单卡上算不完，或根本装不进去</text>
+
+          <path d="M300 109 L342 109" class="lna"/><path d="M350 109 l-11 -6 l0 12 z" class="fa"/>
+          <text x="321" y="96" text-anchor="middle" class="xs acc m b">加设备</text>
+
+          <text x="358" y="26" class="m acc xs b">N 台设备 · 总量随 N 增长</text>
+          <rect x="358" y="36" width="272" height="146" rx="8" class="box"/>
           <g class="boxa">
-            <rect x="46" y="86" width="72" height="46" rx="5"/><rect x="140" y="86" width="72" height="46" rx="5"/>
-            <rect x="234" y="86" width="72" height="46" rx="5"/><rect x="328" y="86" width="72" height="46" rx="5"/>
+            <rect x="374" y="52" width="56" height="40" rx="4"/><rect x="440" y="52" width="56" height="40" rx="4"/>
+            <rect x="506" y="52" width="56" height="40" rx="4"/><rect x="572" y="52" width="42" height="40" rx="4"/>
           </g>
-          <text x="82" y="115" text-anchor="middle" class="sm b">GPU0</text><text x="176" y="115" text-anchor="middle" class="sm b">GPU1</text>
-          <text x="270" y="115" text-anchor="middle" class="sm b">GPU2</text><text x="364" y="115" text-anchor="middle" class="sm b">GPU3</text>
-          <rect x="46" y="164" width="354" height="34" rx="5" class="fm"/>
-          <text x="223" y="186" text-anchor="middle" class="sm b">NVLink / NVSwitch（或 PCIe / PCIe Switch）</text>
-          <path d="M82 134 L82 162 M176 134 L176 162 M270 134 L270 162 M364 134 L364 162" class="lna"/>
-          <text x="40" y="228" class="xs mut">带宽更高、延迟更低，但不同 GPU 对之间的路径可能不同</text>
+          <text x="402" y="77" text-anchor="middle" class="xs b">GPU</text><text x="468" y="77" text-anchor="middle" class="xs b">GPU</text>
+          <text x="534" y="77" text-anchor="middle" class="xs b">GPU</text><text x="593" y="77" text-anchor="middle" class="xs b m">…</text>
+          <text x="374" y="118" class="sm">总算力 <tspan class="b">×N</tspan> · 总带宽 <tspan class="b">×N</tspan> · 总容量 <tspan class="b">×N</tspan></text>
+          <text x="374" y="144" class="xs mut">同一份工作必须被<tspan class="b">拆开</tspan>：切 batch、切张量或切层</text>
+          <text x="374" y="170" class="xs mut">于是每一步的中间结果分散在不同设备上</text>
 
-          <rect x="446" y="118" width="108" height="46" rx="5" class="fw"/>
-          <text x="500" y="146" text-anchor="middle" class="sm b">NIC</text>
-          <path d="M402 176 L446 152" class="lna"/>
-          <rect x="576" y="102" width="128" height="78" rx="8" class="box"/>
-          <text x="640" y="136" text-anchor="middle" class="sm b">交换网络</text>
-          <text x="640" y="158" text-anchor="middle" class="xs mut">收敛比 · 共享流量</text>
-          <path d="M558 141 L572 141" class="lna"/>
-          <path d="M708 141 L730 141" class="lna"/>
-          <rect x="734" y="40" width="246" height="212" rx="10" class="box"/>
-          <text x="754" y="68" class="m acc xs b">节点 B · 跨节点 GPU 间</text>
-          <rect x="754" y="118" width="86" height="46" rx="5" class="fw"/>
-          <text x="797" y="146" text-anchor="middle" class="sm b">NIC</text>
-          <g class="boxa"><rect x="862" y="86" width="98" height="46" rx="5"/><rect x="862" y="150" width="98" height="46" rx="5"/></g>
-          <text x="911" y="115" text-anchor="middle" class="sm b">GPU4</text><text x="911" y="179" text-anchor="middle" class="sm b">GPU5</text>
-          <path d="M844 135 L858 118 M844 147 L858 168" class="lna"/>
-          <text x="754" y="228" class="xs mut">路径更长，更易受共享网络和拓扑映射影响</text>
+          <path d="M638 109 L680 109" class="lnw"/><path d="M688 109 l-11 -6 l0 12 z" class="fwm"/>
+          <text x="659" y="96" text-anchor="middle" class="xs wrn m b">拆开之后</text>
 
-          <text x="500" y="286" text-anchor="middle" class="sm b">「有多少张 GPU」还不够，还要知道<tspan class="acc">它们如何连接</tspan> —— 规格给的是链路上限，不是持续有效带宽</text>
+          <text x="696" y="26" class="m wrn xs b">新增的第三项成本</text>
+          <rect x="696" y="36" width="284" height="146" rx="8" class="boxw"/>
+          <text x="714" y="66" class="sm b">设备之间的数据交换</text>
+          <text x="714" y="92" class="xs mut">搬多少字节 → 受<tspan class="b">链路带宽</tspan>限制</text>
+          <text x="714" y="114" class="xs mut">来回几趟 → 受<tspan class="b">延迟</tspan>限制</text>
+          <text x="714" y="136" class="xs mut">谁等谁 → 产生<tspan class="b">同步等待</tspan></text>
+          <text x="714" y="170" class="xs wrn b">它可能比省下的计算更贵</text>
+
+          <text x="500" y="222" text-anchor="middle" class="sm b">加设备解决的是<tspan class="acc">算力与容量</tspan>，代价是把一部分时间转移到<tspan class="wrn">设备间通信</tspan>上 —— 这就是第三本账</text>
         </svg>
       </figure>
       <div class="grid g3">
@@ -900,130 +950,499 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
-<section class="slide" id="s-collective" data-ch="01 资源直觉" data-title="1.4 通信元语">
+<section class="slide" id="s-topology" data-ch="01 资源直觉" data-title="1.4 物理路径">
   <div class="frame">
-    <header class="head"><span class="kicker">01 · <b>1.4 元语</b></span><span class="num"></span></header>
-    <h2>只看操作前后每台设备持有什么</h2>
+    <header class="head"><span class="kicker">01 · <b>1.4 物理路径</b></span><span class="num"></span></header>
+    <h2>第一层：数据从哪条链路上走过去</h2>
+    <p class="lede">「有多少张 GPU」还不够，还要知道<b>它们如何连接</b>。同样搬 1 GB，走哪条链路决定了它是 1 毫秒还是 20 毫秒的事。</p>
     <div class="body">
       <figure class="viz">
-        <svg viewBox="0 0 1000 330" preserveAspectRatio="xMidYMid meet" role="img" aria-label="AllReduce、AllGather、ReduceScatter 三种集合通信的操作前后张量分布对照">
-          <text x="20" y="24" class="m acc sm b">AllReduce</text>
-          <text x="20" y="46" class="xs mut">汇总各设备数据，结果发给所有设备</text>
-          <g class="fm"><rect x="20" y="60" width="42" height="26"/><rect x="68" y="60" width="42" height="26"/><rect x="116" y="60" width="42" height="26"/><rect x="164" y="60" width="42" height="26"/></g>
-          <text x="41" y="79" text-anchor="middle" class="xs m">X₀</text><text x="89" y="79" text-anchor="middle" class="xs m">X₁</text>
-          <text x="137" y="79" text-anchor="middle" class="xs m">X₂</text><text x="185" y="79" text-anchor="middle" class="xs m">X₃</text>
-          <path d="M113 94 L113 118" class="lna"/><path d="M113 126 l-6 -11 l12 0 z" class="fa"/>
-          <g class="fa"><rect x="20" y="130" width="42" height="26"/><rect x="68" y="130" width="42" height="26"/><rect x="116" y="130" width="42" height="26"/><rect x="164" y="130" width="42" height="26"/></g>
-          <text x="41" y="149" text-anchor="middle" class="xs m inv">Σ</text><text x="89" y="149" text-anchor="middle" class="xs m inv">Σ</text>
-          <text x="137" y="149" text-anchor="middle" class="xs m inv">Σ</text><text x="185" y="149" text-anchor="middle" class="xs m inv">Σ</text>
+        <svg viewBox="0 0 1000 384" preserveAspectRatio="xMidYMid meet" role="img" aria-label="节点内 GPU 经 NVLink 或 NVSwitch 互联约 900 GB/s，GPU 经 PCIe Gen5 到 NIC 约 128 GB/s，NIC 经 InfiniBand NDR 到交换网络约 50 GB/s；下方带宽阶梯显示卡内 HBM3 3350、NVLink 900、PCIe 128、跨节点单口 50 GB/s">
+          <rect x="20" y="34" width="404" height="176" rx="10" class="box"/>
+          <text x="40" y="58" class="m acc xs b">节点 A · 节点内 GPU 间</text>
+          <g class="boxa">
+            <rect x="46" y="72" width="72" height="42" rx="5"/><rect x="140" y="72" width="72" height="42" rx="5"/>
+            <rect x="234" y="72" width="72" height="42" rx="5"/><rect x="328" y="72" width="72" height="42" rx="5"/>
+          </g>
+          <text x="82" y="98" text-anchor="middle" class="sm b">GPU0</text><text x="176" y="98" text-anchor="middle" class="sm b">GPU1</text>
+          <text x="270" y="98" text-anchor="middle" class="sm b">GPU2</text><text x="364" y="98" text-anchor="middle" class="sm b">GPU3</text>
+          <path d="M82 116 L82 146 M176 116 L176 146 M270 116 L270 146 M364 116 L364 146" class="lna"/>
+          <rect x="46" y="148" width="354" height="34" rx="5" class="fm"/>
+          <text x="223" y="170" text-anchor="middle" class="sm b">NVLink / NVSwitch（或 PCIe / PCIe Switch）</text>
+          <text x="46" y="200" class="xs acc m b">≈ 900 GB/s 每 GPU（双向合计）· 延迟 ~ 微秒级</text>
 
-          <line x1="252" y1="14" x2="252" y2="176" class="ln dash"/>
+          <path d="M402 168 L442 152" class="lna"/><path d="M450 149 l-12 -3 l4 11 z" class="fa"/>
+          <rect x="452" y="112" width="96" height="42" rx="5" class="fw"/>
+          <text x="500" y="138" text-anchor="middle" class="sm b">NIC</text>
+          <text x="452" y="172" class="xs wrn m">PCIe Gen5 ×16</text>
+          <text x="452" y="188" class="xs wrn m b">≈ 128 GB/s</text>
 
-          <text x="286" y="24" class="m acc sm b">AllGather</text>
-          <text x="286" y="46" class="xs mut">把分片聚合为完整张量</text>
-          <g class="fm"><rect x="286" y="60" width="42" height="26"/><rect x="334" y="60" width="42" height="26"/><rect x="382" y="60" width="42" height="26"/><rect x="430" y="60" width="42" height="26"/></g>
-          <text x="307" y="79" text-anchor="middle" class="xs m">a</text><text x="355" y="79" text-anchor="middle" class="xs m">b</text>
-          <text x="403" y="79" text-anchor="middle" class="xs m">c</text><text x="451" y="79" text-anchor="middle" class="xs m">d</text>
-          <path d="M379 94 L379 118" class="lna"/><path d="M379 126 l-6 -11 l12 0 z" class="fa"/>
-          <g class="fa"><rect x="286" y="130" width="42" height="26"/><rect x="334" y="130" width="42" height="26"/><rect x="382" y="130" width="42" height="26"/><rect x="430" y="130" width="42" height="26"/></g>
-          <text x="307" y="149" text-anchor="middle" class="xs m inv">abcd</text><text x="355" y="149" text-anchor="middle" class="xs m inv">abcd</text>
-          <text x="403" y="149" text-anchor="middle" class="xs m inv">abcd</text><text x="451" y="149" text-anchor="middle" class="xs m inv">abcd</text>
+          <path d="M552 133 L578 133" class="lna"/><path d="M586 133 l-11 -6 l0 12 z" class="fa"/>
+          <rect x="588" y="98" width="128" height="70" rx="8" class="box"/>
+          <text x="652" y="128" text-anchor="middle" class="sm b">交换网络</text>
+          <text x="652" y="150" text-anchor="middle" class="xs mut">收敛比 · 共享流量</text>
+          <text x="588" y="188" class="xs wrn m">IB NDR 单口 ≈ 50 GB/s</text>
+          <path d="M720 133 L740 133" class="lna"/><path d="M748 133 l-11 -6 l0 12 z" class="fa"/>
 
-          <line x1="518" y1="14" x2="518" y2="176" class="ln dash"/>
+          <rect x="752" y="34" width="228" height="176" rx="10" class="box"/>
+          <text x="772" y="58" class="m acc xs b">节点 B · 跨节点 GPU 间</text>
+          <rect x="772" y="112" width="76" height="42" rx="5" class="fw"/>
+          <text x="810" y="138" text-anchor="middle" class="sm b">NIC</text>
+          <g class="boxa"><rect x="878" y="72" width="86" height="42" rx="5"/><rect x="878" y="132" width="86" height="42" rx="5"/></g>
+          <text x="921" y="98" text-anchor="middle" class="sm b">GPU4</text><text x="921" y="158" text-anchor="middle" class="sm b">GPU5</text>
+          <path d="M852 128 L874 106 M852 142 L874 158" class="lna"/>
+          <text x="772" y="200" class="xs mut">路径更长，且受共享网络与拓扑映射影响</text>
 
-          <text x="552" y="24" class="m acc sm b">ReduceScatter</text>
-          <text x="552" y="46" class="xs mut">一边汇总，一边拆分结果</text>
-          <g class="fm"><rect x="552" y="60" width="42" height="26"/><rect x="600" y="60" width="42" height="26"/><rect x="648" y="60" width="42" height="26"/><rect x="696" y="60" width="42" height="26"/></g>
-          <text x="573" y="79" text-anchor="middle" class="xs m">X₀</text><text x="621" y="79" text-anchor="middle" class="xs m">X₁</text>
-          <text x="669" y="79" text-anchor="middle" class="xs m">X₂</text><text x="717" y="79" text-anchor="middle" class="xs m">X₃</text>
-          <path d="M645 94 L645 118" class="lna"/><path d="M645 126 l-6 -11 l12 0 z" class="fa"/>
-          <g class="fa"><rect x="552" y="130" width="42" height="26"/><rect x="600" y="130" width="42" height="26"/><rect x="648" y="130" width="42" height="26"/><rect x="696" y="130" width="42" height="26"/></g>
-          <text x="573" y="149" text-anchor="middle" class="xs m inv">Σ₀</text><text x="621" y="149" text-anchor="middle" class="xs m inv">Σ₁</text>
-          <text x="669" y="149" text-anchor="middle" class="xs m inv">Σ₂</text><text x="717" y="149" text-anchor="middle" class="xs m inv">Σ₃</text>
+          <line x1="20" y1="228" x2="980" y2="228" class="ln dash"/>
+          <text x="20" y="252" class="m acc xs b">同一份数据，走不同链路的速度差一到两个量级</text>
+          <text x="980" y="252" text-anchor="end" class="xs mut m">条长与数值成正比 · 单位 GB/s</text>
 
-          <rect x="778" y="40" width="206" height="122" rx="8" class="fs"/>
-          <text x="798" y="68" class="m acc xs b">点对点</text>
-          <rect x="798" y="84" width="62" height="34" rx="5" class="boxa"/>
-          <text x="829" y="106" text-anchor="middle" class="sm b">A [X]</text>
-          <path d="M866 101 L898 101" class="lna"/><path d="M906 101 l-11 -6 l0 12 z" class="fa"/>
-          <rect x="908" y="84" width="62" height="34" rx="5" class="boxa"/>
-          <text x="939" y="106" text-anchor="middle" class="sm b">B [X]</text>
-          <text x="798" y="142" class="xs mut">send / recv 只定义谁发送、谁接收；</text>
-          <text x="798" y="158" class="xs mut">走哪条物理路径由位置和拓扑决定。</text>
+          <text x="20" y="278" class="xs mut m">卡内 HBM3 读写</text>
+          <rect x="236" y="266" width="620" height="16" rx="3" class="fs"/>
+          <text x="980" y="279" text-anchor="end" class="sm m b">3350</text>
+          <text x="250" y="279" class="xs mut m">参照 · 卡内数据移动，不经过设备间链路</text>
 
-          <rect x="20" y="196" width="964" height="118" rx="8" class="box"/>
-          <text x="42" y="224" class="m acc xs b">从元语过渡到张量布局</text>
-          <text x="42" y="252" class="sm">复制：每台持完整副本，更容易增加总吞吐，但<tspan class="b">单份工作负载仍受单设备容量约束</tspan>。</text>
-          <text x="42" y="276" class="sm">切分：每台持不同分片，可用聚合容量与算力，但<tspan class="b">通信可能进入关键路径</tspan>。</text>
-          <text x="42" y="300" class="sm">分阶段：每台持不同执行阶段，可让更大模型跨设备驻留，但<tspan class="b">会引入等待和流水空隙</tspan>。</text>
+          <text x="20" y="306" class="xs m">节点内 NVLink 4</text>
+          <rect x="236" y="294" width="166" height="16" rx="3" class="fa"/>
+          <text x="980" y="307" text-anchor="end" class="sm m b">900</text>
+          <text x="412" y="307" class="xs mut m">每 GPU 双向合计</text>
+
+          <text x="20" y="334" class="xs m">PCIe Gen5 ×16</text>
+          <rect x="236" y="322" width="24" height="16" rx="3" class="fm"/>
+          <text x="980" y="335" text-anchor="end" class="sm m b">128</text>
+          <text x="270" y="335" class="xs mut m">GPU ↔ NIC / 无 NVLink 时的卡间路径</text>
+
+          <text x="20" y="362" class="xs m">跨节点 IB NDR 单口</text>
+          <rect x="236" y="350" width="9" height="16" rx="3" class="fwm"/>
+          <text x="980" y="363" text-anchor="end" class="sm m b">50</text>
+          <text x="255" y="363" class="xs wrn m">再叠加收敛比与共享竞争，实际更低</text>
         </svg>
       </figure>
-      <p class="note">从张量语义看，<b>ReduceScatter 后接 AllGather 可以得到与 AllReduce 相同的结果</b>；但实际执行时间仍取决于算法、拓扑和消息大小 —— 这里不推导 ring 或 tree。</p>
+      <p class="note">数值为常见配置的<b>规格上限量级</b>（随代际与机型变化），不是持续可得的有效带宽：小消息受延迟主导，大消息还要扣掉协议开销、拓扑映射和与他人共享链路的竞争。<b>估算时先定位这条路径上最窄的一段。</b></p>
     </div>
-    <footer class="foot"><span>REF-006</span><span>content/01 · 1.4</span></footer>
+    <footer class="foot"><span>卡内计算单元与 HBM 之间的访问属于上一节的数据移动</span><span>content/01 · 1.4</span></footer>
   </div>
 </section>
 
-<section class="slide dark" id="s-fourq" data-ch="01 资源直觉" data-title="1.5 四问判断卡">
+<section class="slide" id="s-prim-root" data-ch="01 资源直觉" data-title="1.4 通信元语 · 基础">
   <div class="frame">
-    <header class="head"><span class="kicker">01 · <b>1.5 收束</b></span><span class="num"></span></header>
-    <h2>一张四问资源判断卡</h2>
-    <p class="lede">先固定<b>工作单元、输入 shape、数据精度、硬件和目标指标</b>，再按四问走一遍。否则不同口径下的估算和实测无法直接比较。</p>
+    <header class="head"><span class="kicker">01 · <b>1.4 通信元语</b></span><span class="num"></span></header>
+    <h2>第二层：通信操作元语</h2>
+    <p class="lede">元语不规定走哪条链路，只规定<b>张量在设备间的布局怎么变</b>。判断一个元语，只需要看操作前后每台设备各持有什么。先看两类最基础的：两方之间，以及围绕一个 root 的收发。</p>
     <div class="body">
       <figure class="viz">
-        <svg viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="四问资源判断卡：依次问算多少搬多少、理论最快多少、放得下吗、不够怎样扩展，输出工作负载基线、理论时间边界、峰值容量、暴露的通信和下一项实测，形成一个可验证的判断">
-          <g>
-            <rect x="20" y="20" width="220" height="150" rx="8" class="boxa"/>
-            <text x="40" y="50" class="m acc sm b">1</text>
-            <text x="40" y="78" class="lg">算多少、搬多少？</text>
-            <text x="40" y="106" class="sm mut">从主要 GEMM / Attention 的</text>
-            <text x="40" y="126" class="sm mut">shape 估 FLOPs，用格式换算 bytes</text>
-            <text x="40" y="152" class="xs acc">区分容量 / 最小逻辑读写 / 实际搬运</text>
-          </g>
-          <path d="M246 95 L258 95" class="lna"/><path d="M266 95 l-11 -6 l0 12 z" class="fa"/>
-          <g>
-            <rect x="266" y="20" width="220" height="150" rx="8" class="boxa"/>
-            <text x="286" y="50" class="m acc sm b">2</text>
-            <text x="286" y="78" class="lg">理论最快多少？</text>
-            <text x="286" y="106" class="sm mut">分别算计算下界与带宽下界，</text>
-            <text x="286" y="126" class="sm mut">用算术强度形成瓶颈假设</text>
-            <text x="286" y="152" class="xs acc">对齐型号 / 精度 / dense-sparse 口径</text>
-          </g>
-          <path d="M492 95 L504 95" class="lna"/><path d="M512 95 l-11 -6 l0 12 z" class="fa"/>
-          <g>
-            <rect x="512" y="20" width="220" height="150" rx="8" class="boxa"/>
-            <text x="532" y="50" class="m acc sm b">3</text>
-            <text x="532" y="78" class="lg">放得下吗？</text>
-            <text x="532" y="106" class="sm mut">画出长期、阶段性和临时张量的</text>
-            <text x="532" y="126" class="sm mut">生命周期，取同时存活量的峰值</text>
-            <text x="532" y="152" class="xs acc">加 workspace / buffer / 预留 / 碎片</text>
-          </g>
-          <path d="M738 95 L750 95" class="lna"/><path d="M758 95 l-11 -6 l0 12 z" class="fa"/>
-          <g>
-            <rect x="758" y="20" width="222" height="150" rx="8" class="boxa"/>
-            <text x="778" y="50" class="m acc sm b">4</text>
-            <text x="778" y="78" class="lg">不够怎样扩展？</text>
-            <text x="778" y="106" class="sm mut">谁复制、谁切分；交换什么、多大、</text>
-            <text x="778" y="126" class="sm mut">多久一次、走哪条路径</text>
-            <text x="778" y="152" class="xs acc">能否重叠，还是阻塞下一步</text>
-          </g>
-          <path d="M500 178 L500 196" class="lna"/><path d="M500 204 l-6 -11 l12 0 z" class="fa"/>
-          <rect x="20" y="208" width="960" height="46" rx="8" class="fs"/>
-          <text x="500" y="237" text-anchor="middle" class="sm b">输出：工作负载基线 · 理论时间边界 · 峰值容量 · 暴露在关键路径上的通信 · 下一项实测</text>
-          <path d="M500 262 L500 276" class="lna"/><path d="M500 284 l-6 -11 l12 0 z" class="fa"/>
-          <text x="500" y="310" text-anchor="middle" class="lg acc">一个可验证的判断，而不是一条可以套用的结论</text>
+        <svg viewBox="0 0 1000 356" preserveAspectRatio="xMidYMid meet" role="img" aria-label="点对点 send/recv、Broadcast、Scatter、Reduce、Gather 五种操作的前后张量分布对照，以及带 root 元语的共同瓶颈说明">
+          <rect x="20" y="14" width="300" height="150" rx="8" class="box"/>
+          <text x="36" y="36" class="m acc sm b">① 点对点 send / recv</text>
+          <text x="36" y="54" class="xs mut">一台发、一台收，两方各调用一次</text>
+          <text x="36" y="81" class="xs mut m">前</text>
+          <rect x="60" y="64" width="110" height="24" rx="4" class="fm"/><text x="115" y="81" text-anchor="middle" class="xs m">A [X]</text>
+          <rect x="192" y="64" width="110" height="24" rx="4" class="box"/><text x="247" y="81" text-anchor="middle" class="xs m mut">B [–]</text>
+          <path d="M170 94 L260 94" class="lna"/><path d="M268 94 l-11 -6 l0 12 z" class="fa"/>
+          <text x="36" y="129" class="xs mut m">后</text>
+          <rect x="60" y="112" width="110" height="24" rx="4" class="fm"/><text x="115" y="129" text-anchor="middle" class="xs m">A [X]</text>
+          <rect x="192" y="112" width="110" height="24" rx="4" class="fa"/><text x="247" y="129" text-anchor="middle" class="xs m inv">B [X]</text>
+          <text x="36" y="150" class="xs mut">只定义谁发、谁收；走哪条链路由位置和拓扑决定</text>
+
+          <rect x="350" y="14" width="300" height="150" rx="8" class="box"/>
+          <text x="366" y="36" class="m acc sm b">② Broadcast · 一对多</text>
+          <text x="366" y="54" class="xs mut">root 的数据原样复制到每台设备</text>
+          <text x="366" y="81" class="xs mut m">前</text>
+          <rect x="390" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="418" y="81" text-anchor="middle" class="xs m">X</text>
+          <rect x="452" y="64" width="56" height="24" rx="4" class="box"/>
+          <text x="480" y="81" text-anchor="middle" class="xs m mut">–</text>
+          <rect x="514" y="64" width="56" height="24" rx="4" class="box"/>
+          <text x="542" y="81" text-anchor="middle" class="xs m mut">–</text>
+          <rect x="576" y="64" width="56" height="24" rx="4" class="box"/>
+          <text x="604" y="81" text-anchor="middle" class="xs m mut">–</text>
+          <path d="M500 92 L500 102" class="lna"/><path d="M500 108 l-5 -9 l10 0 z" class="fa"/>
+          <text x="366" y="129" class="xs mut m">后</text>
+          <rect x="390" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="418" y="129" text-anchor="middle" class="xs m inv">X</text>
+          <rect x="452" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="480" y="129" text-anchor="middle" class="xs m inv">X</text>
+          <rect x="514" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="542" y="129" text-anchor="middle" class="xs m inv">X</text>
+          <rect x="576" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="604" y="129" text-anchor="middle" class="xs m inv">X</text>
+          <text x="366" y="150" class="xs mut">每台拿到的内容相同；扇出方式由算法决定</text>
+
+          <rect x="680" y="14" width="300" height="150" rx="8" class="box"/>
+          <text x="696" y="36" class="m acc sm b">② Scatter · 一对多</text>
+          <text x="696" y="54" class="xs mut">root 把整块切成 k 份，每台取一份</text>
+          <text x="696" y="81" class="xs mut m">前</text>
+          <rect x="720" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="748" y="81" text-anchor="middle" class="xs m">abcd</text>
+          <rect x="782" y="64" width="56" height="24" rx="4" class="box"/>
+          <text x="810" y="81" text-anchor="middle" class="xs m mut">–</text>
+          <rect x="844" y="64" width="56" height="24" rx="4" class="box"/>
+          <text x="872" y="81" text-anchor="middle" class="xs m mut">–</text>
+          <rect x="906" y="64" width="56" height="24" rx="4" class="box"/>
+          <text x="934" y="81" text-anchor="middle" class="xs m mut">–</text>
+          <path d="M830 92 L830 102" class="lna"/><path d="M830 108 l-5 -9 l10 0 z" class="fa"/>
+          <text x="696" y="129" class="xs mut m">后</text>
+          <rect x="720" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="748" y="129" text-anchor="middle" class="xs m inv">a</text>
+          <rect x="782" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="810" y="129" text-anchor="middle" class="xs m inv">b</text>
+          <rect x="844" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="872" y="129" text-anchor="middle" class="xs m inv">c</text>
+          <rect x="906" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="934" y="129" text-anchor="middle" class="xs m inv">d</text>
+          <text x="696" y="150" class="xs mut">与 Broadcast 的区别：每台拿到的是不同分片</text>
+
+          <rect x="20" y="190" width="300" height="150" rx="8" class="box"/>
+          <text x="36" y="212" class="m acc sm b">② Reduce · 多对一</text>
+          <text x="36" y="230" class="xs mut">按位求和 / 取最值，结果只给 root</text>
+          <text x="36" y="257" class="xs mut m">前</text>
+          <rect x="60" y="240" width="56" height="24" rx="4" class="fm"/>
+          <text x="88" y="257" text-anchor="middle" class="xs m">X₀</text>
+          <rect x="122" y="240" width="56" height="24" rx="4" class="fm"/>
+          <text x="150" y="257" text-anchor="middle" class="xs m">X₁</text>
+          <rect x="184" y="240" width="56" height="24" rx="4" class="fm"/>
+          <text x="212" y="257" text-anchor="middle" class="xs m">X₂</text>
+          <rect x="246" y="240" width="56" height="24" rx="4" class="fm"/>
+          <text x="274" y="257" text-anchor="middle" class="xs m">X₃</text>
+          <path d="M170 268 L170 278" class="lna"/><path d="M170 284 l-5 -9 l10 0 z" class="fa"/>
+          <text x="36" y="305" class="xs mut m">后</text>
+          <rect x="60" y="288" width="56" height="24" rx="4" class="fa"/>
+          <text x="88" y="305" text-anchor="middle" class="xs m inv">Σ</text>
+          <rect x="122" y="288" width="56" height="24" rx="4" class="box"/>
+          <text x="150" y="305" text-anchor="middle" class="xs m mut">–</text>
+          <rect x="184" y="288" width="56" height="24" rx="4" class="box"/>
+          <text x="212" y="305" text-anchor="middle" class="xs m mut">–</text>
+          <rect x="246" y="288" width="56" height="24" rx="4" class="box"/>
+          <text x="274" y="305" text-anchor="middle" class="xs m mut">–</text>
+          <text x="36" y="326" class="xs mut">操作后只有 root 持有结果，其余设备不持有</text>
+
+          <rect x="350" y="190" width="300" height="150" rx="8" class="box"/>
+          <text x="366" y="212" class="m acc sm b">② Gather · 多对一</text>
+          <text x="366" y="230" class="xs mut">各台的数据按 rank 序拼到 root</text>
+          <text x="366" y="257" class="xs mut m">前</text>
+          <rect x="390" y="240" width="56" height="24" rx="4" class="fm"/>
+          <text x="418" y="257" text-anchor="middle" class="xs m">a</text>
+          <rect x="452" y="240" width="56" height="24" rx="4" class="fm"/>
+          <text x="480" y="257" text-anchor="middle" class="xs m">b</text>
+          <rect x="514" y="240" width="56" height="24" rx="4" class="fm"/>
+          <text x="542" y="257" text-anchor="middle" class="xs m">c</text>
+          <rect x="576" y="240" width="56" height="24" rx="4" class="fm"/>
+          <text x="604" y="257" text-anchor="middle" class="xs m">d</text>
+          <path d="M500 268 L500 278" class="lna"/><path d="M500 284 l-5 -9 l10 0 z" class="fa"/>
+          <text x="366" y="305" class="xs mut m">后</text>
+          <rect x="390" y="288" width="56" height="24" rx="4" class="fa"/>
+          <text x="418" y="305" text-anchor="middle" class="xs m inv">abcd</text>
+          <rect x="452" y="288" width="56" height="24" rx="4" class="box"/>
+          <text x="480" y="305" text-anchor="middle" class="xs m mut">–</text>
+          <rect x="514" y="288" width="56" height="24" rx="4" class="box"/>
+          <text x="542" y="305" text-anchor="middle" class="xs m mut">–</text>
+          <rect x="576" y="288" width="56" height="24" rx="4" class="box"/>
+          <text x="604" y="305" text-anchor="middle" class="xs m mut">–</text>
+          <text x="366" y="326" class="xs mut">与 Reduce 的区别：拼接而不做归约</text>
+
+          <rect x="680" y="190" width="300" height="150" rx="8" class="boxw"/>
+          <text x="696" y="212" class="m wrn sm b">带 root 的元语有一个共同点</text>
+          <text x="696" y="238" class="xs mut">数据从<tspan class="b">一个点</tspan>进出，root 那条链路先到上限，</text>
+          <text x="696" y="256" class="xs mut">设备数越多越明显。</text>
+          <text x="696" y="284" class="xs mut">训练与推理里用得更多的，是下一页</text>
+          <text x="696" y="302" class="xs mut"><tspan class="b">全员参与、全员拿到结果</tspan>的版本。</text>
+          <text x="696" y="326" class="xs wrn m">Broadcast / Reduce 常作为它们的组成部分出现</text>
         </svg>
       </figure>
-      <div class="grid g2">
-        <div class="quote">「按当前 shape，最小逻辑算术强度明显低于硬件拐点；我推测 <b>HBM 带宽</b>比峰值算力更可能限制时间。下一步固定输入 shape 和精度，测量有效带宽与实际耗时。」</div>
-        <div class="quote bad">「GPU 没跑满，所以应该加卡。」</div>
-      </div>
+      <p class="note">图中每一格是<b>一台设备持有的张量</b>，上排为操作前、下排为操作后；深色格表示该设备在操作后拿到了结果。这一层只回答「谁持有什么」，不回答「用什么算法搬」。</p>
     </div>
-    <footer class="foot"><span>输出：工作负载基线 · 理论时间边界 · 峰值容量 · 暴露的通信 · 下一项实测</span><span>content/01 · 1.5</span></footer>
+    <footer class="foot"><span>REF-006 · 命名沿用 NCCL / MPI</span><span>content/01 · 1.4</span></footer>
   </div>
 </section>
 
-<!-- ============ 02 ============ -->
+<section class="slide" id="s-prim-all" data-ch="01 资源直觉" data-title="1.4 通信元语 · 全员">
+  <div class="frame">
+    <header class="head"><span class="kicker">01 · <b>1.4 通信元语</b></span><span class="num"></span></header>
+    <h2>③ 全员参与：每台设备都拿到结果</h2>
+    <p class="lede">去掉 root 之后，四个元语覆盖了训练与推理里绝大多数的集合通信。它们的区别只在<b>输出相对输入是变大、变小，还是重排</b>。</p>
+    <div class="body">
+      <figure class="viz">
+        <svg viewBox="0 0 1000 356" preserveAspectRatio="xMidYMid meet" role="img" aria-label="AllGather、ReduceScatter、AllReduce、AllToAll 四种集合通信的前后张量分布，以及 AllReduce 等于 ReduceScatter 接 AllGather 的等价关系">
+          <rect x="20" y="14" width="300" height="150" rx="8" class="box"/>
+          <text x="36" y="36" class="m acc sm b">AllGather</text>
+          <text x="36" y="54" class="xs mut">各台的分片拼成完整张量，人手一份</text>
+          <text x="36" y="81" class="xs mut m">前</text>
+          <rect x="60" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="88" y="81" text-anchor="middle" class="xs m">a</text>
+          <rect x="122" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="150" y="81" text-anchor="middle" class="xs m">b</text>
+          <rect x="184" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="212" y="81" text-anchor="middle" class="xs m">c</text>
+          <rect x="246" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="274" y="81" text-anchor="middle" class="xs m">d</text>
+          <path d="M170 92 L170 102" class="lna"/><path d="M170 108 l-5 -9 l10 0 z" class="fa"/>
+          <text x="36" y="129" class="xs mut m">后</text>
+          <rect x="60" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="88" y="129" text-anchor="middle" class="xs m inv">abcd</text>
+          <rect x="122" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="150" y="129" text-anchor="middle" class="xs m inv">abcd</text>
+          <rect x="184" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="212" y="129" text-anchor="middle" class="xs m inv">abcd</text>
+          <rect x="246" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="274" y="129" text-anchor="middle" class="xs m inv">abcd</text>
+          <text x="36" y="150" class="xs mut">输出是输入的 k 倍 · = Gather + Broadcast</text>
+
+          <rect x="350" y="14" width="300" height="150" rx="8" class="box"/>
+          <text x="366" y="36" class="m acc sm b">ReduceScatter</text>
+          <text x="366" y="54" class="xs mut">一边归约，一边把结果按块分下去</text>
+          <text x="366" y="81" class="xs mut m">前</text>
+          <rect x="390" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="418" y="81" text-anchor="middle" class="xs m">X₀</text>
+          <rect x="452" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="480" y="81" text-anchor="middle" class="xs m">X₁</text>
+          <rect x="514" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="542" y="81" text-anchor="middle" class="xs m">X₂</text>
+          <rect x="576" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="604" y="81" text-anchor="middle" class="xs m">X₃</text>
+          <path d="M500 92 L500 102" class="lna"/><path d="M500 108 l-5 -9 l10 0 z" class="fa"/>
+          <text x="366" y="129" class="xs mut m">后</text>
+          <rect x="390" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="418" y="129" text-anchor="middle" class="xs m inv">Σ₀</text>
+          <rect x="452" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="480" y="129" text-anchor="middle" class="xs m inv">Σ₁</text>
+          <rect x="514" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="542" y="129" text-anchor="middle" class="xs m inv">Σ₂</text>
+          <rect x="576" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="604" y="129" text-anchor="middle" class="xs m inv">Σ₃</text>
+          <text x="366" y="150" class="xs mut">输出是输入的 1/k · 每台只留自己那块的和</text>
+
+          <rect x="680" y="14" width="300" height="150" rx="8" class="box"/>
+          <text x="696" y="36" class="m acc sm b">AllReduce</text>
+          <text x="696" y="54" class="xs mut">归约结果发给所有设备，人手一份</text>
+          <text x="696" y="81" class="xs mut m">前</text>
+          <rect x="720" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="748" y="81" text-anchor="middle" class="xs m">X₀</text>
+          <rect x="782" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="810" y="81" text-anchor="middle" class="xs m">X₁</text>
+          <rect x="844" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="872" y="81" text-anchor="middle" class="xs m">X₂</text>
+          <rect x="906" y="64" width="56" height="24" rx="4" class="fm"/>
+          <text x="934" y="81" text-anchor="middle" class="xs m">X₃</text>
+          <path d="M830 92 L830 102" class="lna"/><path d="M830 108 l-5 -9 l10 0 z" class="fa"/>
+          <text x="696" y="129" class="xs mut m">后</text>
+          <rect x="720" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="748" y="129" text-anchor="middle" class="xs m inv">Σ</text>
+          <rect x="782" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="810" y="129" text-anchor="middle" class="xs m inv">Σ</text>
+          <rect x="844" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="872" y="129" text-anchor="middle" class="xs m inv">Σ</text>
+          <rect x="906" y="112" width="56" height="24" rx="4" class="fa"/>
+          <text x="934" y="129" text-anchor="middle" class="xs m inv">Σ</text>
+          <text x="696" y="150" class="xs mut">训练里出现频率最高的一个 · = Reduce + Broadcast</text>
+
+          <rect x="20" y="190" width="520" height="150" rx="8" class="box"/>
+          <text x="36" y="212" class="m acc sm b">AllToAll</text>
+          <text x="120" y="212" class="xs mut">每台把自己的第 j 块发给设备 j —— 相当于一次「转置」</text>
+          <text x="34" y="257" class="xs mut m">前</text>
+          <rect x="54" y="240" width="104" height="24" rx="4" class="fm"/>
+          <text x="67" y="257" text-anchor="middle" class="xs m">a0</text>
+          <path d="M80 243 L80 261" class="ln" opacity=".5"/>
+          <text x="93" y="257" text-anchor="middle" class="xs m">a1</text>
+          <path d="M106 243 L106 261" class="ln" opacity=".5"/>
+          <text x="119" y="257" text-anchor="middle" class="xs m">a2</text>
+          <path d="M132 243 L132 261" class="ln" opacity=".5"/>
+          <text x="145" y="257" text-anchor="middle" class="xs m">a3</text>
+          <rect x="170" y="240" width="104" height="24" rx="4" class="fm"/>
+          <text x="183" y="257" text-anchor="middle" class="xs m">b0</text>
+          <path d="M196 243 L196 261" class="ln" opacity=".5"/>
+          <text x="209" y="257" text-anchor="middle" class="xs m">b1</text>
+          <path d="M222 243 L222 261" class="ln" opacity=".5"/>
+          <text x="235" y="257" text-anchor="middle" class="xs m">b2</text>
+          <path d="M248 243 L248 261" class="ln" opacity=".5"/>
+          <text x="261" y="257" text-anchor="middle" class="xs m">b3</text>
+          <rect x="286" y="240" width="104" height="24" rx="4" class="fm"/>
+          <text x="299" y="257" text-anchor="middle" class="xs m">c0</text>
+          <path d="M312 243 L312 261" class="ln" opacity=".5"/>
+          <text x="325" y="257" text-anchor="middle" class="xs m">c1</text>
+          <path d="M338 243 L338 261" class="ln" opacity=".5"/>
+          <text x="351" y="257" text-anchor="middle" class="xs m">c2</text>
+          <path d="M364 243 L364 261" class="ln" opacity=".5"/>
+          <text x="377" y="257" text-anchor="middle" class="xs m">c3</text>
+          <rect x="402" y="240" width="104" height="24" rx="4" class="fm"/>
+          <text x="415" y="257" text-anchor="middle" class="xs m">d0</text>
+          <path d="M428 243 L428 261" class="ln" opacity=".5"/>
+          <text x="441" y="257" text-anchor="middle" class="xs m">d1</text>
+          <path d="M454 243 L454 261" class="ln" opacity=".5"/>
+          <text x="467" y="257" text-anchor="middle" class="xs m">d2</text>
+          <path d="M480 243 L480 261" class="ln" opacity=".5"/>
+          <text x="493" y="257" text-anchor="middle" class="xs m">d3</text>
+          <text x="106" y="280" text-anchor="middle" class="xs mut m">设备 0</text>
+          <text x="222" y="280" text-anchor="middle" class="xs mut m">设备 1</text>
+          <text x="338" y="280" text-anchor="middle" class="xs mut m">设备 2</text>
+          <text x="454" y="280" text-anchor="middle" class="xs mut m">设备 3</text>
+          <text x="34" y="305" class="xs mut m">后</text>
+          <rect x="54" y="288" width="104" height="24" rx="4" class="fa"/>
+          <text x="67" y="305" text-anchor="middle" class="xs m inv">a0</text>
+          <path d="M80 291 L80 309" class="ln" opacity=".5"/>
+          <text x="93" y="305" text-anchor="middle" class="xs m inv">b0</text>
+          <path d="M106 291 L106 309" class="ln" opacity=".5"/>
+          <text x="119" y="305" text-anchor="middle" class="xs m inv">c0</text>
+          <path d="M132 291 L132 309" class="ln" opacity=".5"/>
+          <text x="145" y="305" text-anchor="middle" class="xs m inv">d0</text>
+          <rect x="170" y="288" width="104" height="24" rx="4" class="fa"/>
+          <text x="183" y="305" text-anchor="middle" class="xs m inv">a1</text>
+          <path d="M196 291 L196 309" class="ln" opacity=".5"/>
+          <text x="209" y="305" text-anchor="middle" class="xs m inv">b1</text>
+          <path d="M222 291 L222 309" class="ln" opacity=".5"/>
+          <text x="235" y="305" text-anchor="middle" class="xs m inv">c1</text>
+          <path d="M248 291 L248 309" class="ln" opacity=".5"/>
+          <text x="261" y="305" text-anchor="middle" class="xs m inv">d1</text>
+          <rect x="286" y="288" width="104" height="24" rx="4" class="fa"/>
+          <text x="299" y="305" text-anchor="middle" class="xs m inv">a2</text>
+          <path d="M312 291 L312 309" class="ln" opacity=".5"/>
+          <text x="325" y="305" text-anchor="middle" class="xs m inv">b2</text>
+          <path d="M338 291 L338 309" class="ln" opacity=".5"/>
+          <text x="351" y="305" text-anchor="middle" class="xs m inv">c2</text>
+          <path d="M364 291 L364 309" class="ln" opacity=".5"/>
+          <text x="377" y="305" text-anchor="middle" class="xs m inv">d2</text>
+          <rect x="402" y="288" width="104" height="24" rx="4" class="fa"/>
+          <text x="415" y="305" text-anchor="middle" class="xs m inv">a3</text>
+          <path d="M428 291 L428 309" class="ln" opacity=".5"/>
+          <text x="441" y="305" text-anchor="middle" class="xs m inv">b3</text>
+          <path d="M454 291 L454 309" class="ln" opacity=".5"/>
+          <text x="467" y="305" text-anchor="middle" class="xs m inv">c3</text>
+          <path d="M480 291 L480 309" class="ln" opacity=".5"/>
+          <text x="493" y="305" text-anchor="middle" class="xs m inv">d3</text>
+          <text x="36" y="326" class="xs mut">总量不变，但每台都在向其余每台发送 · MoE 的 token 路由就是这个形状</text>
+
+          <rect x="560" y="190" width="420" height="150" rx="8" class="boxa"/>
+          <text x="576" y="212" class="m acc sm b">一个常用的等价关系</text>
+          <rect x="576" y="252" width="22" height="24" rx="3" class="fm"/>
+          <text x="587" y="269" text-anchor="middle" class="xs m">X₀</text>
+          <rect x="601" y="252" width="22" height="24" rx="3" class="fm"/>
+          <text x="612" y="269" text-anchor="middle" class="xs m">X₁</text>
+          <rect x="626" y="252" width="22" height="24" rx="3" class="fm"/>
+          <text x="637" y="269" text-anchor="middle" class="xs m">X₂</text>
+          <rect x="651" y="252" width="22" height="24" rx="3" class="fm"/>
+          <text x="662" y="269" text-anchor="middle" class="xs m">X₃</text>
+          <rect x="721" y="252" width="22" height="24" rx="3" class="fm"/>
+          <text x="732" y="269" text-anchor="middle" class="xs m">Σ₀</text>
+          <rect x="746" y="252" width="22" height="24" rx="3" class="fm"/>
+          <text x="757" y="269" text-anchor="middle" class="xs m">Σ₁</text>
+          <rect x="771" y="252" width="22" height="24" rx="3" class="fm"/>
+          <text x="782" y="269" text-anchor="middle" class="xs m">Σ₂</text>
+          <rect x="796" y="252" width="22" height="24" rx="3" class="fm"/>
+          <text x="807" y="269" text-anchor="middle" class="xs m">Σ₃</text>
+          <rect x="866" y="252" width="22" height="24" rx="3" class="fa"/>
+          <text x="877" y="269" text-anchor="middle" class="xs m inv">Σ</text>
+          <rect x="891" y="252" width="22" height="24" rx="3" class="fa"/>
+          <text x="902" y="269" text-anchor="middle" class="xs m inv">Σ</text>
+          <rect x="916" y="252" width="22" height="24" rx="3" class="fa"/>
+          <text x="927" y="269" text-anchor="middle" class="xs m inv">Σ</text>
+          <rect x="941" y="252" width="22" height="24" rx="3" class="fa"/>
+          <text x="952" y="269" text-anchor="middle" class="xs m inv">Σ</text>
+          <path d="M679 264 L707 264" class="lna"/><path d="M715 264 l-11 -6 l0 12 z" class="fa"/>
+          <path d="M824 264 L852 264" class="lna"/><path d="M860 264 l-11 -6 l0 12 z" class="fa"/>
+          <text x="700" y="240" text-anchor="middle" class="xs acc m b">ReduceScatter</text>
+          <text x="845" y="240" text-anchor="middle" class="xs acc m b">AllGather</text>
+          <text x="576" y="298" class="xs mut">从张量语义看，两步的结果与一次 AllReduce 相同。</text>
+          <text x="576" y="316" class="xs mut">但实际耗时取决于算法、拓扑和消息大小 ——</text>
+          <text x="576" y="334" class="xs mut">这里不推导 ring 或 tree。</text>
+        </svg>
+      </figure>
+      <p class="note">判断代价看三件事：<b>一次操作要搬多少字节</b>（与输入输出比例有关）、<b>要来回几趟</b>（小消息由延迟主导）、<b>谁在等谁</b>（同步点是否落在关键路径上）。同一个 AllReduce 在节点内和跨节点可能差一个量级 —— 回到第一层的带宽阶梯。</p>
+    </div>
+    <footer class="foot"><span>REF-006 · NCCL 另有 Gather / Scatter / AllToAll，可由 send-recv 组合得到</span><span>content/01 · 1.4</span></footer>
+  </div>
+</section>
+
+<section class="slide" id="s-layout" data-ch="01 资源直觉" data-title="1.4 张量布局">
+  <div class="frame">
+    <header class="head"><span class="kicker">01 · <b>1.4 布局</b></span><span class="num"></span></header>
+    <h2>从元语到布局：复制、切分、分阶段</h2>
+    <p class="lede">元语是动作，布局是<b>状态</b> —— 一份工作摊到 N 台设备上，只有三种基本摆法。选了哪种布局，就决定了每一步要用哪些元语。</p>
+    <div class="body">
+      <figure class="viz">
+        <svg viewBox="0 0 1000 316" preserveAspectRatio="xMidYMid meet" role="img" aria-label="复制、切分、分阶段三种张量布局的示意图与各自的收益、代价、对应通信元语">
+          <rect x="20" y="14" width="300" height="206" rx="8" class="box"/>
+          <text x="36" y="38" class="m acc sm b">复制 · REPLICATION</text>
+          <text x="36" y="56" class="xs mut">每台持完整副本，切的是数据</text>
+          <rect x="36" y="68" width="56" height="64" rx="5" class="box"/>
+          <rect x="42" y="76" width="44" height="22" rx="3" class="fa"/>
+          <text x="64" y="92" text-anchor="middle" class="xs m inv">W</text>
+          <rect x="42" y="104" width="44" height="20" rx="3" class="fm"/>
+          <text x="64" y="119" text-anchor="middle" class="xs m">B0</text>
+          <rect x="106" y="68" width="56" height="64" rx="5" class="box"/>
+          <rect x="112" y="76" width="44" height="22" rx="3" class="fa"/>
+          <text x="134" y="92" text-anchor="middle" class="xs m inv">W</text>
+          <rect x="112" y="104" width="44" height="20" rx="3" class="fm"/>
+          <text x="134" y="119" text-anchor="middle" class="xs m">B1</text>
+          <rect x="176" y="68" width="56" height="64" rx="5" class="box"/>
+          <rect x="182" y="76" width="44" height="22" rx="3" class="fa"/>
+          <text x="204" y="92" text-anchor="middle" class="xs m inv">W</text>
+          <rect x="182" y="104" width="44" height="20" rx="3" class="fm"/>
+          <text x="204" y="119" text-anchor="middle" class="xs m">B2</text>
+          <rect x="246" y="68" width="56" height="64" rx="5" class="box"/>
+          <rect x="252" y="76" width="44" height="22" rx="3" class="fa"/>
+          <text x="274" y="92" text-anchor="middle" class="xs m inv">W</text>
+          <rect x="252" y="104" width="44" height="20" rx="3" class="fm"/>
+          <text x="274" y="119" text-anchor="middle" class="xs m">B3</text>
+          <text x="36" y="148" class="xs"><tspan class="b">收益</tspan> 总吞吐更容易随设备数增长</text>
+          <text x="36" y="168" class="xs wrn"><tspan class="b">代价</tspan> 单份工作仍受单设备容量约束</text>
+          <text x="36" y="194" class="xs mut m">元语 每步 AllReduce 同步梯度</text>
+          <text x="36" y="212" class="xs acc m">→ 02 的 DP、03 的多副本部署</text>
+
+          <rect x="350" y="14" width="300" height="206" rx="8" class="box"/>
+          <text x="366" y="38" class="m acc sm b">切分 · SHARDING</text>
+          <text x="366" y="56" class="xs mut">每台持不同分片，切的是张量</text>
+          <rect x="366" y="68" width="56" height="64" rx="5" class="box"/>
+          <rect x="372" y="76" width="44" height="48" rx="3" class="fm"/>
+          <text x="394" y="105" text-anchor="middle" class="xs m">W0</text>
+          <rect x="436" y="68" width="56" height="64" rx="5" class="box"/>
+          <rect x="442" y="76" width="44" height="48" rx="3" class="fm"/>
+          <text x="464" y="105" text-anchor="middle" class="xs m">W1</text>
+          <rect x="506" y="68" width="56" height="64" rx="5" class="box"/>
+          <rect x="512" y="76" width="44" height="48" rx="3" class="fm"/>
+          <text x="534" y="105" text-anchor="middle" class="xs m">W2</text>
+          <rect x="576" y="68" width="56" height="64" rx="5" class="box"/>
+          <rect x="582" y="76" width="44" height="48" rx="3" class="fm"/>
+          <text x="604" y="105" text-anchor="middle" class="xs m">W3</text>
+          <path d="M422 100 L434 100" class="lna dash"/>
+          <path d="M492 100 L504 100" class="lna dash"/>
+          <path d="M562 100 L574 100" class="lna dash"/>
+          <text x="366" y="148" class="xs"><tspan class="b">收益</tspan> 可用聚合容量与算力，装得下更大的层</text>
+          <text x="366" y="168" class="xs wrn"><tspan class="b">代价</tspan> 通信可能进入关键路径</text>
+          <text x="366" y="194" class="xs mut m">元语 层内 AllGather / ReduceScatter</text>
+          <text x="366" y="212" class="xs acc m">→ 02 的 TP、ZeRO / FSDP</text>
+
+          <rect x="680" y="14" width="300" height="206" rx="8" class="box"/>
+          <text x="696" y="38" class="m acc sm b">分阶段 · PIPELINING</text>
+          <text x="696" y="56" class="xs mut">每台持不同执行阶段，切的是层</text>
+          <rect x="696" y="68" width="56" height="64" rx="5" class="box"/>
+          <rect x="702" y="84" width="44" height="32" rx="3" class="fa"/>
+          <text x="724" y="105" text-anchor="middle" class="xs m inv">层 1–2</text>
+          <rect x="766" y="68" width="56" height="64" rx="5" class="box"/>
+          <rect x="772" y="84" width="44" height="32" rx="3" class="fa"/>
+          <text x="794" y="105" text-anchor="middle" class="xs m inv">层 3–4</text>
+          <rect x="836" y="68" width="56" height="64" rx="5" class="box"/>
+          <rect x="842" y="84" width="44" height="32" rx="3" class="fa"/>
+          <text x="864" y="105" text-anchor="middle" class="xs m inv">层 5–6</text>
+          <rect x="906" y="68" width="56" height="64" rx="5" class="box"/>
+          <rect x="912" y="84" width="44" height="32" rx="3" class="fa"/>
+          <text x="934" y="105" text-anchor="middle" class="xs m inv">层 7–8</text>
+          <path d="M752 100 L756 100" class="lna"/><path d="M764 100 l-11 -6 l0 12 z" class="fa"/>
+          <path d="M822 100 L826 100" class="lna"/><path d="M834 100 l-11 -6 l0 12 z" class="fa"/>
+          <path d="M892 100 L896 100" class="lna"/><path d="M904 100 l-11 -6 l0 12 z" class="fa"/>
+          <text x="696" y="148" class="xs"><tspan class="b">收益</tspan> 更大的模型可以跨设备驻留</text>
+          <text x="696" y="168" class="xs wrn"><tspan class="b">代价</tspan> 引入等待与流水空隙（bubble）</text>
+          <text x="696" y="194" class="xs mut m">元语 相邻 stage 间 send / recv</text>
+          <text x="696" y="212" class="xs acc m">→ 02 的 PP、03 的跨卡部署</text>
+
+          <rect x="20" y="234" width="960" height="66" rx="8" class="fs"/>
+          <text x="42" y="262" class="sm">三者不是三选一：<tspan class="b">02 章的多维并行就是在同一批设备上同时用上这三种布局</tspan>，03 章的部署选择是同一组问题在推理侧的版本。</text>
+          <text x="42" y="288" class="xs mut">布局决定了要用哪些元语、搬多少字节；元语落在哪条链路上，又回到第一层的带宽阶梯 —— 三层合起来才是一次通信开销的估算。</text>
+        </svg>
+      </figure>
+    </div>
+    <footer class="foot"><span>第三层「并行方案」需结合训练/推理的工作单元，留到 02 / 03</span><span>content/01 · 1.4</span></footer>
+  </div>
+</section>
+
 <section class="slide dark divider" id="ch2" data-ch="02 训练" data-title="章节开场">
   <div class="frame">
     <header class="head"><span class="kicker">Chapter <b>02</b></span><span class="num"></span></header>
@@ -1036,15 +1455,9 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
         <nav class="ch-agenda">
           <h4>本章路线</h4>
           <ol>
-            <li><span class="i">2.1</span><span>一次训练 step 与 batch 三口径</span></li>
-            <li><span class="i">2.2</span><span>单卡三类交换与重计算</span></li>
-            <li><span class="i">2.3</span><span>并行地图：到底在切什么</span></li>
-            <li><span class="i">2.4</span><span>DP · ZeRO / FSDP</span></li>
-            <li><span class="i">2.5</span><span>TP：张量并行</span></li>
-            <li><span class="i">2.6</span><span>PP：切层之后的调度</span></li>
-            <li><span class="i">2.7</span><span>SP / CP：沿序列切开</span></li>
-            <li><span class="i">2.8</span><span>EP：路由与负载不均</span></li>
-            <li><span class="i">2.9</span><span>资源交换表与单变量验证</span></li>
+            <li><span class="i">①</span><span>训练流程与三类主要问题<em class="sub">一次 step 的时间线、显存曲线与 batch 口径</em></span></li>
+            <li><span class="i">②</span><span>单卡优化：混合精度 · 梯度累积 · 重计算<em class="sub">三条杠杆动的是同一份账本</em></span></li>
+            <li><span class="i">③</span><span>多卡优化：六类切分方法<em class="sub">DP · ZeRO / FSDP · TP · PP · SP / CP · EP，收在一张资源交换表</em></span></li>
           </ol>
         </nav>
     </div>
@@ -1052,9 +1465,9 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
-<section class="slide" id="s-step" data-ch="02 训练" data-title="2.1 一次训练 step">
+<section class="slide" id="s-step" data-ch="02 训练" data-title="① 训练 step 与主要问题">
   <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.1 训练 step</b></span><span class="num"></span></header>
+    <header class="head"><span class="kicker">02 · ① 流程 · <b>训练 step</b></span><span class="num"></span></header>
     <h2>工作单元不是一次 forward，是一次参数更新</h2>
     <div class="body">
       <figure class="viz">
@@ -1095,10 +1508,134 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
-<section class="slide" id="s-batch" data-ch="02 训练" data-title="2.1 batch 三口径">
+<section class="slide" id="s-single-card" data-ch="02 训练" data-title="② 单卡三条杠杆">
   <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.1 口径</b></span><span class="num"></span></header>
-    <h2>三个容易混淆的 batch 口径</h2>
+    <header class="head"><span class="kicker">02 · ② 单卡 · <b>三条杠杆</b></span><span class="num"></span></header>
+    <h2>单卡三条杠杆，改的是同一份账本</h2>
+    <p class="lede">目标 global batch 不变、单卡执行四个 micro-step。混合精度、梯度累积、重计算不是三个互不相关的技巧，而是在同一张显存 / 时间账上换不同的项。</p>
+    <div class="body">
+      <figure class="viz">
+        <svg viewBox="0 0 1000 290" preserveAspectRatio="xMidYMid meet" role="img" aria-label="混合精度、减小 micro-batch 加累积、Activation Checkpointing 三种方法对显存与 step time 的影响对照">
+          <text x="20" y="22" class="xs mut m">每根柱：下段 = 参数/梯度/优化器状态，上段 = 激活，顶端细段 = 临时空间</text>
+
+          <text x="94" y="252" text-anchor="middle" class="sm b m">基线</text>
+          <rect x="60" y="150" width="68" height="82" class="fm"/>
+          <rect x="60" y="76" width="68" height="72" class="fs" stroke="var(--accent)" stroke-width="1.2"/>
+          <rect x="60" y="64" width="68" height="10" class="fwm"/>
+          <text x="94" y="52" text-anchor="middle" class="xs mut m">峰值 100%</text>
+          <text x="94" y="272" text-anchor="middle" class="xs mut m">step time 1.00×</text>
+
+          <line x1="160" y1="40" x2="160" y2="280" class="ln dash"/>
+
+          <text x="252" y="252" text-anchor="middle" class="sm b">混合精度</text>
+          <rect x="218" y="180" width="68" height="52" class="fm"/>
+          <rect x="218" y="132" width="68" height="46" class="fs" stroke="var(--accent)" stroke-width="1.2"/>
+          <rect x="218" y="122" width="68" height="8" class="fwm"/>
+          <text x="252" y="110" text-anchor="middle" class="xs acc m b">激活与梯度都变小</text>
+          <text x="252" y="272" text-anchor="middle" class="xs acc m">可能更快</text>
+
+          <text x="428" y="252" text-anchor="middle" class="sm b">梯度累积 · micro-batch ÷2</text>
+          <rect x="394" y="150" width="68" height="82" class="fm"/>
+          <rect x="394" y="112" width="68" height="36" class="fs" stroke="var(--accent)" stroke-width="1.2"/>
+          <rect x="394" y="102" width="68" height="8" class="fwm"/>
+          <text x="428" y="90" text-anchor="middle" class="xs acc m b">只有激活变小</text>
+          <text x="428" y="272" text-anchor="middle" class="xs wrn m">小 shape 可能更慢</text>
+
+          <text x="604" y="252" text-anchor="middle" class="sm b">Activation Checkpointing</text>
+          <rect x="570" y="150" width="68" height="82" class="fm"/>
+          <rect x="570" y="128" width="68" height="20" class="fs" stroke="var(--accent)" stroke-width="1.2"/>
+          <rect x="570" y="118" width="68" height="8" class="fwm"/>
+          <text x="604" y="106" text-anchor="middle" class="xs acc m b">激活大幅下降</text>
+          <text x="604" y="272" text-anchor="middle" class="xs wrn m">step time 上升</text>
+
+          <line x1="700" y1="40" x2="700" y2="280" class="ln dash"/>
+          <rect x="726" y="46" width="258" height="196" rx="8" class="fs"/>
+          <text x="746" y="76" class="m acc xs b">一条因果链</text>
+          <text x="746" y="106" class="sm b">峰值来自激活：</text>
+          <text x="746" y="128" class="sm mut">先减小 micro-batch →</text>
+          <text x="746" y="148" class="sm mut">累积把 global batch 补回来 →</text>
+          <text x="746" y="168" class="sm mut">仍放不下再减少保存的激活。</text>
+          <text x="746" y="198" class="sm b">峰值来自参数 / 梯度 / 优化器状态：</text>
+          <text x="746" y="220" class="sm mut">继续减 micro-batch 收益迅速变小，</text>
+          <text x="746" y="240" class="sm wrn b">应转向状态分片。</text>
+        </svg>
+      </figure>
+      <div class="grid g2">
+        <div class="card fill"><span class="tag-sm">三条杠杆的分工</span><p>混合精度改<b>每元素字节数与计算路径</b>；梯度累积改<b>单次 forward/backward 的形状</b>；重计算改<b>保存多少激活</b>。下面三页各展开一条。</p></div>
+        <div class="card warn"><span class="tag-sm">先检查输入形状</span><p>大量 padding 会让 GPU 对无效 token 做真实计算；packing 提高有效 token 比例但改变样本边界；数据加载不及时则让 GPU 等待。这些都表现为利用率低，<b>但不该用「加卡」解决</b>。</p></div>
+      </div>
+    </div>
+    <footer class="foot"><span>柱高为示意比例，用于比较改变的是哪一段</span><span>content/02 · 2.2</span></footer>
+  </div>
+</section>
+
+<section class="slide" id="s-amp" data-ch="02 训练" data-title="② 混合精度">
+  <div class="frame">
+    <header class="head"><span class="kicker">02 · ② 单卡 · <b>混合精度</b></span><span class="num"></span></header>
+    <h2>混合精度：按环节选精度，不是整份账本改低精度</h2>
+    <div class="body">
+      <figure class="viz">
+        <svg viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="一次训练 step 中各环节使用的精度：forward 与 backward 的权重副本、激活和梯度走低精度，梯度归约与主权重、优化器状态留在较高精度，更新后再写回低精度副本">
+          <rect x="20" y="26" width="232" height="30" rx="5" class="fa"/>
+          <text x="136" y="47" text-anchor="middle" class="inv sm b">forward</text>
+          <rect x="256" y="26" width="232" height="30" rx="5" class="fm"/>
+          <text x="372" y="47" text-anchor="middle" class="sm b">backward</text>
+          <rect x="492" y="26" width="148" height="30" rx="5" class="fwm"/>
+          <text x="566" y="47" text-anchor="middle" class="sm b">optimizer step</text>
+          <line x1="254" y1="26" x2="254" y2="224" class="ln dash"/>
+          <line x1="490" y1="26" x2="490" y2="224" class="ln dash"/>
+
+          <text x="20" y="80" class="xs acc m b">低精度 · BF16 / FP16 —— 计算与搬运</text>
+          <rect x="20" y="88" width="620" height="48" rx="6" fill="none" stroke="var(--accent)" stroke-width="1.2" class="dash"/>
+          <rect x="30" y="98" width="124" height="28" rx="4" class="fa"/>
+          <text x="92" y="117" text-anchor="middle" class="inv xs b">权重的低精度副本</text>
+          <rect x="162" y="98" width="80" height="28" rx="4" class="fa"/>
+          <text x="202" y="117" text-anchor="middle" class="inv xs b">激活</text>
+          <rect x="266" y="98" width="96" height="28" rx="4" class="fa"/>
+          <text x="314" y="117" text-anchor="middle" class="inv xs b">读激活与权重</text>
+          <rect x="370" y="98" width="110" height="28" rx="4" class="fa"/>
+          <text x="425" y="117" text-anchor="middle" class="inv xs b">产生梯度</text>
+
+          <text x="20" y="168" class="xs wrn m b">较高精度 · FP32 —— 更新与关键归约</text>
+          <rect x="20" y="176" width="620" height="48" rx="6" fill="none" stroke="var(--warn)" stroke-width="1.2" class="dash"/>
+          <rect x="370" y="186" width="110" height="28" rx="4" class="fwm"/>
+          <text x="425" y="205" text-anchor="middle" class="xs b">梯度归约与累加</text>
+          <rect x="496" y="186" width="138" height="28" rx="4" class="fwm"/>
+          <text x="565" y="205" text-anchor="middle" class="xs b">主权重 · 优化器状态</text>
+
+          <path d="M425 128 L425 178" class="lnw"/><path d="M425 186 l-6 -11 l12 0 z" class="fwm"/>
+          <path d="M482 200 L492 200" class="lnw"/><path d="M500 200 l-11 -6 l0 12 z" class="fwm"/>
+          <path d="M565 216 L565 248 L92 248 L92 134" class="lna dash"/>
+          <path d="M92 126 l-6 11 l12 0 z" class="fa"/>
+          <text x="330" y="268" text-anchor="middle" class="sm acc b">更新在高精度侧完成，再写回下一次 forward 用的低精度副本</text>
+
+          <line x1="652" y1="26" x2="652" y2="270" class="ln dash"/>
+          <rect x="666" y="26" width="314" height="112" rx="8" class="fs"/>
+          <text x="686" y="54" class="sm acc b">换来</text>
+          <text x="686" y="80" class="sm mut">每元素字节数下降 → 激活、梯度与</text>
+          <text x="686" y="100" class="sm mut">跨设备搬运量同比变小</text>
+          <text x="686" y="124" class="sm mut">低精度矩阵乘走更高的硬件峰值</text>
+          <rect x="666" y="150" width="314" height="112" rx="8" class="fw"/>
+          <text x="686" y="178" class="sm wrn b">付出</text>
+          <text x="686" y="204" class="sm mut">有效位数与动态范围同时变小</text>
+          <text x="686" y="224" class="sm mut">FP16 易下溢，需要 loss scaling；</text>
+          <text x="686" y="248" class="sm mut">BF16 保住指数范围但尾数更短</text>
+        </svg>
+      </figure>
+      <div class="grid g2">
+        <div class="card warn"><span class="tag-sm">混合精度 ≠ 全部改低精度</span><p>训练中可能同时存在低精度计算副本、较高精度更新状态和不同精度的归约。具体组合由算法与框架决定，<b>要验证的是峰值显存、step time 与训练质量，不是配置名。</b></p></div>
+        <div class="card warn"><span class="tag-sm">收益集中在激活与搬运</span><p>主权重与优化器状态通常仍按较高精度保存，所以状态那一段缩得有限。<b>状态主导的 OOM 要靠状态分片解决，换精度顶不上去。</b></p></div>
+      </div>
+    </div>
+    <footer class="foot"><span>精度组合随框架与算法而异，图中为最常见的一种分工</span><span>content/02 · 2.2</span></footer>
+  </div>
+</section>
+
+<section class="slide" id="s-batch" data-ch="02 训练" data-title="② 梯度累积">
+  <div class="frame">
+    <header class="head"><span class="kicker">02 · ② 单卡 · <b>梯度累积</b></span><span class="num"></span></header>
+    <h2>梯度累积：把一次更新拆成多个 micro-step</h2>
+    <p class="lede">目标 global batch 不变，单次 forward/backward 的形状变小，激活峰值随之下降；代价是同一次更新要跑更多轮。</p>
     <div class="body">
       <figure class="viz">
         <svg viewBox="0 0 1000 280" preserveAspectRatio="xMidYMid meet" role="img" aria-label="四个 micro-step 的 forward 与 backward 累积梯度后执行一次 optimizer update，global batch 等于 micro-batch 乘累积次数乘数据并行副本数">
@@ -1145,74 +1682,13 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
         <div class="card"><span class="tag-sm">MFU 与 HFU</span><p>MFU 通常把实测有效模型计算量与硬件理论峰值比较；HFU 还可能把<b>重计算等实际硬件工作</b>计入分子。定义不统一时，只比较同一实现、同一口径的结果。</p></div>
       </div>
     </div>
-    <footer class="foot"><span>忽略最后一个不完整 batch</span><span>content/02 · 2.1</span></footer>
+    <footer class="foot"><span>忽略最后一个不完整 batch；累积不减少总样本工作量，小 shape 还会重复支付固定开销</span><span>content/02 · 2.1 / 2.2</span></footer>
   </div>
 </section>
 
-<section class="slide" id="s-single-card" data-ch="02 训练" data-title="2.2 单卡三类交换">
+<section class="slide" id="s-ckpt" data-ch="02 训练" data-title="② 重计算">
   <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.2 单卡</b></span><span class="num"></span></header>
-    <h2>三类配置改变的是同一份账本</h2>
-    <p class="lede">目标 global batch 不变、单卡执行四个 micro-step。它们不是三个互不相关的技巧。</p>
-    <div class="body">
-      <figure class="viz">
-        <svg viewBox="0 0 1000 290" preserveAspectRatio="xMidYMid meet" role="img" aria-label="混合精度、减小 micro-batch 加累积、Activation Checkpointing 三种方法对显存与 step time 的影响对照">
-          <text x="20" y="22" class="xs mut m">每根柱：下段 = 参数/梯度/优化器状态，上段 = 激活，顶端细段 = 临时空间</text>
-
-          <text x="94" y="252" text-anchor="middle" class="sm b m">基线</text>
-          <rect x="60" y="150" width="68" height="82" class="fm"/>
-          <rect x="60" y="76" width="68" height="72" class="fs" stroke="var(--accent)" stroke-width="1.2"/>
-          <rect x="60" y="64" width="68" height="10" class="fwm"/>
-          <text x="94" y="52" text-anchor="middle" class="xs mut m">峰值 100%</text>
-          <text x="94" y="272" text-anchor="middle" class="xs mut m">step time 1.00×</text>
-
-          <line x1="160" y1="40" x2="160" y2="280" class="ln dash"/>
-
-          <text x="252" y="252" text-anchor="middle" class="sm b">混合精度</text>
-          <rect x="218" y="180" width="68" height="52" class="fm"/>
-          <rect x="218" y="132" width="68" height="46" class="fs" stroke="var(--accent)" stroke-width="1.2"/>
-          <rect x="218" y="122" width="68" height="8" class="fwm"/>
-          <text x="252" y="110" text-anchor="middle" class="xs acc m b">两段同时变小</text>
-          <text x="252" y="272" text-anchor="middle" class="xs acc m">可能更快</text>
-
-          <text x="428" y="252" text-anchor="middle" class="sm b">micro-batch ÷2 · 累积 ×2</text>
-          <rect x="394" y="150" width="68" height="82" class="fm"/>
-          <rect x="394" y="112" width="68" height="36" class="fs" stroke="var(--accent)" stroke-width="1.2"/>
-          <rect x="394" y="102" width="68" height="8" class="fwm"/>
-          <text x="428" y="90" text-anchor="middle" class="xs acc m b">只有激活变小</text>
-          <text x="428" y="272" text-anchor="middle" class="xs wrn m">小 shape 可能更慢</text>
-
-          <text x="604" y="252" text-anchor="middle" class="sm b">Activation Checkpointing</text>
-          <rect x="570" y="150" width="68" height="82" class="fm"/>
-          <rect x="570" y="128" width="68" height="20" class="fs" stroke="var(--accent)" stroke-width="1.2"/>
-          <rect x="570" y="118" width="68" height="8" class="fwm"/>
-          <text x="604" y="106" text-anchor="middle" class="xs acc m b">激活大幅下降</text>
-          <text x="604" y="272" text-anchor="middle" class="xs wrn m">step time 上升</text>
-
-          <line x1="700" y1="40" x2="700" y2="280" class="ln dash"/>
-          <rect x="726" y="46" width="258" height="196" rx="8" class="fs"/>
-          <text x="746" y="76" class="m acc xs b">一条因果链</text>
-          <text x="746" y="106" class="sm b">峰值来自激活：</text>
-          <text x="746" y="128" class="sm mut">先减小 micro-batch →</text>
-          <text x="746" y="148" class="sm mut">累积把 global batch 补回来 →</text>
-          <text x="746" y="168" class="sm mut">仍放不下再减少保存的激活。</text>
-          <text x="746" y="198" class="sm b">峰值来自参数 / 梯度 / 优化器状态：</text>
-          <text x="746" y="220" class="sm mut">继续减 micro-batch 收益迅速变小，</text>
-          <text x="746" y="240" class="sm wrn b">应转向状态分片。</text>
-        </svg>
-      </figure>
-      <div class="grid g2">
-        <div class="card warn"><span class="tag-sm">混合精度 ≠ 全部改低精度</span><p>训练中可能同时存在低精度计算副本、较高精度更新状态和不同精度的归约。<b>验证对象是峰值显存、step time 与训练质量，不是配置名。</b></p></div>
-        <div class="card warn"><span class="tag-sm">先检查输入形状</span><p>大量 padding 会让 GPU 对无效 token 做真实计算；packing 提高有效 token 比例但改变样本边界；数据加载不及时则让 GPU 等待。这些都表现为利用率低，<b>但不该用「加卡」解决</b>。</p></div>
-      </div>
-    </div>
-    <footer class="foot"><span>柱高为示意比例，用于比较改变的是哪一段</span><span>content/02 · 2.2</span></footer>
-  </div>
-</section>
-
-<section class="slide" id="s-ckpt" data-ch="02 训练" data-title="2.2 Activation Checkpointing">
-  <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.2 重计算</b></span><span class="num"></span></header>
+    <header class="head"><span class="kicker">02 · ② 单卡 · <b>重计算</b></span><span class="num"></span></header>
     <h2>Activation Checkpointing：用额外计算换显存</h2>
     <div class="body">
       <figure class="viz">
@@ -1287,9 +1763,9 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
-<section class="slide" id="s-split-map" data-ch="02 训练" data-title="2.3 切什么">
+<section class="slide" id="s-split-map" data-ch="02 训练" data-title="③ 切什么">
   <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.3 并行地图</b></span><span class="num"></span></header>
+    <header class="head"><span class="kicker">02 · ③ 多卡 · <b>并行地图</b></span><span class="num"></span></header>
     <h2>多卡并行先问「切什么」</h2>
     <div class="body">
       <figure class="viz">
@@ -1352,9 +1828,9 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
-<section class="slide" id="s-dp" data-ch="02 训练" data-title="2.4 DP">
+<section class="slide" id="s-dp" data-ch="02 训练" data-title="③ DP">
   <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.4 DP</b></span><span class="num"></span></header>
+    <header class="head"><span class="kicker">02 · ③ 多卡 · <b>DP</b></span><span class="num"></span></header>
     <h2>DP：复制模型，切 batch</h2>
     <div class="body">
       <figure class="viz">
@@ -1406,9 +1882,9 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
-<section class="slide" id="s-zero" data-ch="02 训练" data-title="2.4 ZeRO 与 FSDP">
+<section class="slide" id="s-zero" data-ch="02 训练" data-title="③ ZeRO 与 FSDP">
   <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.4 状态分片</b></span><span class="num"></span></header>
+    <header class="head"><span class="kicker">02 · ③ 多卡 · <b>状态分片</b></span><span class="num"></span></header>
     <h2>ZeRO 逐级减少复制，FSDP 看参数生命周期</h2>
     <div class="body">
       <figure class="viz">
@@ -1471,9 +1947,9 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
-<section class="slide" id="s-tp" data-ch="02 训练" data-title="2.5 Tensor Parallelism">
+<section class="slide" id="s-tp" data-ch="02 训练" data-title="③ TP">
   <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.5 TP</b></span><span class="num"></span></header>
+    <header class="head"><span class="kicker">02 · ③ 多卡 · <b>TP</b></span><span class="num"></span></header>
     <h2>TP：列切分接行切分，中间不必拼回来</h2>
     <p class="lede">两层 MLP：<code>H ── W_up ──→ 4H ── 激活 ── W_down ──→ H</code></p>
     <div class="body">
@@ -1547,9 +2023,9 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
-<section class="slide" id="s-pp" data-ch="02 训练" data-title="2.6 Pipeline Parallelism">
+<section class="slide" id="s-pp" data-ch="02 训练" data-title="③ PP">
   <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.6 PP</b></span><span class="num"></span></header>
+    <header class="head"><span class="kicker">02 · ③ 多卡 · <b>PP</b></span><span class="num"></span></header>
     <h2>PP：切层之后，问题变成调度</h2>
     <p class="lede">4 个 stage、8 个 micro-batch，forward 与 backward 各算 1 个时间单位。<b>两者总时长相同，差别在同时存活的激活数量。</b></p>
     <div class="body">
@@ -1845,9 +2321,9 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
-<section class="slide" id="s-cp" data-ch="02 训练" data-title="2.7 序列与上下文并行">
+<section class="slide" id="s-cp" data-ch="02 训练" data-title="③ SP / CP">
   <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.7 SP / CP</b></span><span class="num"></span></header>
+    <header class="head"><span class="kicker">02 · ③ 多卡 · <b>SP / CP</b></span><span class="num"></span></header>
     <h2>沿序列切开：Ring Attention 与 Ulysses</h2>
     <p class="lede"><b>SP</b> 常与 TP 配合，把原本在 TP 组内复制的非 TP 区域激活沿序列切开；<b>CP</b> 更进一步，让长上下文的 Attention 计算和相关状态跨设备分布。<b>不应仅凭名字视为同一种实现。</b></p>
     <div class="body">
@@ -1898,9 +2374,9 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
-<section class="slide" id="s-ep" data-ch="02 训练" data-title="2.8 Expert Parallelism">
+<section class="slide" id="s-ep" data-ch="02 训练" data-title="③ EP">
   <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.8 EP</b></span><span class="num"></span></header>
+    <header class="head"><span class="kicker">02 · ③ 多卡 · <b>EP</b></span><span class="num"></span></header>
     <h2>EP：路由数据流与负载不均</h2>
     <div class="body">
       <figure class="viz">
@@ -1954,9 +2430,9 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
-<section class="slide" id="s-trade" data-ch="02 训练" data-title="2.9 资源交换表">
+<section class="slide" id="s-trade" data-ch="02 训练" data-title="③ 资源交换表">
   <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.9 选择</b></span><span class="num"></span></header>
+    <header class="head"><span class="kicker">02 · ③ 多卡 · <b>资源交换表</b></span><span class="num"></span></header>
     <h2>六类切分的资源交换表</h2>
     <div class="body">
       <div class="grow" style="display:flex">
@@ -1979,50 +2455,6 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
       </div>
     </div>
     <footer class="foot"><span>每行统一回答：切分对象 · 解决问题 · 通信 · 主要代价</span><span>content/02 · 2.9</span></footer>
-  </div>
-</section>
-
-<section class="slide dark" id="s-train-verify" data-ch="02 训练" data-title="2.9 单变量验证">
-  <div class="frame">
-    <header class="head"><span class="kicker">02 · <b>2.9 验证</b></span><span class="num"></span></header>
-    <h2>同一套实验纪律收口</h2>
-    <div class="body">
-      <figure class="viz">
-        <svg viewBox="0 0 1000 250" preserveAspectRatio="xMidYMid meet" role="img" aria-label="训练实验纪律闭环：先写瓶颈假设，固定模型数据与 global batch，只改一个杠杆，记录峰值显存与 step time 与吞吐，再判断是否支持假设并回到起点">
-          <rect x="20" y="34" width="168" height="106" rx="8" class="boxa"/>
-          <text x="40" y="62" class="m acc sm b">1</text><text x="40" y="88" class="b">写下瓶颈假设</text>
-          <text x="40" y="112" class="xs mut">峰值来自哪一项？</text>
-          <text x="40" y="130" class="xs mut">关键路径是谁？</text>
-          <path d="M194 87 L212 87" class="lna"/><path d="M220 87 l-11 -6 l0 12 z" class="fa"/>
-          <rect x="224" y="34" width="200" height="106" rx="8" class="boxa"/>
-          <text x="244" y="62" class="m acc sm b">2 · 固定</text><text x="244" y="88" class="sm">模型 · 数据 · global batch</text>
-          <text x="244" y="110" class="sm">精度 · 质量边界</text>
-          <text x="244" y="132" class="xs wrn">任何一项变了，结果不可比</text>
-          <path d="M430 87 L448 87" class="lna"/><path d="M456 87 l-11 -6 l0 12 z" class="fa"/>
-          <rect x="460" y="34" width="200" height="106" rx="8" class="boxa"/>
-          <text x="480" y="62" class="m acc sm b">3 · 只改一个杠杆</text>
-          <text x="480" y="88" class="sm">micro-batch / 累积 / 精度 /</text>
-          <text x="480" y="110" class="sm">重计算 / 某一个切分维度</text>
-          <text x="480" y="132" class="xs wrn">同时改两项 = 无法归因</text>
-          <path d="M666 87 L684 87" class="lna"/><path d="M692 87 l-11 -6 l0 12 z" class="fa"/>
-          <rect x="696" y="34" width="284" height="106" rx="8" class="boxa"/>
-          <text x="716" y="62" class="m acc sm b">4 · 记录三项</text>
-          <text x="716" y="88" class="sm">峰值显存 · step time ·</text>
-          <text x="716" y="110" class="sm">有效 samples/s 或 tokens/s</text>
-          <text x="716" y="132" class="xs wrn">global batch 改了就不能只比 step time</text>
-          <path d="M838 148 L838 186 L104 186 L104 148" class="lna dash"/>
-          <path d="M104 140 l-6 11 l12 0 z" class="fa"/>
-          <text x="471" y="180" text-anchor="middle" class="sm acc b">观测支持假设吗？不支持就换假设，而不是继续叠配置</text>
-          <text x="500" y="228" text-anchor="middle" class="lg">「先改一个，再看三项」比「一次上齐所有并行」更快收敛</text>
-        </svg>
-      </figure>
-      <div class="grid g2">
-        <div class="quote">「峰值出现在 forward 末尾，随 micro-batch 近似增长，而参数与优化器状态不变；先将 micro-batch 减半并把累积翻倍，验证 global batch 不变时峰值是否下降、吞吐损失是否可接受。」</div>
-        <div class="quote bad">「OOM 了，所以直接上更多卡和更多并行。」</div>
-      </div>
-      <p class="note">本章提供的是<b>选择配置前的一阶资源模型</b>。真实峰值还取决于框架封装粒度、预取、通信 buffer、算子 workspace 与内存分配；真实扩展效率还取决于拓扑、调度和重叠。它不能替代 benchmark 或 profiler，但能帮我们先提出值得验证的假设。</p>
-    </div>
-    <footer class="foot"><span>content/02 · 2.9 与适用边界</span><span></span></footer>
   </div>
 </section>
 
@@ -2508,128 +2940,6 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
       </div>
     </div>
     <footer class="foot"><span>跨节点 TP、KV 传输和复杂路由留到补充材料</span><span>content/03 · 3.5 · FACT-014</span></footer>
-  </div>
-</section>
-
-<section class="slide" id="s-infer-verify" data-ch="03 推理" data-title="3.6 固定条件验证">
-  <div class="frame">
-    <header class="head"><span class="kicker">03 · <b>3.6 验证</b></span><span class="num"></span></header>
-    <h2>同时报告速度、容量、质量与成本</h2>
-    <div class="body">
-      <div class="quote">在 BF16、低并发 decode 中，实测单步时间远高于 FLOPs 下界并接近权重与 KV 搬运下界；<b>只改变权重格式</b>，验证权重 bytes、峰值显存、TPOT 和质量。</div>
-      <div class="grid g2">
-        <div class="card">
-          <span class="tag-sm">单请求基准</span>
-          <p><b>固定</b>：模型版本、采样配置、输入长度分布、输出上限、精度、硬件、卡数、并行度；质量边界与测试集；warmup、重复次数、是否包含排队/编译。</p>
-          <p><b>报告</b>：TTFT、TPOT、ITL 分布、端到端时延、峰值显存、任务质量、P50/P95/P99。</p>
-        </div>
-        <div class="card">
-          <span class="tag-sm">服务基准</span>
-          <p><b>固定</b>：请求到达过程、输入/输出联合分布、并发或请求率、SLO、调度配置、副本数与每副本卡数、batch/token 上限、KV pool 配置。</p>
-          <p><b>报告</b>：queue time、TTFT、ITL/TPOT、端到端 P95/P99、tokens/s、requests/s、最大稳定并发、KV block 占用、超时/OOM/拒绝率、GPU-hours 与单位成本。</p>
-        </div>
-      </div>
-      <div class="grow" style="display:flex">
-      <table class="t" style="height:100%">
-        <thead><tr><th class="n">顺序</th><th>读结果时依次检查</th></tr></thead>
-        <tbody>
-          <tr><td class="n">1</td><td><strong>速度是否改善目标指标</strong>：吞吐提高但 P99 超出 SLO，不是在线目标下的成功</td></tr>
-          <tr><td class="n">2</td><td><strong>容量是否真的可用</strong>：显存下降后，batch、活动 token 或稳定并发是否提高</td></tr>
-          <tr><td class="n">3</td><td><strong>质量边界是否保持</strong>：量化、近似采样、步数、窗口和输出上限是否改变</td></tr>
-          <tr><td class="n">4</td><td><strong>复杂度与稳定性是否可接受</strong>：编译回退、cache miss、碎片、抖动和故障恢复是否恶化</td></tr>
-          <tr><td class="n">5</td><td><strong>成本是否改善</strong>：看整个服务的设备时和达标请求，而不是只看单卡峰值 token/s</td></tr>
-        </tbody>
-      </table>
-      </div>
-      <p class="note">停止条件也应<b>预先写清</b>：目标 SLO 已满足且继续优化不降低单位成本；容量已有安全余量；或下一项收益不足以覆盖质量风险和系统复杂度。没有停止条件的「继续榨利用率」很容易<b>用用户延迟换取无效吞吐</b>。</p>
-    </div>
-    <footer class="foot"><span>平均吞吐高但尾延迟差时，按请求长度和阶段拆开 queue、prefill、decode 时间</span><span>content/03 · 3.6</span></footer>
-  </div>
-</section>
-
-<!-- ============ 收尾 ============ -->
-<section class="slide dark" id="closing" data-ch="收尾" data-title="五步闭环">
-  <div class="frame">
-    <header class="head"><span class="kicker">收尾 · <b>回到地图</b></span><span class="num"></span></header>
-    <h2>把一个问题写成可验证的资源假设</h2>
-    <div class="body">
-      <figure class="viz">
-        <svg viewBox="0 0 1040 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="五步闭环：明确目标、估算资源、观测验证瓶颈假设、只改一个杠杆、用相同条件验证并回到起点">
-          <g>
-            <rect x="20" y="60" width="168" height="96" rx="8" class="boxa"/>
-            <text x="40" y="88" class="m acc sm b">1</text><text x="40" y="114" class="b">明确</text>
-            <text x="40" y="138" class="xs mut">比较对象、质量边界</text>
-            <text x="40" y="154" class="xs mut">和目标指标</text>
-          </g>
-          <path d="M194 108 L216 108" class="lna"/><path d="M224 108 l-11 -6 l0 12 z" class="fa"/>
-          <g>
-            <rect x="228" y="60" width="168" height="96" rx="8" class="boxa"/>
-            <text x="248" y="88" class="m acc sm b">2</text><text x="248" y="114" class="b">估算</text>
-            <text x="248" y="138" class="xs mut">主要计算、峰值显存、</text>
-            <text x="248" y="154" class="xs mut">数据移动与必要通信</text>
-          </g>
-          <path d="M402 108 L424 108" class="lna"/><path d="M432 108 l-11 -6 l0 12 z" class="fa"/>
-          <g>
-            <rect x="436" y="60" width="168" height="96" rx="8" class="boxa"/>
-            <text x="456" y="88" class="m acc sm b">3</text><text x="456" y="114" class="b">观测</text>
-            <text x="456" y="138" class="xs mut">观测是否支持当前</text>
-            <text x="456" y="154" class="xs mut">瓶颈假设</text>
-          </g>
-          <path d="M610 108 L632 108" class="lna"/><path d="M640 108 l-11 -6 l0 12 z" class="fa"/>
-          <g>
-            <rect x="644" y="60" width="168" height="96" rx="8" class="boxa"/>
-            <text x="664" y="88" class="m acc sm b">4</text><text x="664" y="114" class="b">改一个杠杆</text>
-            <text x="664" y="138" class="xs mut">只改最可能影响</text>
-            <text x="664" y="154" class="xs mut">关键路径的那一个</text>
-          </g>
-          <path d="M818 108 L840 108" class="lna"/><path d="M848 108 l-11 -6 l0 12 z" class="fa"/>
-          <g>
-            <rect x="852" y="60" width="168" height="96" rx="8" class="boxa"/>
-            <text x="872" y="88" class="m acc sm b">5</text><text x="872" y="114" class="b">验证</text>
-            <text x="872" y="138" class="xs mut">相同条件下验证收益、</text>
-            <text x="872" y="154" class="xs mut">副作用与停止条件</text>
-          </g>
-          <path d="M936 164 L936 200 L104 200 L104 164" class="lna dash"/>
-          <path d="M104 156 l-6 11 l12 0 z" class="fa"/>
-          <text x="520" y="222" text-anchor="middle" class="sm acc b">结论不能套用，方法可以复用</text>
-        </svg>
-      </figure>
-      <div class="grid g3">
-        <div class="card"><span class="tag-sm">01 给了什么</span><p>FLOPs、bytes、通信量的统一口径；理论下界与四问判断卡。</p></div>
-        <div class="card"><span class="tag-sm">02 给了什么</span><p>一次参数更新的两本账；单卡三类交换与六个切分维度的资源交换表。</p></div>
-        <div class="card"><span class="tag-sm">03 给了什么</span><p>prefill/decode 基线与指标口径；单请求、并发服务与部署选择的判断顺序。</p></div>
-      </div>
-      <div class="grid g2">
-        <div class="quote">「按当前 shape 与精度，我推测瓶颈在 <b>X</b>；下一步固定 <b>Y</b>，只改变 <b>Z</b>，用<b>指标 M</b> 验证。」</div>
-        <div class="quote bad">「没跑满，所以加卡；OOM 了，所以上并行；慢，所以量化。」</div>
-      </div>
-    </div>
-    <footer class="foot"><span>估算 → 观测 → 选择杠杆 → 验证</span><span>outline/00</span></footer>
-  </div>
-</section>
-
-<section class="slide" id="limits" data-ch="收尾" data-title="适用边界">
-  <div class="frame">
-    <header class="head"><span class="kicker">收尾 · <b>边界</b></span><span class="num"></span></header>
-    <h2>这套方法不能做什么</h2>
-    <div class="body">
-      <div class="grid g3 grow">
-        <div class="card warn"><span class="tag-sm">一阶量级估算</span><p>主动忽略部分低阶算子、kernel 选择、调度细节、通信算法和框架行为，<b>不能替代 benchmark 或 profiler</b>。</p></div>
-        <div class="card warn"><span class="tag-sm">数学 ≠ 实现</span><p>Attention 的二次复杂度不等同于 HBM 物化量；规格表峰值不等于可持续实测吞吐。</p></div>
-        <div class="card warn"><span class="tag-sm">模型结构会改口径</span><p>对 MoE、线性/局部注意力、跨层 KV 共享、超长上下文或多模态模型，<code>2P</code>、KV 公式和切分方式都要按<b>实际激活参数与状态生命周期</b>修正。</p></div>
-      </div>
-      <p class="note" style="margin-top:.3em"><b>30 分钟压缩路径</b> —— 每章保留一条主链，其余作为问答入口</p>
-      <div class="grid g3 grow">
-        <div class="card fill"><span class="tag-sm">01 资源直觉</span><p>GEMM shape → FLOPs<br>FLOPs + bytes → Roofline 与时间下界<br>张量生命周期 → 峰值容量<br>复制 / 切分 → 聚合资源与通信代价<br>四问判断卡 → 带假设进入实测</p></div>
-        <div class="card fill"><span class="tag-sm">02 训练</span><p>训练 step 与两本账<br>三类单卡资源交换<br>六种「切什么」地图<br>DP / 状态分片 / TP / PP 的核心数据流<br>资源交换表与单变量验证</p></div>
-        <div class="card fill"><span class="tag-sm">03 推理</span><p>工作单元与指标口径<br>prefill / decode 流程与特点<br>量化 + speculative decoding<br>continuous batching + KV block pool<br>副本或切分 → 固定 workload 验证卡</p></div>
-      </div>
-      <div class="grid g2">
-        <div class="card"><span class="tag-sm">资料与口径</span><p>创作参考 <code>REF-001…007</code>、事实依据 <code>FACT-002/004/005/007…014</code> 登记在 <code>references/sources.md</code>；本篇所有硬件数值使用 H100 SXM BF16 <b>稠密</b>口径。</p></div>
-        <div class="card"><span class="tag-sm">这份快照的位置</span><p>由 <code>content/01–03</code> 生成，是<b>派生的报告快照</b>，不反向覆盖大纲与正文。发现结论或事实问题时，回到对应层修改并重新确认，再重新生成版本。</p></div>
-      </div>
-    </div>
-    <footer class="foot"><span>presentation/versions/v1 · baseline 7b1577d</span><span>谢谢</span></footer>
   </div>
 </section>
 </main>
