@@ -146,6 +146,8 @@ svg .dash{stroke-dasharray:5 4;}
   background:var(--panel);
   display:flex;flex-direction:column;gap:.28em;justify-content:center;}
 .card .tag-sm{font:600 .72em/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);}
+.recap .card{justify-content:flex-start;gap:.45em;}
+.recap .card ul.bul li{font-size:.9em;line-height:1.5;}
 .card p{color:var(--muted);font-size:.92em;}
 .card.fill{background:var(--accent-soft);border-color:var(--accent-mid);}
 .card.warn{background:var(--warn-soft);border-color:var(--warn-mid);}
@@ -316,6 +318,7 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
             <li><span class="i">1.2</span><span>计算账：FLOPs 与形状关系</span></li>
             <li><span class="i">1.3</span><span>显存账：存储层级、Roofline 与峰值</span></li>
             <li><span class="i">1.4</span><span>通信账：物理路径、通信元语与张量布局</span></li>
+            <li><span class="i">小结</span><span>本章要点</span></li>
           </ol>
         </nav>
     </div>
@@ -1443,6 +1446,50 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
+<section class="slide recap" id="s-recap1" data-ch="01 资源直觉" data-title="本章要点">
+  <div class="frame">
+    <header class="head"><span class="kicker">01 · <b>小结</b></span><span class="num"></span></header>
+    <h2>本章要点：三本账的估算口径</h2>
+    <div class="body">
+      <div class="grid g4">
+        <div class="card">
+          <span class="tag-sm">1.1 三本账</span>
+          <ul class="bul">
+            <li>算得动吗 · 放得下吗 · 扩得开吗</li>
+            <li>先确定问的是哪一本，再找方法</li>
+            <li>量级估算用来排除不合理判断，实测用来确认真实关键路径</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag-sm">1.2 计算</span>
+          <ul class="bul">
+            <li>GEMM、Attention、逐元素三类操作统一成 FLOPs 口径</li>
+            <li>投影随序列线性增长，Attention 随序列二次增长</li>
+            <li>用参数量反推：前向 <code>2P</code>、训练一步 <code>6P</code>、全程 <code>C ≈ 6PD</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag-sm">1.3 显存与数据移动</span>
+          <ul class="bul">
+            <li>层级：寄存器 → shared / L1 → L2 → HBM，越远越慢也越大</li>
+            <li>Roofline：算术强度决定计算还是带宽先到顶</li>
+            <li>峰值显存看<b>同时存活</b>的张量，不是各项机械相加</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag-sm">1.4 通信</span>
+          <ul class="bul">
+            <li>物理路径：HBM → NVLink → PCIe → 跨机 IB，带宽逐级下降</li>
+            <li>通信元语：send/recv、带 root 的四个、全员参与的四个</li>
+            <li>张量布局：复制 · 切分 · 分阶段，元语负责在布局之间转换</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <footer class="foot"><span>这套口径在 02、03 直接代入场景，不再重复推导</span><span>content/01</span></footer>
+  </div>
+</section>
+
 <section class="slide dark divider" id="ch2" data-ch="02 训练" data-title="章节开场">
   <div class="frame">
     <header class="head"><span class="kicker">Chapter <b>02</b></span><span class="num"></span></header>
@@ -1458,6 +1505,7 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
             <li><span class="i">①</span><span>训练流程与三类主要问题<em class="sub">一次 step 的时间线、显存曲线与 batch 口径</em></span></li>
             <li><span class="i">②</span><span>单卡优化：混合精度 · 梯度累积 · 重计算<em class="sub">三条杠杆动的是同一份账本</em></span></li>
             <li><span class="i">③</span><span>多卡优化：六类切分方法<em class="sub">DP · ZeRO / FSDP · TP · PP · SP / CP · EP，收在一张资源交换表</em></span></li>
+            <li><span class="i">小结</span><span>本章要点</span></li>
           </ol>
         </nav>
     </div>
@@ -2458,6 +2506,45 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
   </div>
 </section>
 
+<section class="slide recap" id="s-recap2" data-ch="02 训练" data-title="本章要点">
+  <div class="frame">
+    <header class="head"><span class="kicker">02 · <b>小结</b></span><span class="num"></span></header>
+    <h2>本章要点：训练的三段优化路径</h2>
+    <div class="body">
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag-sm">① 流程与主要问题</span>
+          <ul class="bul">
+            <li>工作单元是一次<b>参数更新</b>，不是一次 forward</li>
+            <li>显存峰值常出现在 forward 末尾，随激活变化</li>
+            <li><code>global batch = m × a × d</code>，改一个量要说明另外两个是否固定</li>
+            <li>三类问题：单卡放不下 · 单卡粒度不够或供给不足 · 多卡通信与等待抵消算力</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag-sm">② 单卡三条杠杆</span>
+          <ul class="bul">
+            <li><b>混合精度</b>：低精度做计算与搬运，较高精度做更新与关键归约</li>
+            <li><b>梯度累积</b>：缩小单次 forward/backward 的形状，global batch 不变</li>
+            <li><b>重计算</b>：只保存检查点，backward 前重算，用计算换显存</li>
+            <li>三者动的是同一份账本，不是三个互不相关的技巧</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag-sm">③ 多卡六类切分</span>
+          <ul class="bul">
+            <li>batch → <b>DP</b>；训练状态 → <b>ZeRO / FSDP</b>；层内张量 → <b>TP</b></li>
+            <li>层 → <b>PP</b>；序列 / 上下文 → <b>SP / CP</b>；专家 → <b>EP</b></li>
+            <li>每类都回答四问：少持有什么 · 少算什么 · 要交换什么 · 代价是什么</li>
+            <li>维度可以组合，但组合不会取消各自的代价</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <footer class="foot"><span>先确认是哪一类问题，再决定改哪一条杠杆或切哪一个维度</span><span>content/02</span></footer>
+  </div>
+</section>
+
 <!-- ============ 03 ============ -->
 <section class="slide dark divider" id="ch3" data-ch="03 推理" data-title="章节开场">
   <div class="frame">
@@ -2476,7 +2563,7 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
             <li><span class="i">3.3</span><span>单请求优化：量化 · kernel · 投机</span></li>
             <li><span class="i">3.4</span><span>并发服务：批处理与 KV 状态池</span></li>
             <li><span class="i">3.5</span><span>多卡部署：副本还是切分</span></li>
-            <li><span class="i">3.6</span><span>固定条件下的验证</span></li>
+            <li><span class="i">小结</span><span>本章要点</span></li>
           </ol>
         </nav>
     </div>
@@ -2940,6 +3027,59 @@ ul.bul li::before{content:"";position:absolute;left:.25em;top:.6em;width:.33em;h
       </div>
     </div>
     <footer class="foot"><span>跨节点 TP、KV 传输和复杂路由留到补充材料</span><span>content/03 · 3.5 · FACT-014</span></footer>
+  </div>
+</section>
+<section class="slide recap" id="s-recap3" data-ch="03 推理" data-title="本章要点">
+  <div class="frame">
+    <header class="head"><span class="kicker">03 · <b>小结</b></span><span class="num"></span></header>
+    <h2>本章要点：从单次执行到并发服务</h2>
+    <div class="body">
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag-sm">3.1 目标与指标口径</span>
+          <ul class="bul">
+            <li>同一个 token/s 可能回答三个问题：在线交互 · 在线非流式 · 离线生成</li>
+            <li>写清是 output tokens/s、input+output tokens/s 还是 requests/s，以及单卡还是整个服务</li>
+            <li>稳定并发 = 给定到达分布与 SLO 下能<b>持续</b>服务的并发</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag-sm">3.2 prefill 与 decode</span>
+          <ul class="bul">
+            <li>一次 prefill 建立 KV，之后每步 decode 读已有 KV 并追加</li>
+            <li>prefill 位置可并行、易形成大矩阵；decode 步骤之间串行、单步粒度小</li>
+            <li>两阶段落在 Roofline 的不同侧，主要影响 TTFT 与 TPOT</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag-sm">3.3 单请求提速</span>
+          <ul class="bul">
+            <li><b>量化</b>：少搬少存；权重、激活与 KV 是不同账本项，质量必须验证</li>
+            <li><b>融合与编译</b>：热点 shape 稳定、开销确在关键路径时才有收益</li>
+            <li><b>投机解码</b>：用可并行的验证换串行等待，要报告接受率与 drafter 开销</li>
+          </ul>
+        </div>
+      </div>
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag-sm">3.4 并发服务</span>
+          <ul class="bul">
+            <li><b>continuous batching</b>：按迭代调度，完成的请求退出、新请求随时进入</li>
+            <li><b>KV 状态池</b>：从连续预留改成按 block 分配，减少预留与碎片</li>
+            <li>长 prefill 会挤占正在 decode 的请求；chunked prefill 是 TTFT 与 ITL 之间的取舍</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag-sm">3.5 多卡部署</span>
+          <ul class="bul">
+            <li>放得下且单请求已达标 → 先比较 replicas；放不下 → 先比较量化，仍不够再用 TP / PP</li>
+            <li>只有计算或 HBM 下界确实主导单请求时，TP 才是降时延的候选</li>
+            <li>通信让 P99 变差时，不能因为「用了更多卡」就算作优化</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <footer class="foot"><span>任何比较之前先固定工作负载、质量边界与目标指标</span><span>content/03</span></footer>
   </div>
 </section>
 </main>
